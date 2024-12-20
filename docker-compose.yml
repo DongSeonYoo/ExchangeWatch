@@ -1,0 +1,14 @@
+# For the test
+
+# services:
+#   "db-name":
+#     image: postgres:16
+#     restart: always
+#     environment:
+#       POSTGRES_USER:
+#       POSTGRES_PASSWORD:
+#       POSTGRES_DB:
+#     ports:
+#       - 5433:5432
+#     volumes:
+#       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
