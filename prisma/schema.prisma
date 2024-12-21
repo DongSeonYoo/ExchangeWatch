@@ -79,7 +79,6 @@ model Users {
   email          String           @db.VarChar(255)
   name           String           @db.VarChar
   password       String?          @db.Char(60)
-  region         String           @db.VarChar
   socialProvider String?          @map("social_provider") @db.VarChar(20)
   socialId       String?          @map("social_id") @db.VarChar(100)
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
