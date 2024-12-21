@@ -2,6 +2,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "./ERD.md"
+  title    = "exchange-watch"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -79,8 +85,8 @@ model Users {
   email          String           @db.VarChar(255)
   name           String           @db.VarChar
   password       String?          @db.Char(60)
-  socialProvider String?          @map("social_provider") @db.VarChar(20)
-  socialId       String?          @map("social_id") @db.VarChar(100)
+  socialProvider String           @map("social_provider") @db.VarChar(20)
+  socialId       String           @map("social_id") @db.VarChar(100)
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime         @default(now()) @map("updated_at") @db.Timestamptz(6)
   deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
