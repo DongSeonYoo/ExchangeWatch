@@ -18,6 +18,11 @@ import { SuccessResponseInterceptor } from './interceptors/response.interceptor'
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { TokenModule } from './token/token.module';
 import { DateUtilModule } from './utils/date-util/date-util.module';
+import { ExchangeRateModule } from './apis/exchange-rate/exchange-rate.module';
+import { PriceAlertModule } from './apis/price-alert/price-alert.module';
+import { AlertHistoryModule } from './apis/alert-history/alert-history.module';
+import { NewsModule } from './apis/news/news.module';
+import { WatchlistModule } from './apis/watchlist/watchlist.module';
 
 @Module({
   imports: [
@@ -29,6 +34,11 @@ import { DateUtilModule } from './utils/date-util/date-util.module';
     PrismaModule,
     TokenModule,
     DateUtilModule,
+    ExchangeRateModule,
+    PriceAlertModule,
+    AlertHistoryModule,
+    NewsModule,
+    WatchlistModule,
   ],
   providers: [
     LoggerMiddleware,
