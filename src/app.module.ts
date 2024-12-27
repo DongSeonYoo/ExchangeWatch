@@ -23,6 +23,7 @@ import { PriceAlertModule } from './apis/price-alert/price-alert.module';
 import { AlertHistoryModule } from './apis/alert-history/alert-history.module';
 import { NewsModule } from './apis/news/news.module';
 import { WatchlistModule } from './apis/watchlist/watchlist.module';
+import { FixerModule } from './apis/fixer/fixer.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { WatchlistModule } from './apis/watchlist/watchlist.module';
     AlertHistoryModule,
     NewsModule,
     WatchlistModule,
+    FixerModule,
   ],
   providers: [
     LoggerMiddleware,
