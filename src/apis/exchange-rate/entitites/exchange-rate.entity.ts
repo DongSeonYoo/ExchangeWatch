@@ -1,3 +1,5 @@
+import prisma from '@prisma/client';
+
 export class ExchangeRateEntity {
   /**
    * 환율 인덱스
@@ -7,13 +9,13 @@ export class ExchangeRateEntity {
 
   /**
    * 기준 통화 코드
-   * @example "KRW"
+   * @example "EUR"
    */
   baseCurrency: string;
 
   /**
    * 통화 코드
-   * @example "USD"
+   * @example "KRW"
    */
   currencyCode: string;
 
@@ -28,4 +30,21 @@ export class ExchangeRateEntity {
    * @example "2024-01-01T00:00:00.000Z"
    */
   createdAt: Date;
+
+  /**
+   * convert prisma entity TO domain entity
+   *
+   * @param input prisma return type
+   * @returns domain entity
+   */
+  static from(input: prisma.ExchangeRates): ExchangeRateEntity {
+    const entity = new ExchangeRateEntity();
+    entity.idx = input.idx;
+    entity.baseCurrency = input.baseCurrency;
+    entity.currencyCode = input.currencyCode;
+    entity.rate = input.rate.toNumber();
+    entity.createdAt = input.createdAt;
+
+    return entity;
+  }
 }
