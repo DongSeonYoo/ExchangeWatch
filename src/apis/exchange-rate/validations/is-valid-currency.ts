@@ -1,4 +1,8 @@
-import { registerDecorator, ValidationOptions } from 'class-validator';
+import {
+  registerDecorator,
+  ValidationOptions,
+  ValidationArguments,
+} from 'class-validator';
 import * as currency from 'currency-codes';
 import { InvalidCurrencyCodeException } from '../exceptions/invalid-currency-code';
 
@@ -11,17 +15,32 @@ export function IsValidCurrencyCode(validationOptions?: ValidationOptions) {
       name: 'isValidCurrency',
       target: obj.constructor,
       propertyName: propertyName,
-      options: validationOptions,
       validator: {
-        validate(value: any) {
-          if (!value || typeof value !== 'string') return false;
-          if (value.length !== 3) return false;
+        validate(value: string | string[]) {
+          if (propertyName === 'baseCurrency') {
+            if (!value) return false;
+            return currency.codes().includes(String(value).toUpperCase());
+          }
 
-          return currency.codes().includes(value.toUpperCase());
+          // propertyName === 'currenyCodes'
+          if (!value) return true;
+          const codes = Array.isArray(value) ? value : value.split(',');
+
+          // remove whitespace from array emelemets && validate each code is a valid currency
+          const res = codes
+            .map((code) => code.replace(/(\s*)/g, ''))
+            .every(
+              (code) =>
+                code.length === 3 &&
+                currency.codes().includes(code.toUpperCase()),
+            );
+
+          return res;
         },
-        defaultMessage() {
-          throw new InvalidCurrencyCodeException();
-          return '';
+        defaultMessage(args: ValidationArguments) {
+          throw new InvalidCurrencyCodeException(
+            `[${args.property}]=${args.value}`,
+          );
         },
       },
     });
