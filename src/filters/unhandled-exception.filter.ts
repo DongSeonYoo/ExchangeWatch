@@ -9,7 +9,6 @@ import { IExceptionResponse } from 'src/interfaces/response.interface';
 
 @Catch(Error)
 export class UnhandledExceptionFilter implements ExceptionFilter {
-
   constructor(private readonly logger: Logger) {}
   catch(exception: Error, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -24,7 +23,11 @@ export class UnhandledExceptionFilter implements ExceptionFilter {
       timestamp: new Date(),
     };
 
-    this.logger.error(exception);
+    this.logger.error(
+      exception.message,
+      exception.stack,
+      UnhandledExceptionFilter.name,
+    );
 
     return res.status(statusCode).send(response);
   }
