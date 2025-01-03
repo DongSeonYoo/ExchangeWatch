@@ -17,7 +17,7 @@ export class CurrentExchangeRateReqDto {
   /**
    * 조회 할 통화
    *
-   * @example KRW,JPY,USD
+   * @example USD, JPY
    */
   @ApiProperty({ type: String })
   @Transform(
