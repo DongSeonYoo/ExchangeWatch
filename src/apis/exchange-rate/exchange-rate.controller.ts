@@ -29,7 +29,17 @@ export class ExchangeRateController {
   async getCurrentExchangeRates(
     @Query() query: CurrentExchangeRateReqDto,
   ): Promise<CurrentExchangeRateResDto> {
-    return await this.exchangeRateService.getCurrencyExchangeRates(query);
+    const { latestRates, fluctuationRates } =
+      await this.exchangeRateService.getCurrencyExchangeRates(
+        query.baseCurrency,
+        query.currencyCodes,
+      );
+
+    return CurrentExchangeRateResDto.of(
+      latestRates,
+      fluctuationRates,
+      query.currencyCodes,
+    );
   }
 
   /**
