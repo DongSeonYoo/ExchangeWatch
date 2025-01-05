@@ -1,6 +1,6 @@
 import prisma from '@prisma/client';
 
-export class ExchangeRateEntity {
+export class ExchangeRatesEntity {
   /**
    * 환율 인덱스
    * @example 1
@@ -37,8 +37,8 @@ export class ExchangeRateEntity {
    * @param input prisma return type
    * @returns domain entity
    */
-  static from(input: prisma.ExchangeRates): ExchangeRateEntity {
-    const entity = new ExchangeRateEntity();
+  static from(input: prisma.ExchangeRates): ExchangeRatesEntity {
+    const entity = new ExchangeRatesEntity();
     entity.idx = input.idx;
     entity.baseCurrency = input.baseCurrency;
     entity.currencyCode = input.currencyCode;
