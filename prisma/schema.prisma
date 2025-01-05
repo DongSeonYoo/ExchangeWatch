@@ -20,7 +20,7 @@ model AlertHistories {
   alertIdx    String      @map("alert_idx") @db.Uuid
   rate        Decimal     @db.Decimal(20, 8)
   triggeredAt DateTime    @default(now()) @map("triggered_at") @db.Timestamptz(6)
-  PriceAlerts PriceAlerts @relation(fields: [alertIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_price_alerts_to_alert_histories")
+  priceAlerts PriceAlerts @relation(fields: [alertIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_price_alerts_to_alert_histories")
   users       Users       @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_alert_histories")
 
   @@index([alertIdx], map: "idx_alert_histories_alert")
@@ -35,7 +35,6 @@ model ExchangeRates {
   rate         Decimal  @db.Decimal(20, 8)
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@unique([currencyCode, baseCurrency, createdAt], map: "exchange_rates_unique")
   @@index([currencyCode, baseCurrency, createdAt(sort: Desc)], map: "idx_exchange_rates_latest")
   @@map("exchange_rates")
 }
@@ -72,7 +71,7 @@ model PriceAlerts {
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime         @default(now()) @map("updated_at") @db.Timestamptz(6)
   deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
-  AlertHistories AlertHistories[]
+  alertHistories AlertHistories[]
   users          Users            @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_price_alerts")
 
   @@index([userIdx, currencyCode, baseCurrency], map: "idx_price_alerts_user")
@@ -90,9 +89,9 @@ model Users {
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime         @default(now()) @map("updated_at") @db.Timestamptz(6)
   deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
-  AlertHistories AlertHistories[]
-  PriceAlerts    PriceAlerts[]
-  Watchlist      Watchlist[]
+  alertHistories AlertHistories[]
+  priceAlerts    PriceAlerts[]
+  watchlist      Watchlist[]
 
   @@unique([email, deletedAt], map: "users_email_unique")
   @@unique([socialProvider, socialId, deletedAt], map: "users_social_unique")
@@ -108,9 +107,27 @@ model Watchlist {
   displayOrder Int      @map("display_order")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
-  Users        Users    @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_watchlist")
+  users        Users    @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_watchlist")
 
   @@unique([userIdx, currencyCode, baseCurrency], map: "watchlist_unique_currency")
   @@index([userIdx, displayOrder], map: "idx_watchlist_user")
   @@map("watchlist")
+}
+
+model ExchangeRatesDaily {
+  idx          Int      @id @default(autoincrement())
+  baseCurrency String   @map("base_currency") @db.Char(3)
+  currencyCode String   @map("currency_code") @db.Char(3)
+  date         DateTime @db.Date
+  openRate     Decimal  @map("open_rate") @db.Decimal(20, 8)
+  highRate     Decimal  @map("high_rate") @db.Decimal(20, 8)
+  lowRate      Decimal  @map("low_rate") @db.Decimal(20, 8)
+  closeRate    Decimal  @map("close_rate") @db.Decimal(20, 8)
+  avgRate      Decimal  @map("avg_rate") @db.Decimal(20, 8)
+  rateCount    Int      @map("rate_count")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([currencyCode, baseCurrency, date], map: "exchange_rates_daily_unique")
+  @@index([currencyCode, baseCurrency, date(sort: Desc)], map: "idx_exchange_rates_daily_lookup")
+  @@map("exchange_rates_daily")
 }
