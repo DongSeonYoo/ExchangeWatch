@@ -3,10 +3,10 @@ import { ApiTags } from '@nestjs/swagger';
 import {
   CurrentExchangeRateReqDto,
   CurrentExchangeRateResDto,
-} from './dto/current-exchange-rate.dto';
+} from './dto/exchange-rates.dto';
 import { ApiSuccess } from '../../decorators/swaggers/success.decorator';
 import { ApiExceptions } from '../../decorators/swaggers/exception.decorator';
-import { CurrentExchangeHistoryReqDto } from './dto/current-exchange-history.dto';
+import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
 import { InvalidCurrencyCodeException } from '../../decorators/validations/exceptions/invalid-currency-code';
 import { ExchangeRateService } from './exchange-rate.service';
 
