@@ -1,8 +1,7 @@
 import { Logger, Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { ConfigService } from '@nestjs/config';
-import { Redis } from 'ioredis';
-
+import Redis from 'ioredis';
 @Module({
   providers: [
     {
