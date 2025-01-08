@@ -19,7 +19,7 @@ export class ExchageRateScheduler {
    * @throws {FixerAPIException} When API call fails
    * @throws {DatabaseException} When database operation fails
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async aggregateLatestRates() {
     try {
       await this.exchangeRateService.saveLatestRates();
