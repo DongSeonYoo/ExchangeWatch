@@ -5,8 +5,6 @@ import {
   NestModule,
   ValidationPipe,
 } from '@nestjs/common';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './apis/users/users.module';
 import { AuthModule } from './apis/auth/auth.module';
@@ -24,11 +22,20 @@ import { AlertHistoryModule } from './apis/alert-history/alert-history.module';
 import { NewsModule } from './apis/news/news.module';
 import { WatchlistModule } from './apis/watchlist/watchlist.module';
 import { FixerModule } from './apis/fixer/fixer.module';
+import { appConfig } from './configs/env/env.config';
+import { envValidationSchema } from './configs/env/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validationSchema: envValidationSchema,
+      load: [appConfig],
+      validationOptions: {
+        abortEarly: false,
+      },
+      cache: true,
+      expandVariables: true,
     }),
     UsersModule,
     AuthModule,

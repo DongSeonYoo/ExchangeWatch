@@ -7,7 +7,7 @@ import { LatestRateCache } from './interface/currency-rate.interface';
 @Injectable()
 export class RedisService implements OnModuleInit {
   private readonly CACHE_TTL = {
-    CURRENT_RATES: 15 * 60, // 15 min
+    CURRENT_RATES: this.configService.get<number>('LATEST_CURRENCY_CACHE_TTL'),
   };
 
   constructor(
