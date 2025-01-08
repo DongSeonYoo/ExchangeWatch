@@ -1,3 +1,5 @@
+import Prisma from '@prisma/client';
+
 export class ExchangeRatesDailyEntity {
   /**
    * 고유 식별자
@@ -68,4 +70,19 @@ export class ExchangeRatesDailyEntity {
    * @example "2024-01-01T00:00:00.000Z"
    */
   createdAt: Date;
+
+  constructor(args: ExchangeRatesDailyEntity) {
+    Object.assign(this, args);
+  }
+
+  static from(args: Prisma.ExchangeRatesDaily): ExchangeRatesDailyEntity {
+    return new ExchangeRatesDailyEntity({
+      ...args,
+      highRate: args.highRate.toNumber(),
+      openRate: args.openRate.toNumber(),
+      lowRate: args.lowRate.toNumber(),
+      closeRate: args.closeRate.toNumber(),
+      avgRate: args.avgRate.toNumber(),
+    });
+  }
 }

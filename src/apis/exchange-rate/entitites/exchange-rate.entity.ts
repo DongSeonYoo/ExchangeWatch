@@ -31,20 +31,20 @@ export class ExchangeRatesEntity {
    */
   createdAt: Date;
 
+  constructor(args: ExchangeRatesEntity) {
+    Object.assign(this, args);
+  }
+
   /**
    * convert prisma entity TO domain entity
    *
    * @param input prisma return type
    * @returns domain entity
    */
-  static from(input: prisma.ExchangeRates): ExchangeRatesEntity {
-    const entity = new ExchangeRatesEntity();
-    entity.idx = input.idx;
-    entity.baseCurrency = input.baseCurrency;
-    entity.currencyCode = input.currencyCode;
-    entity.rate = input.rate.toNumber();
-    entity.createdAt = input.createdAt;
-
-    return entity;
+  static from(args: prisma.ExchangeRates): ExchangeRatesEntity {
+    return new ExchangeRatesEntity({
+      ...args,
+      rate: args.rate.toNumber(),
+    });
   }
 }
