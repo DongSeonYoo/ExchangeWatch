@@ -1,13 +1,18 @@
+import { BadRequestException, Logger } from '@nestjs/common';
 import {
   registerDecorator,
   ValidationOptions,
   ValidationArguments,
 } from 'class-validator';
-import { InvalidPropertyException } from '../../apis/exchange-rate/exceptions/invalid-property.exception';
 
 /**
- * @param targetPropertyName target property name in same context
+ * Check if the date properties have valid range
+ *
+ * @param targetPropertyName target property name in same context or class
  * @param [validationOptions]
+ *
+ * @throws IsStartedAtEndedAtException
+ * @throws InvalidPropertyException
  */
 export function IsStartedAtEndedAt(
   targetPropertyName: string,
@@ -25,14 +30,35 @@ export function IsStartedAtEndedAt(
           const [relatedProperty] = args.constraints;
           const targetValue: string | undefined = args.object[relatedProperty];
           if (!targetValue) {
-            return false;
+            throw new InvalidPropertyException(relatedProperty);
           }
-          return true;
+
+          return value < targetValue;
         },
-        defaultMessage(validationArguments: ValidationArguments) {
-          throw new InvalidPropertyException(validationArguments.value);
+
+        defaultMessage(validationArguments) {
+          throw new IsStartedAtEndedAtException();
         },
       },
     });
   };
+}
+
+export class IsStartedAtEndedAtException extends BadRequestException {
+  constructor(message = 'Please check the date properties') {
+    super(message);
+  }
+}
+
+/**
+ * Check for developler mistakes when using decorator arguments
+ *
+ * @throws Error
+ */
+class InvalidPropertyException extends Error {
+  private readonly logger = new Logger(InvalidPropertyException.name);
+  constructor(propertyName: string) {
+    super();
+    this.logger.error(`check out the arguments of IsStartedEndedAt decorators`);
+  }
 }

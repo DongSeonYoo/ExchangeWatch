@@ -1,10 +1,10 @@
+import { BadRequestException } from '@nestjs/common';
 import {
   registerDecorator,
   ValidationOptions,
   ValidationArguments,
 } from 'class-validator';
 import * as currency from 'currency-codes';
-import { InvalidCurrencyCodeException } from '../../apis/exchange-rate/exceptions/invalid-currency-code.exception';
 
 /**
  * Validate currency-code based on ISO-4217
@@ -38,11 +38,20 @@ export function IsValidCurrencyCode(validationOptions?: ValidationOptions) {
           return res;
         },
         defaultMessage(args: ValidationArguments) {
-          throw new InvalidCurrencyCodeException(
-            `[${args.property}]=${args.value}`,
-          );
+          throw new InvalidCurrencyCodeException();
         },
       },
     });
   };
+}
+
+/**
+ * Check currency code from request
+ *
+ * { @throws } BadRequestException
+ */
+export class InvalidCurrencyCodeException extends BadRequestException {
+  constructor(message: string = 'Invalid currency code') {
+    super(message);
+  }
 }
