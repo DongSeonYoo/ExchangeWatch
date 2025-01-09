@@ -4,7 +4,7 @@ import {
   ValidationArguments,
 } from 'class-validator';
 import * as currency from 'currency-codes';
-import { InvalidCurrencyCodeException } from '../exceptions/invalid-currency-code';
+import { InvalidCurrencyCodeException } from '../../apis/exchange-rate/exceptions/invalid-currency-code.exception';
 
 /**
  * Validate currency-code based on ISO-4217

@@ -1,5 +1,5 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
-import { IsValidCurrencyCode } from '../../../decorators/validations/validations/is-valid-currency';
+import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty } from 'class-validator';
 import { IFixerAPIResponse } from '../interface/fixer-api.response';

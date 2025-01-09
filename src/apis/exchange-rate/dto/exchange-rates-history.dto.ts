@@ -1,39 +1,34 @@
-import { PickType } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty } from 'class-validator';
-import { ExchangeRatesEntity } from '../entitites/exchange-rate.entity';
-import { Type } from 'class-transformer';
-import { IsValidCurrencyCode } from '../../../decorators/validations/validations/is-valid-currency';
+import { IsNotEmpty } from 'class-validator';
+import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency';
 
-export class CurrentExchangeHistoryReqDto extends PickType(
-  ExchangeRatesEntity,
-  ['baseCurrency', 'currencyCode'],
-) {
+export class CurrentExchangeHistoryReqDto {
+  /**
+   * 기준 통화
+   *
+   * @example EUR
+   */
   @IsNotEmpty()
   @IsValidCurrencyCode()
-  currencyCode: string;
-
-  @IsNotEmpty()
   baseCurrency: string;
+
+  /**
+   * 비교할 대상 통화
+   *
+   * @example KRW
+   */
+  currencyCode: string;
 
   /**
    * 시작 시간 (ISO 8601)
    *
    * @todo validtor 추가
    */
-  @IsNotEmpty()
-  @IsDateString()
-  @Type(() => Date)
-  from: Date;
 
   /**
    * 종료 시간 (ISO 8601)
    *
    * @todo validtor 추가
    */
-  @IsNotEmpty()
-  @IsDateString()
-  @Type(() => Date)
-  to: Date;
 }
 
 // 저번프로젝트 뒤져서 from보다 이후시점 검증하는 커스텀 벨리데이터 만들어야댐
