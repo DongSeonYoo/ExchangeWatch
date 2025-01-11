@@ -1,5 +1,5 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
-import { IsValidCurrencyCode } from '../../../decorators/validations/validations/is-valid-currency';
+import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency.validator';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty } from 'class-validator';
 import { IFixerAPIResponse } from '../interface/fixer-api.response';
@@ -31,25 +31,39 @@ export class CurrentExchangeRateReqDto {
 }
 
 class RateDetail {
-  @ApiProperty({ description: '현재 환율' })
+  /**
+   * 환율
+   */
   rate: number;
 
-  @ApiProperty({ description: '전일대비 등락률' })
+  /**
+   * 전일대비 등락
+   */
   dayChange: number;
 
-  @ApiProperty({ description: '전일대비 등락 퍼센트' })
+  /**
+   * 전일대비 등락율
+   */
   dayChangePercent: number;
 
-  @ApiProperty({ description: '24시 전고가' })
+  /**
+   * 24시 전고가
+   */
   high24h: number;
 
-  @ApiProperty({ description: '24시 전저가' })
+  /**
+   * 24시 전저가
+   */
   low24h: number;
 }
 
 @ApiExtraModels(RateDetail)
 export class CurrentExchangeRateResDto {
-  @ApiProperty({ example: 'EUR' })
+  /**
+   * 기준 통화
+   *
+   * @example EUR
+   */
   baseCurrency: string;
 
   @ApiProperty({
@@ -87,7 +101,6 @@ export class CurrentExchangeRateResDto {
   }
 
   /**
-   *
    * @param currentRates currentRates api result
    * @param fluctuationRates fluctuationRates api result
    * @param [currencyCodes] required currencyCodes

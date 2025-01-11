@@ -1,41 +1,130 @@
-import { PickType } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty } from 'class-validator';
-import { ExchangeRatesEntity } from '../entitites/exchange-rate.entity';
-import { Type } from 'class-transformer';
-import { IsValidCurrencyCode } from '../../../decorators/validations/validations/is-valid-currency';
+import { IsDate, IsNotEmpty } from 'class-validator';
+import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency.validator';
+import { Transform } from 'class-transformer';
+import { IsStartedAtEndedAt } from '../../../decorators/validations/is-start-ended.validator';
+import { ApiExtraModels } from '@nestjs/swagger';
 
-export class CurrentExchangeHistoryReqDto extends PickType(
-  ExchangeRatesEntity,
-  ['baseCurrency', 'currencyCode'],
-) {
+export class CurrentExchangeHistoryReqDto {
+  /**
+   * 기준 통화
+   *
+   * @example EUR
+   */
+  @IsNotEmpty()
+  @IsValidCurrencyCode()
+  baseCurrency: string;
+
+  /**
+   * 비교할 대상 통화
+   *
+   * @example KRW
+   */
   @IsNotEmpty()
   @IsValidCurrencyCode()
   currencyCode: string;
 
-  @IsNotEmpty()
+  /**
+   * 시작 시간
+   *
+   * @example 2024-01-01
+   */
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  @IsStartedAtEndedAt('endedAt')
+  startedAt: Date;
+
+  /**
+   * 종료 시간
+   *
+   * @example 2024-01-07
+   */
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  endedAt: Date;
+
+  /**
+   * @TODO: Implement validator that can be able to check how many hours or days ago the from current time.
+   *
+   * @example
+   *  @IsDateAgo(7, 'days')
+   *  @IsDateAgo(1, 'hours')
+   *  @IsDateAgo(1, 'years')
+   */
+}
+
+export class RateHistory {
+  /**
+   * 날짜
+   *
+   * @example 2024-01-01
+   */
+  date: string;
+
+  /**
+   * 시가
+   *
+   * @example 1304.50
+   */
+  open: number;
+
+  /**
+   * 고가
+   *
+   * @example 1304.50
+   */
+  high: number;
+
+  /**
+   * 저가
+   *
+   * @example 1304.50
+   */
+  low: number;
+
+  /**
+   * 종가
+   *
+   * @example 1304.50
+   */
+  close: number;
+
+  /**
+   * 평균가
+   *
+   * @example 1304.50
+   */
+  average: number;
+
+  /**
+   * 수집된 데이터 수 (1일 144개 정상)
+   *
+   * @example 144
+   */
+  rateCount: number;
+}
+
+@ApiExtraModels(RateHistory)
+export class CurrentExchangeHistoryResDto {
+  /**
+   * 기준 통화
+   *
+   * @example EUR
+   */
   baseCurrency: string;
 
   /**
-   * 시작 시간 (ISO 8601)
+   * 비교할 대상 통화
    *
-   * @todo validtor 추가
+   * @example KRW
    */
-  @IsNotEmpty()
-  @IsDateString()
-  @Type(() => Date)
-  from: Date;
+  currencyCode: string;
 
   /**
-   * 종료 시간 (ISO 8601)
-   *
-   * @todo validtor 추가
+   * 일별 OHLC 데이터
    */
-  @IsNotEmpty()
-  @IsDateString()
-  @Type(() => Date)
-  to: Date;
-}
+  rates: RateHistory[];
 
-// 저번프로젝트 뒤져서 from보다 이후시점 검증하는 커스텀 벨리데이터 만들어야댐
-// 현재 시간으로부터 몇일 전까지만 조회 가능 밸리데이터도.
-// 통화 코드 커스텀 밸리데이터
+  constructor(args: CurrentExchangeHistoryResDto) {
+    Object.assign(this, args);
+  }
+}
