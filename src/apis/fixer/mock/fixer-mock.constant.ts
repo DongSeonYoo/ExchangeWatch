@@ -1,14 +1,58 @@
 // based on fixer.io each standard response type
-
 import { IFixerAPIResponse } from '../../exchange-rate/interface/fixer-api.response';
 
+export const mockLatestRatesFn = (
+  base: string = 'EUR',
+  symbols?: string[],
+): Promise<IFixerAPIResponse.IRateResponse> => {
+  const copyObj = { ...MOCK_LATEST_RATES };
+  const rates = { ...copyObj.rates };
+
+  const filteredRates = symbols?.length
+    ? Object.fromEntries(
+        Object.entries(rates).filter(([currency]) =>
+          symbols.includes(currency),
+        ),
+      )
+    : rates;
+
+  return Promise.resolve({
+    ...copyObj,
+    base,
+    rates: filteredRates,
+  });
+};
+
+export const mockFluctuationRatesFn = (
+  start_date: Date,
+  end_date: Date,
+  base: string = 'EUR',
+  symbols?: string[],
+): Promise<IFixerAPIResponse.IFluctuationResponse> => {
+  const copyObj = { ...MOCK_FLUCTUATION_RATES };
+  const rates = { ...copyObj.rates };
+
+  const filteredRates = symbols?.length
+    ? Object.fromEntries(
+        Object.entries(rates).filter(([currency]) =>
+          symbols.includes(currency),
+        ),
+      )
+    : rates;
+
+  return Promise.resolve({
+    ...copyObj,
+    ...filteredRates,
+  });
+};
+
 /** Latest currency
- * @query [base] = EUR
+ * @query [base] = EUR (default)
  * @query [symbols]
  *
  * @endpoint http://data.fixer.io/api/latest
  */
-export const MOCK_LATEST_RATES: IFixerAPIResponse.IRateResponse = {
+const MOCK_LATEST_RATES: IFixerAPIResponse.IRateResponse = {
   success: true,
   timestamp: 1735327443 as unknown as Date,
   base: 'EUR',
@@ -427,31 +471,325 @@ export const MOCK_TIMESIRIES_ENDPOINT: IFixerAPIResponse.ITimeSireiesResponse =
 
 /**
  * Fluctuation Endpoint
- * @query start_date = 2015-12-01
- * @query end_date = 2015-12-24
- * @query [base] = EUR
- * @query [symbols] = USD, JPY
+ * @query start_date
+ * @query end_date
+ * @query [base]
+ * @query [symbols]
  *
  * @endpoint http://data.fixer.io/api/fluctuation
  */
-export const MOCK_FLUCTUATION_RATES: IFixerAPIResponse.IFluctuationResponse = {
+const MOCK_FLUCTUATION_RATES: IFixerAPIResponse.IFluctuationResponse = {
   success: true,
   fluctuation: true,
-  start_date: '2018-02-25' as unknown as Date,
-  end_date: '2018-02-26' as unknown as Date,
+  start_date: '2024-01-10' as unknown as Date,
+  end_date: '2024-01-11' as unknown as Date,
   base: 'EUR',
   rates: {
+    AED: {
+      start_rate: 3.829051,
+      end_rate: 3.839051,
+      change: 0.01,
+      change_pct: 0.261,
+    },
+    AFN: {
+      start_rate: 73.396117,
+      end_rate: 73.596117,
+      change: 0.2,
+      change_pct: 0.272,
+    },
+    ALL: {
+      start_rate: 98.044588,
+      end_rate: 98.244588,
+      change: 0.2,
+      change_pct: 0.204,
+    },
+    AMD: {
+      start_rate: 413.327458,
+      end_rate: 413.527458,
+      change: 0.2,
+      change_pct: 0.048,
+    },
+    ANG: {
+      start_rate: 1.878897,
+      end_rate: 1.888897,
+      change: 0.01,
+      change_pct: 0.532,
+    },
+    AOA: {
+      start_rate: 950.752648,
+      end_rate: 951.752648,
+      change: 1,
+      change_pct: 0.105,
+    },
+    ARS: {
+      start_rate: 1072.477645,
+      end_rate: 1073.477645,
+      change: 1,
+      change_pct: 0.093,
+    },
+    AUD: {
+      start_rate: 1.677231,
+      end_rate: 1.687231,
+      change: 0.01,
+      change_pct: 0.596,
+    },
+    AWG: {
+      start_rate: 1.876485,
+      end_rate: 1.886485,
+      change: 0.01,
+      change_pct: 0.533,
+    },
+    AZN: {
+      start_rate: 1.776374,
+      end_rate: 1.786374,
+      change: 0.01,
+      change_pct: 0.563,
+    },
+    BAM: {
+      start_rate: 1.953311,
+      end_rate: 1.963311,
+      change: 0.01,
+      change_pct: 0.512,
+    },
+    BBD: {
+      start_rate: 2.105007,
+      end_rate: 2.115007,
+      change: 0.01,
+      change_pct: 0.475,
+    },
+    BDT: {
+      start_rate: 124.611204,
+      end_rate: 124.811204,
+      change: 0.2,
+      change_pct: 0.161,
+    },
+    BGN: {
+      start_rate: 1.955781,
+      end_rate: 1.965781,
+      change: 0.01,
+      change_pct: 0.511,
+    },
+    BHD: {
+      start_rate: 0.393176,
+      end_rate: 0.394176,
+      change: 0.001,
+      change_pct: 0.254,
+    },
+    BIF: {
+      start_rate: 3082.9565,
+      end_rate: 3083.9565,
+      change: 1,
+      change_pct: 0.032,
+    },
+    BMD: {
+      start_rate: 1.042492,
+      end_rate: 1.052492,
+      change: 0.01,
+      change_pct: 0.959,
+    },
+    BND: {
+      start_rate: 1.416488,
+      end_rate: 1.426488,
+      change: 0.01,
+      change_pct: 0.706,
+    },
+    BOB: {
+      start_rate: 7.203785,
+      end_rate: 7.213785,
+      change: 0.01,
+      change_pct: 0.139,
+    },
+    BRL: {
+      start_rate: 6.454903,
+      end_rate: 6.464903,
+      change: 0.01,
+      change_pct: 0.155,
+    },
+    BSD: {
+      start_rate: 1.042566,
+      end_rate: 1.052566,
+      change: 0.01,
+      change_pct: 0.959,
+    },
+    BTC: {
+      start_rate: 0.00001106208,
+      end_rate: 0.00001116208,
+      change: 0.0000001,
+      change_pct: 0.904,
+    },
+    BTN: {
+      start_rate: 89.194908,
+      end_rate: 89.394908,
+      change: 0.2,
+      change_pct: 0.224,
+    },
+    BWP: {
+      start_rate: 14.500452,
+      end_rate: 14.600452,
+      change: 0.1,
+      change_pct: 0.69,
+    },
+    BYN: {
+      start_rate: 3.411836,
+      end_rate: 3.421836,
+      change: 0.01,
+      change_pct: 0.293,
+    },
+    BYR: {
+      start_rate: 20432.833762,
+      end_rate: 20433.833762,
+      change: 1,
+      change_pct: 0.005,
+    },
+    BZD: {
+      start_rate: 2.094221,
+      end_rate: 2.104221,
+      change: 0.01,
+      change_pct: 0.478,
+    },
+    CAD: {
+      start_rate: 1.503336,
+      end_rate: 1.513336,
+      change: 0.01,
+      change_pct: 0.665,
+    },
+    CDF: {
+      start_rate: 2991.951035,
+      end_rate: 2992.951035,
+      change: 1,
+      change_pct: 0.033,
+    },
+    CHF: {
+      start_rate: 0.940436,
+      end_rate: 0.950436,
+      change: 0.01,
+      change_pct: 1.063,
+    },
+    CLF: {
+      start_rate: 0.037521,
+      end_rate: 0.038521,
+      change: 0.001,
+      change_pct: 2.665,
+    },
+    CLP: {
+      start_rate: 1035.309164,
+      end_rate: 1036.309164,
+      change: 1,
+      change_pct: 0.097,
+    },
+    CNY: {
+      start_rate: 7.608629,
+      end_rate: 7.618629,
+      change: 0.01,
+      change_pct: 0.131,
+    },
+    CNH: {
+      start_rate: 7.608661,
+      end_rate: 7.618661,
+      change: 0.01,
+      change_pct: 0.131,
+    },
+    COP: {
+      start_rate: 4597.387596,
+      end_rate: 4598.387596,
+      change: 1,
+      change_pct: 0.022,
+    },
+    CRC: {
+      start_rate: 528.923438,
+      end_rate: 529.923438,
+      change: 1,
+      change_pct: 0.189,
+    },
+    CUC: {
+      start_rate: 1.042492,
+      end_rate: 1.052492,
+      change: 0.01,
+      change_pct: 0.959,
+    },
+    CUP: {
+      start_rate: 27.626025,
+      end_rate: 27.726025,
+      change: 0.1,
+      change_pct: 0.362,
+    },
+    CVE: {
+      start_rate: 110.124664,
+      end_rate: 110.324664,
+      change: 0.2,
+      change_pct: 0.182,
+    },
+    CZK: {
+      start_rate: 25.214785,
+      end_rate: 25.314785,
+      change: 0.1,
+      change_pct: 0.397,
+    },
+    DJF: {
+      start_rate: 185.272003,
+      end_rate: 185.472003,
+      change: 0.2,
+      change_pct: 0.108,
+    },
+    DKK: {
+      start_rate: 7.457839,
+      end_rate: 7.467839,
+      change: 0.01,
+      change_pct: 0.134,
+    },
+    DOP: {
+      start_rate: 63.408892,
+      end_rate: 63.508892,
+      change: 0.1,
+      change_pct: 0.158,
+    },
+    DZD: {
+      start_rate: 141.343127,
+      end_rate: 141.543127,
+      change: 0.2,
+      change_pct: 0.141,
+    },
+    EGP: {
+      start_rate: 53.036552,
+      end_rate: 53.136552,
+      change: 0.1,
+      change_pct: 0.189,
+    },
+    ERN: {
+      start_rate: 15.637373,
+      end_rate: 15.737373,
+      change: 0.1,
+      change_pct: 0.64,
+    },
+    ETB: {
+      start_rate: 133.035331,
+      end_rate: 133.235331,
+      change: 0.2,
+      change_pct: 0.15,
+    },
+    EUR: {
+      start_rate: 1,
+      end_rate: 1,
+      change: 0,
+      change_pct: 0,
+    },
     USD: {
-      start_rate: 1.228952,
-      end_rate: 1.232735,
-      change: 0.0038,
-      change_pct: 0.3078,
+      start_rate: 1.042492,
+      end_rate: 1.052492,
+      change: 0.01,
+      change_pct: 0.959,
     },
     JPY: {
-      start_rate: 131.587611,
-      end_rate: 131.651142,
-      change: 0.0635,
-      change_pct: 0.0483,
+      start_rate: 164.596942,
+      end_rate: 164.796942,
+      change: 0.2,
+      change_pct: 0.121,
+    },
+    KRW: {
+      start_rate: 1536.080377,
+      end_rate: 1537.080377,
+      change: 1,
+      change_pct: 0.065,
     },
   },
 };

@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import {
-  MOCK_FLUCTUATION_RATES,
   MOCK_HISTORICAL_RATES,
-  MOCK_LATEST_RATES,
+  mockFluctuationRatesFn,
+  mockLatestRatesFn,
 } from './fixer-mock.constant';
 import { IFixerAPIResponse } from '../../exchange-rate/interface/fixer-api.response';
-import { ICurrencyService } from '../../exchange-rate/interface/currency.service.interface';
+import { IFixerService } from '../../exchange-rate/interface/currency.service.interface';
 
 @Injectable()
-export class MockFixerService implements ICurrencyService {
+export class MockFixerService implements IFixerService {
   getLatestRates(
     base?: string,
     symbols?: string[],
   ): Promise<IFixerAPIResponse.IRateResponse> {
-    return Promise.resolve(MOCK_LATEST_RATES);
+    return Promise.resolve(mockLatestRatesFn(base, symbols));
   }
 
   getHistoricalRates(
@@ -30,6 +30,8 @@ export class MockFixerService implements ICurrencyService {
     base?: string,
     symbols?: string[],
   ): Promise<IFixerAPIResponse.IFluctuationResponse> {
-    return Promise.resolve(MOCK_FLUCTUATION_RATES);
+    return Promise.resolve(
+      mockFluctuationRatesFn(start_date, end_date, base, symbols),
+    );
   }
 }
