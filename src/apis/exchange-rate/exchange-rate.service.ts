@@ -18,7 +18,12 @@ export class ExchangeRateService {
   ) {
     const [latestRates, fluctuationRates] = await Promise.all([
       this.fixerService.getLatestRates(baseCurrency, currencyCodes),
-      this.fixerService.getFluctuationRates(new Date(), new Date()),
+      this.fixerService.getFluctuationRates(
+        new Date(),
+        new Date(),
+        'EUR',
+        currencyCodes,
+      ),
     ]);
 
     return {
