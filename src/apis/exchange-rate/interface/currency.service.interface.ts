@@ -1,6 +1,6 @@
 import { IFixerAPIResponse } from './fixer-api.response';
 
-export interface ICurrencyService {
+export interface IFixerService {
   // Get latest rates
   getLatestRates(
     base?: string,
