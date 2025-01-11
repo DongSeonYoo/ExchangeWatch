@@ -1,5 +1,8 @@
-import { IsNotEmpty } from 'class-validator';
-import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency';
+import { IsDate, IsNotEmpty } from 'class-validator';
+import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency.validator';
+import { Transform } from 'class-transformer';
+import { IsStartedAtEndedAt } from '../../../decorators/validations/is-start-ended.validator';
+import { ApiExtraModels } from '@nestjs/swagger';
 
 export class CurrentExchangeHistoryReqDto {
   /**
@@ -16,21 +19,112 @@ export class CurrentExchangeHistoryReqDto {
    *
    * @example KRW
    */
+  @IsNotEmpty()
+  @IsValidCurrencyCode()
   currencyCode: string;
 
   /**
-   * 시작 시간 (ISO 8601)
+   * 시작 시간
    *
-   * @todo validtor 추가
+   * @example 2024-01-01
    */
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  @IsStartedAtEndedAt('endedAt')
+  startedAt: Date;
 
   /**
-   * 종료 시간 (ISO 8601)
+   * 종료 시간
    *
-   * @todo validtor 추가
+   * @example 2024-01-07
+   */
+  @IsDate()
+  @Transform(({ value }) => new Date(value))
+  endedAt: Date;
+
+  /**
+   * @TODO: Implement validator that can be able to check how many hours or days ago the from current time.
+   *
+   * @example
+   *  @IsDateAgo(7, 'days')
+   *  @IsDateAgo(1, 'hours')
+   *  @IsDateAgo(1, 'years')
    */
 }
 
-// 저번프로젝트 뒤져서 from보다 이후시점 검증하는 커스텀 벨리데이터 만들어야댐
-// 현재 시간으로부터 몇일 전까지만 조회 가능 밸리데이터도.
-// 통화 코드 커스텀 밸리데이터
+export class RateHistory {
+  /**
+   * 날짜
+   *
+   * @example 2024-01-01
+   */
+  date: string;
+
+  /**
+   * 시가
+   *
+   * @example 1304.50
+   */
+  open: number;
+
+  /**
+   * 고가
+   *
+   * @example 1304.50
+   */
+  high: number;
+
+  /**
+   * 저가
+   *
+   * @example 1304.50
+   */
+  low: number;
+
+  /**
+   * 종가
+   *
+   * @example 1304.50
+   */
+  close: number;
+
+  /**
+   * 평균가
+   *
+   * @example 1304.50
+   */
+  average: number;
+
+  /**
+   * 수집된 데이터 수 (1일 144개 정상)
+   *
+   * @example 144
+   */
+  rateCount: number;
+}
+
+@ApiExtraModels(RateHistory)
+export class CurrentExchangeHistoryResDto {
+  /**
+   * 기준 통화
+   *
+   * @example EUR
+   */
+  baseCurrency: string;
+
+  /**
+   * 비교할 대상 통화
+   *
+   * @example KRW
+   */
+  currencyCode: string;
+
+  /**
+   * 일별 OHLC 데이터
+   */
+  rates: RateHistory[];
+
+  constructor(args: CurrentExchangeHistoryResDto) {
+    Object.assign(this, args);
+  }
+}
