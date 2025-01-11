@@ -7,8 +7,8 @@ import {
 import { ApiSuccess } from '../../decorators/swaggers/success.decorator';
 import { ApiExceptions } from '../../decorators/swaggers/exception.decorator';
 import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
-import { InvalidCurrencyCodeException } from './exceptions/invalid-currency-code.exception';
 import { ExchangeRateService } from './exchange-rate.service';
+import { InvalidCurrencyCodeException } from '../../decorators/validations/is-valid-currency.validator';
 
 @ApiTags('Exchange-rates')
 @Controller('exchange-rates')
