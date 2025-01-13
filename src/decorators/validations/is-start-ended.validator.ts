@@ -36,8 +36,10 @@ export function IsStartedAtEndedAt(
           return value < targetValue;
         },
 
-        defaultMessage(validationArguments) {
-          throw new IsStartedAtEndedAtException();
+        defaultMessage(args: ValidationArguments) {
+          throw new IsStartedAtEndedAtException(
+            `${args.property} is cannot be earlier then ${args.constraints}`,
+          );
         },
       },
     });
@@ -45,7 +47,7 @@ export function IsStartedAtEndedAt(
 }
 
 export class IsStartedAtEndedAtException extends BadRequestException {
-  constructor(message = 'Please check the date properties') {
+  constructor(message: string) {
     super(message);
   }
 }
