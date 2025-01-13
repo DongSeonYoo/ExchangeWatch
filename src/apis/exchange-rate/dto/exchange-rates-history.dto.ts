@@ -3,6 +3,7 @@ import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-cu
 import { Transform } from 'class-transformer';
 import { IsStartedAtEndedAt } from '../../../decorators/validations/is-start-ended.validator';
 import { ApiExtraModels } from '@nestjs/swagger';
+import { IsBefore } from '../../../decorators/validations/is-before.validator';
 
 export class CurrentExchangeHistoryReqDto {
   /**
@@ -26,30 +27,22 @@ export class CurrentExchangeHistoryReqDto {
   /**
    * 시작 시간
    *
-   * @example 2024-01-01
+   * @example 2025-01-13
    */
   @IsDate()
   @Transform(({ value }) => new Date(value))
+  @IsBefore(1, 'month')
   @IsStartedAtEndedAt('endedAt')
   startedAt: Date;
 
   /**
    * 종료 시간
    *
-   * @example 2024-01-07
+   * @example 2025-01-14
    */
   @IsDate()
   @Transform(({ value }) => new Date(value))
   endedAt: Date;
-
-  /**
-   * @TODO: Implement validator that can be able to check how many hours or days ago the from current time.
-   *
-   * @example
-   *  @IsDateAgo(7, 'days')
-   *  @IsDateAgo(1, 'hours')
-   *  @IsDateAgo(1, 'years')
-   */
 }
 
 export class RateHistory {
