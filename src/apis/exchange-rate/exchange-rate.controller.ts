@@ -6,7 +6,10 @@ import {
 } from './dto/exchange-rates.dto';
 import { ApiSuccess } from '../../decorators/swaggers/success.decorator';
 import { ApiExceptions } from '../../decorators/swaggers/exception.decorator';
-import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
+import {
+  CurrentExchangeHistoryReqDto,
+  CurrentExchangeHistoryResDto,
+} from './dto/exchange-rates-history.dto';
 import { ExchangeRateService } from './exchange-rate.service';
 import { InvalidCurrencyCodeException } from '../../decorators/validations/is-valid-currency.validator';
 
@@ -45,10 +48,15 @@ export class ExchangeRateController {
   /**
    * 특정 환율 히스토리 조회
    *
-   * @remarks 특정 환율의 히스토리를 조회합니다.
+   * @remarks 특정 환율의 히스토리를 조회합니다
+   * 해당하는 기간동안의 OHLC 데이터를 반환합니다.
+   * 금일 이전만 조회 가능합니다
    */
   @Get('history')
+  @ApiSuccess(CurrentExchangeHistoryResDto)
   async getCurrentExchangeHistories(
     @Query() query: CurrentExchangeHistoryReqDto,
-  ) {}
+  ) {
+    return;
+  }
 }
