@@ -2,7 +2,6 @@ import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency.validator';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty } from 'class-validator';
-import { IFixerAPIResponse } from '../interface/fixer-api.response';
 
 export class CurrentExchangeRateReqDto {
   /**
@@ -30,7 +29,7 @@ export class CurrentExchangeRateReqDto {
   currencyCodes?: string[] = [];
 }
 
-class RateDetail {
+export class RateDetail {
   /**
    * 환율
    */
@@ -101,37 +100,14 @@ export class CurrentExchangeRateResDto {
   }
 
   /**
-   * @param currentRates currentRates api result
-   * @param fluctuationRates fluctuationRates api result
-   * @param [currencyCodes] required currencyCodes
+   * @param baseCurrency baseCurrency
+   * @param rates latest exchange rate
    * @returns
    */
   static of(
-    currentRates: IFixerAPIResponse.IRateResponse,
-    fluctuationRates: IFixerAPIResponse.IFluctuationResponse,
-    currencyCodes?: string[],
+    baseCurrency: string,
+    rates: Record<string, RateDetail>,
   ): CurrentExchangeRateResDto {
-    const targetCodes = currencyCodes?.length
-      ? currencyCodes
-      : Object.keys(currentRates.rates);
-
-    const ratesResult = targetCodes.reduce<Record<string, RateDetail>>(
-      (acc, code) => {
-        const rate = currentRates.rates[code];
-        const fluctuation = fluctuationRates.rates[code];
-        acc[code] = {
-          rate: rate,
-          dayChange: fluctuation.change,
-          dayChangePercent: fluctuation.change_pct,
-          high24h: Math.max(fluctuation.start_rate, fluctuation.end_rate),
-          low24h: Math.min(fluctuation.start_rate, fluctuation.end_rate),
-        };
-
-        return acc;
-      },
-      {},
-    );
-
-    return new CurrentExchangeRateResDto(currentRates.base, ratesResult);
+    return new CurrentExchangeRateResDto(baseCurrency, rates);
   }
 }

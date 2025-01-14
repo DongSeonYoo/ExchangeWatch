@@ -3,6 +3,7 @@ import { MockFixerService } from '../fixer/mock/fixer-mock.service';
 import { ExchangeRateRepository } from './exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import { RedisService } from '../../redis/redis.service';
+import { RateDetail } from './dto/exchange-rates.dto';
 
 @Injectable()
 export class ExchangeRateService {
@@ -21,14 +22,35 @@ export class ExchangeRateService {
       this.fixerService.getFluctuationRates(
         new Date(),
         new Date(),
-        'EUR',
+        baseCurrency,
         currencyCodes,
       ),
     ]);
 
+    const targetCodes = currencyCodes?.length
+      ? currencyCodes
+      : Object.keys(latestRates.rates);
+
+    const processedRates = targetCodes.reduce<Record<string, RateDetail>>(
+      (acc, code) => {
+        const rate = latestRates.rates[code];
+        const fluctuation = fluctuationRates.rates[code];
+        acc[code] = {
+          rate: rate,
+          dayChange: fluctuation.change,
+          dayChangePercent: fluctuation.change_pct,
+          high24h: Math.max(fluctuation.start_rate, fluctuation.end_rate),
+          low24h: Math.min(fluctuation.start_rate, fluctuation.end_rate),
+        };
+
+        return acc;
+      },
+      {},
+    );
+
     return {
-      latestRates,
-      fluctuationRates,
+      baseCurrency: latestRates.base,
+      rates: processedRates,
     };
   }
 
