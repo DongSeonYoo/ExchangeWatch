@@ -17,8 +17,10 @@ export const mockLatestRatesFn = (
     : rates;
 
   return Promise.resolve({
-    ...copyObj,
-    base,
+    success: copyObj.success,
+    date: copyObj.date,
+    base: copyObj.base,
+    timestamp: copyObj.timestamp,
     rates: filteredRates,
   });
 };
@@ -41,8 +43,12 @@ export const mockFluctuationRatesFn = (
     : rates;
 
   return Promise.resolve({
-    ...copyObj,
-    ...filteredRates,
+    success: true,
+    fluctuation: true,
+    start_date: start_date,
+    end_date: end_date,
+    base: base,
+    rates: filteredRates,
   });
 };
 
