@@ -14,4 +14,13 @@ export class DateUtilService {
   subDate(amount: number, dateType: ManipulateType): Date {
     return dayjs(new Date()).subtract(amount, dateType).toDate();
   }
+
+  /**
+   * Get yesterday's date
+   *
+   * @returns date data converted YYYY-MM-DD
+   */
+  getYesterday(): Date {
+    return new Date(this.subDate(1, 'day'));
+  }
 }
