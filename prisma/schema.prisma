@@ -126,7 +126,7 @@ model ExchangeRatesDaily {
   rateCount    Int      @map("rate_count")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@unique([currencyCode, baseCurrency], map: "exchange_rates_daily_unique")
-  @@index([currencyCode, baseCurrency], map: "idx_exchange_rates_lookup")
+  @@unique([currencyCode, baseCurrency, createdAt], map: "exchange_rates_daily_unique")
+  @@index([currencyCode, baseCurrency, createdAt(sort: Desc)], map: "idx_exchange_rates_lookup")
   @@map("exchange_rates_daily")
 }
