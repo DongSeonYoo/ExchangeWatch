@@ -1,5 +1,5 @@
 // based on fixer.io each standard response type
-import { IFixerAPIResponse } from '../../exchange-rate/interface/fixer-api.response';
+import { IFixerAPIResponse } from '../interfaces/fixer-api.response';
 
 export const mockLatestRatesFn = (
   base: string = 'EUR',

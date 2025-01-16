@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { IFixerAPIResponse } from '../exchange-rate/interface/fixer-api.response';
-import { IFixerService } from '../exchange-rate/interface/currency.service.interface';
+import { IFixerAPIResponse } from './interfaces/fixer-api.response';
+import { IFixerService } from './interfaces/fixer-service.interface';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
