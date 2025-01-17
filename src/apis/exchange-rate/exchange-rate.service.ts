@@ -4,6 +4,7 @@ import { ExchangeRateRepository } from './exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import { RedisService } from '../../redis/redis.service';
 import { RateDetail } from './dto/exchange-rates.dto';
+import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
 
 @Injectable()
 export class ExchangeRateService {
@@ -55,6 +56,39 @@ export class ExchangeRateService {
   }
 
   /**
+   * OHLC data aggregate on a specific date
+   */
+  async aggregateDailyRates(startDate: Date, endDate: Date) {
+    const fluctuationData = await this.fixerService.getFluctuationRates(
+      startDate,
+      endDate,
+    );
+
+    const dailyStats = await this.exchangeRateRepository.findDailyStats(
+      startDate,
+      endDate,
+    );
+
+    const OHLCdata: IExchangeRateDaily.ICreate[] = dailyStats.map((stats) => {
+      const fluctuation = fluctuationData.rates[stats.currencyCode];
+
+      return {
+        baseCurrency: stats.baseCurrency,
+        currencyCode: stats.currencyCode,
+        openRate: fluctuation.start_rate,
+        closeRate: fluctuation.end_rate,
+        highRate: stats.maxRate,
+        lowRate: stats.minRate,
+        avgRate: stats.avgRate,
+        rateCount: stats.count,
+        ohlcDate: startDate,
+      };
+    });
+
+    await this.exchangeRateRepository.saveDailyRates(OHLCdata);
+  }
+
+  /**
    * Performing tasks following caching strategies
    *
    * 1. get latest-rate from external API
@@ -64,7 +98,7 @@ export class ExchangeRateService {
   async saveLatestRates(): Promise<void> {
     const rates = await this.fixerService.getLatestRates();
     const baseCurrency = rates.base;
-    const records: IExchangeRate.ICreateMany = Object.entries(rates.rates).map(
+    const records: IExchangeRate.ICreate[] = Object.entries(rates.rates).map(
       ([currencyCode, rate]) => ({
         baseCurrency,
         currencyCode,
@@ -74,7 +108,7 @@ export class ExchangeRateService {
 
     // TODO: distribute transaction & analize excution time
     await Promise.all([
-      this.exchangeRateRepository.intertMany(records),
+      this.exchangeRateRepository.saveLatestRates(records),
       this.redisService.updateLatestRateCache(records),
     ]);
   }
