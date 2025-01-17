@@ -124,7 +124,7 @@ model ExchangeRatesDaily {
   closeRate    Decimal  @map("close_rate") @db.Decimal(20, 8)
   avgRate      Decimal  @map("avg_rate") @db.Decimal(20, 8)
   rateCount    Int      @map("rate_count")
-  ohlcDate    DateTime @default(now()) @db.Date @map("ohlc_date")
+  ohlcDate     DateTime @map("ohlc_date") @db.Date
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([currencyCode, baseCurrency, ohlcDate], map: "exchange_rates_daily_unique")
