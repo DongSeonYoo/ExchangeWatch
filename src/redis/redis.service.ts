@@ -20,7 +20,7 @@ export class RedisService implements OnModuleInit {
    * Update real-time currency rate to the redis
    */
   async updateLatestRateCache(
-    rates: IExchangeRate.ICreateMany,
+    rates: IExchangeRate.ICreate[],
     ttl = this.CACHE_TTL.CURRENT_RATES,
   ) {
     await Promise.all(

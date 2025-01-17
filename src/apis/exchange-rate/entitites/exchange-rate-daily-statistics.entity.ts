@@ -1,6 +1,6 @@
-import { IExchangeRate } from '../interface/exchange-rate.interface';
+import { IExchangeRateDailyStats } from '../interface/exchange-rate-daily-stats.interface';
 
-export class ExchangeRateDailyStatisticsEntity {
+export class ExchangeRateDailyStasEntity {
   baseCurrency: string;
   currencyCode: string;
   maxRate: number;
@@ -8,14 +8,14 @@ export class ExchangeRateDailyStatisticsEntity {
   avgRate: number;
   count: number;
 
-  constructor(args: ExchangeRateDailyStatisticsEntity) {
+  constructor(args: ExchangeRateDailyStasEntity) {
     Object.assign(this, args);
   }
 
   static from(
-    args: IExchangeRate.IDailyStatistics,
-  ): ExchangeRateDailyStatisticsEntity {
-    return new ExchangeRateDailyStatisticsEntity({
+    args: IExchangeRateDailyStats.IDailyStats,
+  ): ExchangeRateDailyStasEntity {
+    return new ExchangeRateDailyStasEntity({
       baseCurrency: args.baseCurrency,
       currencyCode: args.currencyCode,
       avgRate: args.avgRate,

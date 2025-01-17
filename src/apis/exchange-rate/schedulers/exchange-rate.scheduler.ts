@@ -1,12 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ExchangeRateService } from '../exchange-rate.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { DateUtilService } from '../../../utils/date-util/date-util.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class ExchageRateScheduler {
   private readonly logger: Logger = new Logger(ExchageRateScheduler.name);
 
-  constructor(private readonly exchangeRateService: ExchangeRateService) {}
+  constructor(
+    private readonly exchangeRateService: ExchangeRateService,
+    private readonly dateUtilService: DateUtilService,
+  ) {}
 
   /**
    * Collects real-time currency rate data every 10 minutes
@@ -43,9 +48,25 @@ export class ExchageRateScheduler {
   @Cron('5 0 * * *') // UTC 00:05
   async aggregateDailyRates() {
     try {
+      const yesterday = this.dateUtilService
+        .getYesterday()
+        .toISOString()
+        .split('T')[0];
+      const today = new Date();
+      await this.exchangeRateService.aggregateDailyRates(
+        new Date(yesterday),
+        today,
+      );
+
       this.logger.log('Successfully collected daily rates');
     } catch (error) {
-      this.logger.error('Failed to aggregate daily rates', error);
+      this.logger.error('Failed to aggregate daily rates');
+
+      // If already has currency-pair on same date
+      if (error instanceof PrismaClientKnownRequestError) {
+        this.logger.error(error);
+        // TODO: Add more way to respond that error
+      }
     }
   }
 }

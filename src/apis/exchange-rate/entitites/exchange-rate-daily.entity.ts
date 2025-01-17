@@ -68,7 +68,7 @@ export class ExchangeRatesDailyEntity {
   /**
    * 시장 거래일 (OHLC데이터 기준일)
    */
-  ohlcData: Date;
+  ohlcDate: Date;
 
   /**
    * 생성일시
@@ -88,7 +88,7 @@ export class ExchangeRatesDailyEntity {
       lowRate: args.lowRate.toNumber(),
       closeRate: args.closeRate.toNumber(),
       avgRate: args.avgRate.toNumber(),
-      ohlcData: args.ohlcDate,
+      ohlcDate: args.ohlcDate,
     });
   }
 }
