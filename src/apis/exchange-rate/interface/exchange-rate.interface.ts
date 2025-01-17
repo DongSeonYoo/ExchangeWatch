@@ -1,9 +1,9 @@
-export namespace IExchangeRate {
-  export interface ICreate {
-    baseCurrency: string;
-    currencyCode: string;
-    rate: number;
-  }
+import { ExchangeRatesEntity } from '../entitites/exchange-rate.entity';
 
-  export interface ICreateMany extends Array<ICreate> {}
+export namespace IExchangeRate {
+  export interface ICreate
+    extends Pick<
+      ExchangeRatesEntity,
+      'baseCurrency' | 'currencyCode' | 'rate'
+    > {}
 }

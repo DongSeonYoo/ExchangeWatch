@@ -1,14 +1,17 @@
-export namespace IExchangeRateDaily {
-  export interface ICreate {
-    baseCurrency: string;
-    currencyCode: string;
-    openRate: number;
-    highRate: number;
-    lowRate: number;
-    closeRate: number;
-    avgRate: number;
-    rateCount: number;
-  }
+import { ExchangeRatesDailyEntity } from '../entitites/exchange-rate-daily.entity';
 
-  export interface ICreateMany extends Array<ICreate> {}
+export namespace IExchangeRateDaily {
+  export interface ICreate
+    extends Pick<
+      ExchangeRatesDailyEntity,
+      | 'baseCurrency'
+      | 'currencyCode'
+      | 'openRate'
+      | 'highRate'
+      | 'lowRate'
+      | 'closeRate'
+      | 'avgRate'
+      | 'ohlcDate'
+      | 'rateCount'
+    > {}
 }
