@@ -4,7 +4,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - '3000:3000'
     environment:
@@ -19,6 +19,9 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
 
   redis:
     image: redis:latest
