@@ -9,6 +9,13 @@ import dayjs, { ManipulateType } from 'dayjs';
 @Injectable()
 export class DateUtilService {
   /**
+   * Add a specified amount of time from the current date
+   */
+  addDate(amount: number, dateType: ManipulateType): Date {
+    return this.subDate(-amount, dateType);
+  }
+
+  /**
    * Subtracts a specified amount of time from the current date
    */
   subDate(amount: number, dateType: ManipulateType): Date {

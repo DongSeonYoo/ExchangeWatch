@@ -4,6 +4,7 @@ import { Transform } from 'class-transformer';
 import { IsStartedAtEndedAt } from '../../../decorators/validations/is-start-ended.validator';
 import { ApiExtraModels } from '@nestjs/swagger';
 import { IsBefore } from '../../../decorators/validations/is-before.validator';
+import { IsAfter } from '../../../decorators/validations/is-after.validator';
 
 export class CurrentExchangeHistoryReqDto {
   /**
@@ -31,8 +32,8 @@ export class CurrentExchangeHistoryReqDto {
    */
   @IsDate()
   @Transform(({ value }) => new Date(value))
-  @IsBefore(1, 'month')
   @IsStartedAtEndedAt('endedAt')
+  @IsBefore(1, 'month')
   startedAt: Date;
 
   /**
@@ -42,6 +43,7 @@ export class CurrentExchangeHistoryReqDto {
    */
   @IsDate()
   @Transform(({ value }) => new Date(value))
+  @IsAfter()
   endedAt: Date;
 }
 

@@ -38,7 +38,7 @@ export function IsStartedAtEndedAt(
 
         defaultMessage(args: ValidationArguments) {
           throw new IsStartedAtEndedAtException(
-            `${args.property} is cannot be earlier then ${args.constraints}`,
+            `${args.property} is cannot be earlier than ${args.constraints}`,
           );
         },
       },
