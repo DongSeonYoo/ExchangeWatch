@@ -17,7 +17,7 @@ export class MockFixerService implements IFixerService {
   }
 
   getHistoricalRates(
-    date: string,
+    date: Date,
     base?: string,
     symbols?: string[],
   ): Promise<IFixerAPIResponse.IHistoricalResponse> {
