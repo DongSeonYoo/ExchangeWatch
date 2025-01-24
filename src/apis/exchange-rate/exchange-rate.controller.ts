@@ -53,6 +53,10 @@ export class ExchangeRateController {
   async getCurrentExchangeHistories(
     @Query() query: CurrentExchangeHistoryReqDto,
   ) {
-    return;
+    const { baseCurrency, currencyCode } = query;
+
+    const result = await this.exchangeRateService.getHistoricalRates(query);
+
+    return CurrentExchangeHistoryResDto.of(baseCurrency, currencyCode, result);
   }
 }

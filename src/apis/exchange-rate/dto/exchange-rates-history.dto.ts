@@ -5,6 +5,7 @@ import { IsStartedAtEndedAt } from '../../../decorators/validations/is-start-end
 import { ApiExtraModels } from '@nestjs/swagger';
 import { IsBefore } from '../../../decorators/validations/is-before.validator';
 import { IsAfter } from '../../../decorators/validations/is-after.validator';
+import { ExchangeRatesDailyEntity } from '../entitites/exchange-rate-daily.entity';
 
 export class CurrentExchangeHistoryReqDto {
   /**
@@ -53,7 +54,7 @@ export class RateHistory {
    *
    * @example 2024-01-01
    */
-  date: string;
+  date: Date;
 
   /**
    * 시가
@@ -121,5 +122,25 @@ export class CurrentExchangeHistoryResDto {
 
   constructor(args: CurrentExchangeHistoryResDto) {
     Object.assign(this, args);
+  }
+
+  static of(
+    baseCurrency: string,
+    currencyCode: string,
+    entities: ExchangeRatesDailyEntity[],
+  ) {
+    return new CurrentExchangeHistoryResDto({
+      baseCurrency,
+      currencyCode,
+      rates: entities.map((entity) => ({
+        date: entity.ohlcDate,
+        open: entity.openRate,
+        high: entity.highRate,
+        low: entity.lowRate,
+        close: entity.closeRate,
+        average: entity.avgRate,
+        rateCount: entity.rateCount,
+      })),
+    });
   }
 }

@@ -6,6 +6,7 @@ import { RedisService } from '../../redis/redis.service';
 import { RateDetail } from './dto/exchange-rates.dto';
 import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
+import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
 
 @Injectable()
 export class ExchangeRateService {
@@ -55,6 +56,15 @@ export class ExchangeRateService {
       baseCurrency: latestRates.base,
       rates: processedRates,
     };
+  }
+
+  async getHistoricalRates(input: CurrentExchangeHistoryReqDto) {
+    return await this.exchangeRateDailyRepository.findDailyRates({
+      baseCurrency: input.baseCurrency,
+      currencyCode: input.currencyCode,
+      endedAt: input.endedAt,
+      startedAt: input.startedAt,
+    });
   }
 
   /**
