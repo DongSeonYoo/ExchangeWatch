@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { MockFixerService } from '../fixer/mock/fixer-mock.service';
-import { ExchangeRateRepository } from './exchange-rate.repository';
+import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import { RedisService } from '../../redis/redis.service';
 import { RateDetail } from './dto/exchange-rates.dto';
 import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
+import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 
 @Injectable()
 export class ExchangeRateService {
   constructor(
     private readonly fixerService: MockFixerService,
-    private readonly exchangeRateRepository: ExchangeRateRepository,
     private readonly redisService: RedisService,
+    private readonly exchangeRateRepository: ExchangeRateRepository,
+    private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
   ) {}
 
   async getCurrencyExchangeRates(
@@ -85,7 +87,7 @@ export class ExchangeRateService {
       };
     });
 
-    await this.exchangeRateRepository.saveDailyRates(OHLCdata);
+    await this.exchangeRateDailyRepository.saveDailyRates(OHLCdata);
   }
 
   /**

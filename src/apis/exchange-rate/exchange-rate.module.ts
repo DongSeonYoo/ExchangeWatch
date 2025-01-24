@@ -5,9 +5,10 @@ import { FixerModule } from '../fixer/fixer.module';
 import { RedisModule } from '../../redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ExchageRateScheduler } from './schedulers/exchange-rate.scheduler';
-import { ExchangeRateRepository } from './exchange-rate.repository';
 import { IsBeforeConstraint } from '../../decorators/validations/is-before.validator';
 import { IsAfterConstraint } from '../../decorators/validations/is-after.validator';
+import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
+import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 
 @Module({
   imports: [FixerModule, RedisModule, ScheduleModule.forRoot()],
@@ -16,6 +17,7 @@ import { IsAfterConstraint } from '../../decorators/validations/is-after.validat
     ExchangeRateService,
     ExchageRateScheduler,
     ExchangeRateRepository,
+    ExchangeRateDailyRepository,
     IsBeforeConstraint,
     IsAfterConstraint,
   ],
