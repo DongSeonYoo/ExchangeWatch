@@ -81,10 +81,9 @@ export class ExchangeRateService {
       endDate,
     );
 
-    const OHLCdata: IExchangeRateDaily.ICreate[] = dailyStats.map((stats) => {
+    dailyStats.map(async (stats) => {
       const fluctuation = fluctuationData.rates[stats.currencyCode];
-
-      return {
+      await this.exchangeRateDailyRepository.saveDailyRates({
         baseCurrency: stats.baseCurrency,
         currencyCode: stats.currencyCode,
         openRate: fluctuation.start_rate,
@@ -94,10 +93,10 @@ export class ExchangeRateService {
         avgRate: stats.avgRate,
         rateCount: stats.count,
         ohlcDate: startDate,
-      };
+      });
     });
 
-    await this.exchangeRateDailyRepository.saveDailyRates(OHLCdata);
+    return;
   }
 
   /**

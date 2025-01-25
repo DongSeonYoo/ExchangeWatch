@@ -9,10 +9,10 @@ export class ExchangeRateDailyRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async saveDailyRates(
-    input: IExchangeRateDaily.ICreate[],
+    input: IExchangeRateDaily.ICreate,
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
-    await (tx ?? this.prisma).exchangeRatesDaily.createMany({
+    await (tx ?? this.prisma).exchangeRatesDaily.create({
       data: input,
     });
 
