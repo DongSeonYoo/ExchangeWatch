@@ -4,9 +4,10 @@ import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import { RedisService } from '../../redis/redis.service';
 import { RateDetail } from './dto/exchange-rates.dto';
-import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
+import { DateUtilService } from '../../utils/date-util/date-util.service';
+import { ExchangeRatesDailyEntity } from './entitites/exchange-rate-daily.entity';
 
 @Injectable()
 export class ExchangeRateService {
@@ -15,17 +16,19 @@ export class ExchangeRateService {
     private readonly redisService: RedisService,
     private readonly exchangeRateRepository: ExchangeRateRepository,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
+    private readonly dateUtilService: DateUtilService,
   ) {}
 
   async getCurrencyExchangeRates(
     baseCurrency: string,
     currencyCodes?: string[],
   ) {
+    const today = new Date();
     const [latestRates, fluctuationRates] = await Promise.all([
       this.fixerService.getLatestRates(baseCurrency, currencyCodes),
       this.fixerService.getFluctuationRates(
-        new Date(),
-        new Date(),
+        today,
+        today,
         baseCurrency,
         currencyCodes,
       ),
@@ -58,13 +61,91 @@ export class ExchangeRateService {
     };
   }
 
-  async getHistoricalRates(input: CurrentExchangeHistoryReqDto) {
-    return await this.exchangeRateDailyRepository.findDailyRates({
-      baseCurrency: input.baseCurrency,
-      currencyCode: input.currencyCode,
-      endedAt: input.endedAt,
-      startedAt: input.startedAt,
+  /**
+   * @TODO - redis caching strategy
+   * Redis 키 구조:
+   *  - 키: historical:{baseCurrency}:{currencyCode}:{date}
+   *  - 값: OHLC 데이터
+   *  - TTL: 24시간
+   * redis 조회 순서:
+   *  1. Redis 캐시 확인
+   *  2. 캐시 미스시 DB 조회
+   *  3. DB 조회 결과 캐싱
+   * 로깅 철저하게
+   *
+   * Historical data strategy
+   * 1. Selecting historical data from DB
+   *  - select data from exchange_rate_daily table
+   *  - search data using index by (baseCurrency, currencyCode, ohlcDate)
+   *  - if the data exists, response directly
+   *
+   * 2. Calculating missing data
+   *  - compare the selected date from DB with the requested date
+   *  - if there is missing data, call external API(fixer)
+   *  - save the data collcted at this context to the DB
+   *  - response data just put in to the client
+   */
+  async getHistoricalRates(
+    input: CurrentExchangeHistoryReqDto,
+  ): Promise<ExchangeRatesDailyEntity[]> {
+    const historicalDataFromDB =
+      await this.exchangeRateDailyRepository.findDailyRates({
+        baseCurrency: input.baseCurrency,
+        currencyCode: input.currencyCode,
+        endedAt: input.endedAt,
+        startedAt: input.startedAt,
+      });
+
+    const requestedAllDate = this.dateUtilService.getDatesBeetween(
+      input.startedAt,
+      input.endedAt,
+    );
+    const existingDates = historicalDataFromDB.map((e) => e.ohlcDate);
+
+    const missingDates = requestedAllDate.filter((reqDate) => {
+      const strExistDates = existingDates.map((e) => e.toISOString());
+      const strReqDates = reqDate.toISOString();
+
+      return !strExistDates.includes(strReqDates);
     });
+
+    if (missingDates.length > 0) {
+      await Promise.all(
+        missingDates.map(async (date) => {
+          const fluctuationData = await this.fixerService.getFluctuationRates(
+            date,
+            date,
+            input.baseCurrency,
+            [input.currencyCode],
+          );
+          const fluctuation = fluctuationData.rates[input.currencyCode];
+
+          await this.exchangeRateDailyRepository.saveDailyRates({
+            baseCurrency: input.baseCurrency,
+            currencyCode: input.currencyCode,
+            openRate: fluctuation.start_rate,
+            closeRate: fluctuation.end_rate,
+            highRate: Math.max(fluctuation.start_rate, fluctuation.end_rate),
+            lowRate: Math.min(fluctuation.start_rate, fluctuation.end_rate),
+            avgRate: (fluctuation.start_rate + fluctuation.end_rate) / 2,
+            ohlcDate: date,
+            rateCount: 1,
+          });
+
+          const missedOHLCdata =
+            await this.exchangeRateDailyRepository.findDailyRates({
+              baseCurrency: input.baseCurrency,
+              currencyCode: input.currencyCode,
+              startedAt: date,
+              endedAt: date,
+            });
+
+          historicalDataFromDB.push(...missedOHLCdata);
+        }),
+      );
+    }
+
+    return historicalDataFromDB;
   }
 
   /**
