@@ -30,4 +30,22 @@ export class DateUtilService {
   getYesterday(): Date {
     return new Date(this.subDate(1, 'day'));
   }
+
+  /**
+   * Create date array between both date
+   * @param startedAt start date
+   * @param endedAt end date
+   */
+  getDatesBeetween(startedAt: Date, endedAt: Date): Date[] {
+    const dates: Date[] = [];
+    let currentDate = dayjs(startedAt);
+    const lastDate = dayjs(endedAt);
+
+    while (currentDate.isBefore(lastDate) || currentDate.isSame(lastDate)) {
+      dates.push(currentDate.toDate());
+      currentDate = currentDate.add(1, 'day');
+    }
+
+    return dates;
+  }
 }

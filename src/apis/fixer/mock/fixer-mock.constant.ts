@@ -52,6 +52,29 @@ export const mockFluctuationRatesFn = (
   });
 };
 
+export const mockHistoricalRatesFn = (
+  date: Date,
+  base: string = 'EUR',
+  symbols?: string[],
+): Promise<IFixerAPIResponse.IHistoricalResponse> => {
+  const copyObj = { ...MOCK_HISTORICAL_RATES };
+  const rates = { ...copyObj.rates };
+  const responseData = {
+    ...copyObj,
+    base: base,
+    date: new Date(date),
+    rates: symbols?.length
+      ? Object.fromEntries(
+          Object.entries(rates).filter(([currency]) =>
+            symbols.includes(currency),
+          ),
+        )
+      : rates,
+  };
+
+  return Promise.resolve(responseData);
+};
+
 /** Latest currency
  * @query [base] = EUR (default)
  * @query [symbols]
@@ -421,7 +444,7 @@ export const MOCK_SYMBOLS_DATA: IFixerAPIResponse.ISymbolResponse = {
 
 /**
  * Historical Rates Endpoint
- * @query YYYY-MM-DD = 2024-12-21
+ * @query YYYY-MM-DD = 2025-01-21
  * @query [base] = EUR
  * @query [symbols] = USD, CAD, KRW
  *
@@ -432,7 +455,7 @@ export const MOCK_HISTORICAL_RATES: IFixerAPIResponse.IHistoricalResponse = {
   timestamp: 1735330984 as unknown as Date,
   historical: true,
   base: 'EUR',
-  date: '2024-12-21' as unknown as Date,
+  date: '2025-01-21' as unknown as Date,
   rates: {
     USD: 1.0424,
     CAD: 1.503083,
@@ -442,8 +465,8 @@ export const MOCK_HISTORICAL_RATES: IFixerAPIResponse.IHistoricalResponse = {
 
 /**
  * Time-series Endpoint (Specific Hours)
- * @query start_date = 2012-05-01
- * @query end_date = 2012-05-25
+ * @query start_date = 2025-01-10
+ * @query end_date = 2025-01-24
  * @query [base] = EUR
  * @query [symbols] = USD, AUD, CAD
  *
@@ -453,21 +476,81 @@ export const MOCK_TIMESIRIES_ENDPOINT: IFixerAPIResponse.ITimeSireiesResponse =
   {
     success: true,
     timeseries: true,
-    start_date: '2012-05-01' as unknown as Date,
-    end_date: '2012-05-03' as unknown as Date,
+    start_date: '2025-01-10' as unknown as Date,
+    end_date: '2025-01-24' as unknown as Date,
     base: 'EUR',
     rates: {
-      '2012-05-01': {
+      '2025-01-10': {
         USD: 1.322891,
         AUD: 1.278047,
         CAD: 1.302303,
       },
-      '2012-05-02': {
+      '2025-01-11': {
         USD: 1.315066,
         AUD: 1.274202,
         CAD: 1.299083,
       },
-      '2012-05-03': {
+      '2025-01-12': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-13': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-14': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-15': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-16': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-17': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-18': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-19': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-20': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-21': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-22': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-23': {
+        USD: 1.314491,
+        AUD: 1.280135,
+        CAD: 1.296868,
+      },
+      '2025-01-24': {
         USD: 1.314491,
         AUD: 1.280135,
         CAD: 1.296868,

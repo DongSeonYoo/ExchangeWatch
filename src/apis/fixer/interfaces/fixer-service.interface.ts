@@ -17,7 +17,7 @@ export interface IFixerService {
 
   // Get historical rates
   getHistoricalRates(
-    date: string,
+    date: Date,
     base?: string,
     symbols?: string[],
   ): Promise<IFixerAPIResponse.IHistoricalResponse>;

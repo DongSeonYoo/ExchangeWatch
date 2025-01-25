@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { IExchangeRate } from './interface/exchange-rate.interface';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { IExchangeRate } from '../interface/exchange-rate.interface';
 import { Prisma } from '@prisma/client';
-import { ExchangeRateDailyStasEntity } from './entitites/exchange-rate-daily-statistics.entity';
-import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
+import { ExchangeRateDailyStasEntity } from '../entitites/exchange-rate-daily-statistics.entity';
 
 @Injectable()
 export class ExchangeRateRepository {
@@ -57,16 +56,5 @@ export class ExchangeRateRepository {
         count: e._count.rate,
       });
     });
-  }
-
-  async saveDailyRates(
-    input: IExchangeRateDaily.ICreate[],
-    tx?: Prisma.TransactionClient,
-  ): Promise<void> {
-    await (tx ?? this.prisma).exchangeRatesDaily.createMany({
-      data: input,
-    });
-
-    return;
   }
 }

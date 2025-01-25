@@ -14,4 +14,11 @@ export namespace IExchangeRateDaily {
       | 'ohlcDate'
       | 'rateCount'
     > {}
+
+  export interface IFindDailyRatesInput {
+    baseCurrency: string;
+    currencyCode: string;
+    startedAt: Date;
+    endedAt: Date;
+  }
 }

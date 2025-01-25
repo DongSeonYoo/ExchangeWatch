@@ -11,16 +11,16 @@ import {
  * @param targetPropertyName target property name in same context or class
  * @param [validationOptions]
  *
- * @throws IsStartedAtEndedAtException
+ * @throws IsBeforeThanException
  * @throws InvalidPropertyException
  */
-export function IsStartedAtEndedAt(
+export function IsBeforeThan(
   targetPropertyName: string,
   validationOptions?: ValidationOptions,
 ) {
   return function (obj: Object, propertyName: string) {
     registerDecorator({
-      name: 'isStartedAtEndedAt',
+      name: 'isBeforeThan',
       target: obj.constructor,
       propertyName: propertyName,
       options: validationOptions,
@@ -37,7 +37,7 @@ export function IsStartedAtEndedAt(
         },
 
         defaultMessage(args: ValidationArguments) {
-          throw new IsStartedAtEndedAtException(
+          throw new IsBeforeThanException(
             `${args.property} is cannot be earlier than ${args.constraints}`,
           );
         },
@@ -46,7 +46,7 @@ export function IsStartedAtEndedAt(
   };
 }
 
-export class IsStartedAtEndedAtException extends BadRequestException {
+export class IsBeforeThanException extends BadRequestException {
   constructor(message: string) {
     super(message);
   }
@@ -61,6 +61,8 @@ class InvalidPropertyException extends Error {
   private readonly logger = new Logger(InvalidPropertyException.name);
   constructor(propertyName: string) {
     super();
-    this.logger.error(`check out the arguments of IsStartedEndedAt decorators`);
+    this.logger.error(
+      `check out the arguments of IsBeforeThanException decorators`,
+    );
   }
 }

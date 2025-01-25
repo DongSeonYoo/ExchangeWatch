@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
-  MOCK_HISTORICAL_RATES,
   mockFluctuationRatesFn,
+  mockHistoricalRatesFn,
   mockLatestRatesFn,
 } from './fixer-mock.constant';
 import { IFixerAPIResponse } from '../interfaces/fixer-api.response';
@@ -17,11 +17,11 @@ export class MockFixerService implements IFixerService {
   }
 
   getHistoricalRates(
-    date: string,
+    date: Date,
     base?: string,
     symbols?: string[],
   ): Promise<IFixerAPIResponse.IHistoricalResponse> {
-    return Promise.resolve(MOCK_HISTORICAL_RATES);
+    return Promise.resolve(mockHistoricalRatesFn(date, base, symbols));
   }
 
   getFluctuationRates(

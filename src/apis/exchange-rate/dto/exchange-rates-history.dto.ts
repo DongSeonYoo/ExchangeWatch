@@ -1,10 +1,11 @@
 import { IsDate, IsNotEmpty } from 'class-validator';
 import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency.validator';
 import { Transform } from 'class-transformer';
-import { IsStartedAtEndedAt } from '../../../decorators/validations/is-start-ended.validator';
+import { IsBeforeThan } from '../../../decorators/validations/is-before-than.validator';
 import { ApiExtraModels } from '@nestjs/swagger';
 import { IsBefore } from '../../../decorators/validations/is-before.validator';
 import { IsAfter } from '../../../decorators/validations/is-after.validator';
+import { ExchangeRatesDailyEntity } from '../entitites/exchange-rate-daily.entity';
 
 export class CurrentExchangeHistoryReqDto {
   /**
@@ -32,7 +33,7 @@ export class CurrentExchangeHistoryReqDto {
    */
   @IsDate()
   @Transform(({ value }) => new Date(value))
-  @IsStartedAtEndedAt('endedAt')
+  @IsBeforeThan('endedAt')
   @IsBefore(1, 'month')
   startedAt: Date;
 
@@ -53,7 +54,7 @@ export class RateHistory {
    *
    * @example 2024-01-01
    */
-  date: string;
+  date: Date;
 
   /**
    * 시가
@@ -121,5 +122,25 @@ export class CurrentExchangeHistoryResDto {
 
   constructor(args: CurrentExchangeHistoryResDto) {
     Object.assign(this, args);
+  }
+
+  static of(
+    baseCurrency: string,
+    currencyCode: string,
+    entities: ExchangeRatesDailyEntity[],
+  ) {
+    return new CurrentExchangeHistoryResDto({
+      baseCurrency,
+      currencyCode,
+      rates: entities.map((entity) => ({
+        date: entity.ohlcDate,
+        open: entity.openRate,
+        high: entity.highRate,
+        low: entity.lowRate,
+        close: entity.closeRate,
+        average: entity.avgRate,
+        rateCount: entity.rateCount,
+      })),
+    });
   }
 }
