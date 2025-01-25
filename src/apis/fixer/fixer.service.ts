@@ -35,9 +35,12 @@ export class FixerService implements IFixerService {
     base?: string,
     symbols: string[] = [],
   ): Promise<IFixerAPIResponse.IFluctuationResponse> {
+    const startDate = start_date.toISOString().split('T')[0];
+    const endDate = end_date.toISOString().split('T')[0];
+
     return lastValueFrom(
       this.httpService.get<IFixerAPIResponse.IFluctuationResponse>(
-        `${this.fixerApiUrl}/fluctuation?access_key=${this.fixerApiKey}&start_date=${start_date.toISOString()}&end_date=${end_date.toISOString()}&base=${base}&symbols=${symbols.join(',')}`,
+        `${this.fixerApiUrl}/fluctuation?access_key=${this.fixerApiKey}&start_date=${startDate}&end_date=${endDate}&base=${base}&symbols=${symbols.join(',')}`,
       ),
     ).then(({ data }) => data);
   }
