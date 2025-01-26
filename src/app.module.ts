@@ -17,7 +17,7 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { TokenModule } from './token/token.module';
 import { DateUtilModule } from './utils/date-util/date-util.module';
 import { ExchangeRateModule } from './apis/exchange-rate/exchange-rate.module';
-import { PriceAlertModule } from './apis/price-alert/price-alert.module';
+import { PriceNotificationModule } from './apis/price-notification/price-notification.module';
 import { AlertHistoryModule } from './apis/alert-history/alert-history.module';
 import { NewsModule } from './apis/news/news.module';
 import { WatchlistModule } from './apis/watchlist/watchlist.module';
@@ -43,7 +43,7 @@ import { envValidationSchema } from './configs/env/env.validation';
     TokenModule,
     DateUtilModule,
     ExchangeRateModule,
-    PriceAlertModule,
+    PriceNotificationModule,
     AlertHistoryModule,
     NewsModule,
     WatchlistModule,

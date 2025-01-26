@@ -1,17 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PriceAlertController } from '../../src/apis/price-alert/price-alert.controller';
-import { PriceAlertService } from '../../src/apis/price-alert/price-alert.service';
+import { PriceNotificationController } from '../../src/apis/price-notification/price-notification.controller';
+import { PriceNotificationService } from '../../src/apis/price-notification/price-notification.service';
 
 describe('PriceAlertController', () => {
-  let controller: PriceAlertController;
+  let controller: PriceNotificationController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [PriceAlertController],
-      providers: [PriceAlertService],
+      controllers: [PriceNotificationController],
+      providers: [PriceNotificationService],
     }).compile();
 
-    controller = module.get<PriceAlertController>(PriceAlertController);
+    controller = module.get<PriceNotificationController>(
+      PriceNotificationController,
+    );
   });
 
   it('should be defined', () => {
