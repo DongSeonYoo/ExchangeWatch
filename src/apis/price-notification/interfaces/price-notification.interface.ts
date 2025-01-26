@@ -1,4 +1,4 @@
-import { PriceNotificationEntity } from '../entitites/price-alert.entity';
+import { PriceNotificationEntity } from '../entitites/price-notification.entity';
 
 export namespace IPriceAlertEntity {
   export interface ICreate

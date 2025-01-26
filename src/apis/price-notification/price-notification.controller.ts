@@ -1,6 +1,8 @@
 import { Controller, Delete, Get, Post, Put } from '@nestjs/common';
 import { PriceNotificationService } from './price-notification.service';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Price-notification')
 @Controller('price-notification')
 export class PriceNotificationController {
   constructor(
