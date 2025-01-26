@@ -1,5 +1,4 @@
-// price-alert.entity.ts
-export class PriceAlertEntity {
+export class PriceNotificationEntity {
   /**
    * 알림 인덱스
    * @example "123e4567-e89b-12d3-a456-426614174000"
@@ -65,17 +64,4 @@ export class PriceAlertEntity {
    * @example null
    */
   deletedAt: Date | null;
-}
-
-export namespace IPriceAlertEntity {
-  export interface ICreate
-    extends Pick<
-      PriceAlertEntity,
-      | 'userIdx'
-      | 'baseCurrency'
-      | 'currencyCode'
-      | 'targetPrice'
-      | 'condition'
-      | 'isRepeatable'
-    > {}
 }
