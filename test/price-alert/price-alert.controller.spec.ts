@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PriceNotificationController } from '../../src/apis/price-alert/price-notification.controller';
-import { PriceNotificationService } from '../../src/apis/price-alert/price-notification.service';
+import { PriceNotificationController } from '../../src/apis/price-notification/price-notification.controller';
+import { PriceNotificationService } from '../../src/apis/price-notification/price-notification.service';
 
 describe('PriceAlertController', () => {
   let controller: PriceNotificationController;
