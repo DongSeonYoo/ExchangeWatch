@@ -122,5 +122,10 @@ describe('ExchangeRateService', () => {
         });
       });
     });
+
+    describe('when occured error about external API', () => {
+      it.todo('should handle error when occured latestRates API');
+      it.todo('should handle error when occured fluctuation API');
+    });
   });
 });
