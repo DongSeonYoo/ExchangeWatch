@@ -29,6 +29,11 @@ export const envValidationSchema = Joi.object({
   AWS_SECERET_ACCESS_KEY: Joi.string().allow('').optional(),
   AWS_REGION: Joi.string().required(),
 
+  // Google OAuth info
+  GOOGLE_CLIENT_ID: Joi.string().required(),
+  GOOGLE_CLIENT_SECRET: Joi.string().required(),
+  GOOGLE_REDIRECT_URL: Joi.string().required(),
+
   // Cache Policy
   LATEST_CURRENCY_CACHE_TTL: Joi.number().required(),
 });
