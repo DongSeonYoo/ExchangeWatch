@@ -58,10 +58,4 @@ export class PriceNotificationEntity {
    * @example "2024-01-01T00:00:00.000Z"
    */
   updatedAt: Date;
-
-  /**
-   * 삭제일시
-   * @example null
-   */
-  deletedAt: Date | null;
 }
