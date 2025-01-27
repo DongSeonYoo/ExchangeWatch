@@ -41,4 +41,13 @@ export const appConfig = registerAs('app', () => ({
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URL: process.env.GOOGLE_REDIRECT_URL,
   },
+
+  token: {
+    JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+    ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN,
+
+    JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+    REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN,
+    REFRESH_TOKEN_TTL: process.env.REFRESH_TOKEN_TTL,
+  },
 }));
