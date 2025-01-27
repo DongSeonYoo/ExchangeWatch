@@ -1,33 +1,64 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { JwtAuthException } from 'src/apis/auth/exceptions/jwt-auth-exception';
+import { UserEntity } from '../apis/users/entities/user.entity';
+import { IToken } from './token.interface';
+import { AppConfig } from '../configs/config.type';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class TokenService {
   private readonly logger: Logger = new Logger(TokenService.name);
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService<AppConfig, true>,
+  ) {}
 
-  generateToken() {
-    this.logger.log('token generated');
+  async createAccessToken(user: UserEntity): Promise<string> {
+    const payload: IToken.IAccessPayload = {
+      sub: user.idx.toString(),
+      email: user.email,
+    };
 
-    return this.jwtService.sign({
-      /** token info... */
+    return await this.jwtService.signAsync(payload, {
+      secret: this.configService.get('token.JWT_ACCESS_SECRET', {
+        infer: true,
+      }),
+      expiresIn: this.configService.get('token.ACCESS_TOKEN_EXPIRES_IN', {
+        infer: true,
+      }),
     });
   }
 
-  verifyToken(token: string) {
-    this.logger.log('token decoded');
+  async createRefreshToken(user: UserEntity): Promise<string> {
+    const payload: IToken.IRefreshPayload = {
+      jti: `rt_${randomUUID()}`,
+      sub: user.idx.toString(),
+    };
 
-    try {
-      const payload =
-        /** <specify payload-type use generic > */ this.jwtService.verify(
-          token,
-        );
+    return await this.jwtService.signAsync(payload, {
+      secret: this.configService.get('token.JWT_REFRESH_SECRET', {
+        infer: true,
+      }),
+      expiresIn: this.configService.get('token.REFRESH_TOKEN_EXPIRES_IN', {
+        infer: true,
+      }),
+    });
+  }
 
-      return payload;
-    } catch (error) {
-      this.logger.error('토큰 검증에 실패했습니다.');
-      throw new JwtAuthException();
-    }
+  async verifyAccessToken(token: string): Promise<IToken.IAccessPayload> {
+    return await this.jwtService.verifyAsync(token, {
+      secret: this.configService.get('token.JWT_ACCESS_SECRET', {
+        infer: true,
+      }),
+    });
+  }
+
+  async verifyRefreshToken(token: string): Promise<IToken.IRefreshPayload> {
+    return await this.jwtService.verifyAsync(token, {
+      secret: this.configService.get('token.JWT_REFRESH_SECRET', {
+        infer: true,
+      }),
+    });
   }
 }
