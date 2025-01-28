@@ -9,12 +9,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { IExceptionResponse } from 'src/interfaces/response.interface';
+import { AppConfig } from '../configs/config.type';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
   constructor(
     private readonly logger: Logger,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService<AppConfig, true>,
   ) {}
 
   private convertErrorMessage(errors: string[]): string {
@@ -42,7 +43,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date(),
     };
 
-    if (this.configService.get<string>('NODE_ENV') === 'development') {
+    if (this.configService.get('nodeEnv') === 'development') {
       this.logger.debug(exception.stack);
     }
 
