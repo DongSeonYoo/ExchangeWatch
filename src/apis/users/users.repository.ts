@@ -1,7 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { IUser } from './interfaces/user.interface';
+import { UserEntity } from './entities/user.entity';
+import { SocialProvider } from '../../constant';
 
 @Injectable()
 export class UsersRepository {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createUser(input: IUser.ICreateBySocial): Promise<UserEntity> {
+    const createdUser = await this.prisma.users.create({
+      data: {
+        email: input.email,
+        name: input.name,
+        password: input.password,
+        socialProvider: input.socialProvider,
+        socialId: input.socialId,
+      },
+    });
+
+    return UserEntity.from(createdUser);
+  }
+
+  async findUserBySocialId(
+    socialId: string,
+    socialProvider: SocialProvider,
+  ): Promise<UserEntity | null> {
+    const foundUser = await this.prisma.users.findFirst({
+      where: {
+        socialProvider: socialProvider,
+        socialId: socialId,
+      },
+    });
+
+    return foundUser ? UserEntity.from(foundUser) : null;
+  }
 }
