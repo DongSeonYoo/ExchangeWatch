@@ -4,6 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { IFixerAPIResponse } from './interfaces/fixer-api.response';
 import { IFixerService } from './interfaces/fixer-service.interface';
 import { lastValueFrom } from 'rxjs';
+import { AppConfig } from '../../configs/config.type';
 
 @Injectable()
 export class FixerService implements IFixerService {
@@ -11,11 +12,11 @@ export class FixerService implements IFixerService {
   private readonly fixerApiUrl: string;
 
   constructor(
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService<AppConfig, true>,
     private readonly httpService: HttpService,
   ) {
-    this.fixerApiKey = configService.get<string>('FIXER_API_KEY') as string;
-    this.fixerApiUrl = configService.get<string>('FIXER_API_URL') as string;
+    this.fixerApiKey = configService.get('fixer.apiKey', { infer: true });
+    this.fixerApiUrl = configService.get('fixer.apiUrl', { infer: true });
   }
 
   async getLatestRates(

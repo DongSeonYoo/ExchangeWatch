@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
 
-export const appConfig = registerAs('app', () => ({
+export const appConfig = registerAs('', () => ({
   nodeEnv: process.env.NODE_ENV,
   port: parseInt(process.env.PORT || '3000', 10),
 
@@ -34,5 +34,20 @@ export const appConfig = registerAs('app', () => ({
       process.env.LATEST_CURRENCY_CACHE_TTL || '900',
       10,
     ),
+  },
+
+  google: {
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URL: process.env.GOOGLE_REDIRECT_URL,
+  },
+
+  token: {
+    JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+    ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN,
+
+    JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+    REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN,
+    REFRESH_TOKEN_TTL: process.env.REFRESH_TOKEN_TTL,
   },
 }));

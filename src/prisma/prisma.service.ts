@@ -1,12 +1,13 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
+import { AppConfig } from '../configs/config.type';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
-  constructor(private readonly configService: ConfigService) {
+  constructor(private readonly configService: ConfigService<AppConfig, true>) {
     super(
-      configService.get<string>('NODE_ENV') === 'development'
+      configService.get('nodeEnv') === 'development'
         ? {}
         : {
             log: ['query'],

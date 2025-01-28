@@ -1,5 +1,4 @@
-// src/config/env.validation.ts
-import * as Joi from 'joi';
+import Joi from 'joi';
 
 export const envValidationSchema = Joi.object({
   // App
@@ -31,4 +30,16 @@ export const envValidationSchema = Joi.object({
 
   // Cache Policy
   LATEST_CURRENCY_CACHE_TTL: Joi.number().required(),
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: Joi.string().required(),
+  GOOGLE_CLIENT_SECRET: Joi.string().required(),
+  GOOGLE_REDIRECT_URL: Joi.string().uri().required(),
+
+  // JWT Tokens
+  JWT_ACCESS_SECRET: Joi.string().required(),
+  ACCESS_TOKEN_EXPIRES_IN: Joi.string().required(),
+  JWT_REFRESH_SECRET: Joi.string().required(),
+  REFRESH_TOKEN_EXPIRES_IN: Joi.string().required(),
+  REFRESH_TOKEN_TTL: Joi.number().required(),
 });

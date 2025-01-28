@@ -1,15 +1,16 @@
+import Redis from 'ioredis';
 import { Logger, Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import { AppConfig } from '../configs/config.type';
 @Module({
   providers: [
     {
       provide: 'REDIS_CLIENT',
-      useFactory: async (configService: ConfigService) => {
+      useFactory: async (configService: ConfigService<AppConfig, true>) => {
         return new Redis({
-          host: configService.get('REDIS_HOST'),
-          port: configService.get('REDIS_PORT'),
+          host: configService.get('redis.host', { infer: true }),
+          port: configService.get('redis.port', { infer: true }),
         });
       },
       inject: [ConfigService],

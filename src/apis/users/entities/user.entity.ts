@@ -1,3 +1,4 @@
+import Prisma from '@prisma/client';
 import { SocialProvider } from '../../../constant';
 
 export class UserEntity {
@@ -49,17 +50,20 @@ export class UserEntity {
    */
   updatedAt: Date;
 
-  /**
-   * 삭제일시 (soft delete)
-   * @example null
-   */
-  deletedAt: Date | null;
-}
+  constructor(args: UserEntity) {
+    Object.assign(this, args);
+  }
 
-export namespace IUserEntity {
-  export interface ICreate
-    extends Pick<
-      UserEntity,
-      'email' | 'name' | 'socialProvider' | 'socialId'
-    > {}
+  static from(args: Prisma.Users): UserEntity {
+    return new UserEntity({
+      idx: args.idx,
+      email: args.email,
+      name: args.name,
+      password: args.password,
+      socialId: args.socialId,
+      socialProvider: args.socialProvider as SocialProvider,
+      createdAt: args.createdAt,
+      updatedAt: args.updatedAt,
+    });
+  }
 }
