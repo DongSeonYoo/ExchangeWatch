@@ -5,7 +5,6 @@ export namespace IToken {
   }
 
   export interface IRefreshPayload {
-    jti: string; // refresh token value
     sub: string; // user identify
   }
 }

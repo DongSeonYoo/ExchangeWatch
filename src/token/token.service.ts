@@ -4,7 +4,6 @@ import { JwtService } from '@nestjs/jwt';
 import { UserEntity } from '../apis/users/entities/user.entity';
 import { IToken } from './token.interface';
 import { AppConfig } from '../configs/config.type';
-import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class TokenService {
@@ -32,7 +31,6 @@ export class TokenService {
 
   async createRefreshToken(user: UserEntity): Promise<string> {
     const payload: IToken.IRefreshPayload = {
-      jti: `rt_${randomUUID()}`,
       sub: user.idx.toString(),
     };
 
