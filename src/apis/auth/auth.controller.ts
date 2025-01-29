@@ -8,8 +8,6 @@ import { Response } from 'express';
 import { ApiSuccess } from '../../decorators/swaggers/success.decorator';
 import { LoginAuth } from '../../decorators/jwt-auth.decorator';
 import { UsersService } from '../users/users.service';
-import { ApiExceptions } from '../../decorators/swaggers/exception.decorator';
-import { JwtAuthException } from './exceptions/jwt-auth-exception';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -75,5 +73,19 @@ export class AuthController {
     return {
       accessToken,
     };
+  }
+
+  /**
+   * [개발용] auth guard 테스트
+   */
+  @Get('auth-test')
+  @ApiSuccess({
+    success: 'sucess',
+  })
+  @LoginAuth()
+  async authGuardTest(@LoggedInUser() user: UserEntity) {
+    const success = 'sucess';
+
+    return { success };
   }
 }
