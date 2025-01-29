@@ -24,7 +24,7 @@ export class UserEntity {
    * 비밀번호 (소셜 로그인의 경우 null)
    * @example null
    */
-  password: string | null;
+  password?: string | null;
 
   /**
    * 소셜 로그인 제공자
@@ -59,7 +59,6 @@ export class UserEntity {
       idx: args.idx,
       email: args.email,
       name: args.name,
-      password: args.password,
       socialId: args.socialId,
       socialProvider: args.socialProvider as SocialProvider,
       createdAt: args.createdAt,
