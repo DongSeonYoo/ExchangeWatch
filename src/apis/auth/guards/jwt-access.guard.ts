@@ -28,6 +28,8 @@ export class JwtAccessGuard extends AuthGuard('jwt') {
         this.logger.debug('Token invalid: ', info);
         throw new JwtAuthException('INVALID_TOKEN');
       }
+
+      throw new JwtAuthException('UNAUTHORIZED');
     }
 
     if (err instanceof UserNotFoundException) {
