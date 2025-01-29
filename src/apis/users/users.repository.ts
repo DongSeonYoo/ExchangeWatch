@@ -22,6 +22,16 @@ export class UsersRepository {
     return UserEntity.from(createdUser);
   }
 
+  async findUserByIdx(userIdx: number): Promise<UserEntity | null> {
+    const foundUser = await this.prisma.users.findFirst({
+      where: {
+        idx: userIdx,
+      },
+    });
+
+    return foundUser ? UserEntity.from(foundUser) : null;
+  }
+
   async findUserBySocialId(
     socialId: string,
     socialProvider: SocialProvider,

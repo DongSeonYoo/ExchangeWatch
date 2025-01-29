@@ -5,12 +5,12 @@ import { GoogleStrategy } from './strategy/google.strategy';
 import { UsersModule } from '../users/users.module';
 import { RedisModule } from '../../redis/redis.module';
 import { TokenModule } from '../../token/token.module';
-import { GoogleOAuthGuard } from './guards/google.guard';
+import { JwtAccessStrategy } from './strategy/jwt.strategy';
 
 @Module({
   imports: [UsersModule, RedisModule, TokenModule],
   exports: [AuthService],
   controllers: [AuthController],
-  providers: [AuthService, GoogleOAuthGuard, GoogleStrategy],
+  providers: [AuthService, GoogleStrategy, JwtAccessStrategy],
 })
 export class AuthModule {}

@@ -12,7 +12,7 @@ export class GoogleOAuthGuard extends AuthGuard('google') {
     super();
   }
 
-  handleRequest<TUser = any>(
+  handleRequest(
     err: any,
     user: any,
     info: any,
