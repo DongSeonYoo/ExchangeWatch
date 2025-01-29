@@ -13,10 +13,10 @@ export class TokenService {
     private readonly configService: ConfigService<AppConfig, true>,
   ) {}
 
-  async createAccessToken(user: UserEntity): Promise<string> {
+  async createAccessToken(userIdx: number, email: string): Promise<string> {
     const payload: IToken.IAccessPayload = {
-      sub: user.idx.toString(),
-      email: user.email,
+      sub: userIdx,
+      email: email,
     };
 
     return await this.jwtService.signAsync(payload, {
@@ -29,9 +29,9 @@ export class TokenService {
     });
   }
 
-  async createRefreshToken(user: UserEntity): Promise<string> {
+  async createRefreshToken(userIdx: number): Promise<string> {
     const payload: IToken.IRefreshPayload = {
-      sub: user.idx.toString(),
+      sub: userIdx,
     };
 
     return await this.jwtService.signAsync(payload, {

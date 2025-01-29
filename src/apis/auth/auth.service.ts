@@ -13,8 +13,8 @@ export class AuthService {
 
   async issueAccessAndRefreshToken(user: UserEntity) {
     const [accessToken, refreshToken] = await Promise.all([
-      this.tokenService.createAccessToken(user),
-      this.tokenService.createRefreshToken(user),
+      this.tokenService.createAccessToken(user.idx, user.email),
+      this.tokenService.createRefreshToken(user.idx),
     ]);
 
     return { accessToken, refreshToken };
