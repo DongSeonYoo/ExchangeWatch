@@ -1,15 +1,15 @@
 import { UseGuards, applyDecorators } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ApiExceptions } from './swaggers/exception.decorator';
-import { JwtGuard } from 'src/apis/auth/guards/jwt.guard';
+import { JwtAuthGuard } from 'src/apis/auth/guards/jwt.guard';
 import { JwtAuthException } from 'src/apis/auth/exceptions/jwt-auth-exception';
 
 export const LoginAuth = () => {
   return applyDecorators(
-    ApiBearerAuth(),
-    UseGuards(JwtGuard),
+    ApiBearerAuth('access-token'),
+    UseGuards(JwtAuthGuard),
     ApiExceptions({
-      exampleTitle: '로그인 하지 않았을 경우',
+      exampleTitle: 'accessToken이 올바르지 않은 경우',
       schema: JwtAuthException,
     }),
   );
