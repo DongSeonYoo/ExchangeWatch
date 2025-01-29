@@ -18,6 +18,11 @@ export interface ErrorResponseOption<T extends HttpException> {
    * 에러 스키마
    */
   schema: Type<T>;
+
+  /**
+   * 에러 메세지
+   */
+  message?: string;
 }
 
 export class ExceptionResponse implements IExceptionResponse {
@@ -51,7 +56,7 @@ export const ApiExceptions = <T extends HttpException>(
     const errorInstance = new err.schema();
     const statusCode = errorInstance.getStatus();
     const errorResponse: IExceptionResponse = {
-      message: errorInstance.message,
+      message: err.message ?? errorInstance.message,
       requestURL: 'requestURL',
       statusCode: statusCode,
       timestamp: new Date(),
