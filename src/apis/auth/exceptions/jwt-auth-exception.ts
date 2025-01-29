@@ -9,9 +9,6 @@ export type JwtErrorType = (typeof JWT_ERROR_TYPE)[keyof typeof JWT_ERROR_TYPE];
 
 export class JwtAuthException extends UnauthorizedException {
   constructor(private readonly type: JwtErrorType) {
-    super({
-      message: type,
-      error: type,
-    });
+    super(type);
   }
 }
