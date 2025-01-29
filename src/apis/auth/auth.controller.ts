@@ -1,4 +1,4 @@
-import { Controller, Get, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiTags } from '@nestjs/swagger';
 import { GoogleOAuthGuard } from './guards/google.guard';
@@ -6,8 +6,11 @@ import { LoggedInUser } from '../users/decorator/logged-in-user.decorator';
 import { UserEntity } from '../users/entities/user.entity';
 import { Response } from 'express';
 import { ApiSuccess } from '../../decorators/swaggers/success.decorator';
-import { LoginAuth } from '../../decorators/jwt-auth.decorator';
 import { UsersService } from '../users/users.service';
+import {
+  AccessAuth,
+  RefreshAuth,
+} from '../../decorators/swaggers/login-auth.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -55,8 +58,7 @@ export class AuthController {
    */
   @Get('google/dev-login')
   @ApiSuccess({
-    accessToken:
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJpbmtvNTEzNjY2QGdtYWlsLmNvbSIsImlhdCI6MTczODEwMjI1NywiZXhwIjoxNzM4MTA1ODU3fQ.yCX9PpJBOSdAj7wfAn2scsLrSEz34nu9zw2NXOtT5sQ',
+    accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   async googleDevLogin(@Res({ passthrough: true }) res: Response) {
     const testUser = await this.userService.findUserByIdx(1);
@@ -82,10 +84,28 @@ export class AuthController {
   @ApiSuccess({
     success: 'sucess',
   })
-  @LoginAuth()
+  @AccessAuth()
   async authGuardTest(@LoggedInUser() user: UserEntity) {
     const success = 'sucess';
 
     return { success };
+  }
+
+  /**
+   * Access-token 갱신 엔드포인트
+   *
+   * @remarks 헤더에 http-only 속성으로 적용되어있는 refresh token을 통해 새로운 access token을 발급받습니다.
+   */
+  @Post('refresh')
+  @RefreshAuth()
+  @ApiSuccess({
+    accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  async refreshToken(@LoggedInUser() user: UserEntity) {
+    const accessToken = await this.authService.refreshAccessToken(user);
+
+    return {
+      accessToken,
+    };
   }
 }

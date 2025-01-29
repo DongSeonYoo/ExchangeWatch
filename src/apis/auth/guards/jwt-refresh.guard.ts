@@ -1,23 +1,17 @@
-import { ExecutionContext, Injectable, Logger } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { UserNotFoundException } from '../../users/exceptions/user-not-found.exception';
-import { JwtAuthException } from '../exceptions/jwt-auth-exception';
+import { Injectable, Logger } from '@nestjs/common';
 import { JsonWebTokenError, TokenExpiredError } from '@nestjs/jwt';
+import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthException } from '../exceptions/jwt-auth-exception';
+import { UserNotFoundException } from '../../users/exceptions/user-not-found.exception';
 
 @Injectable()
-export class JwtAccessGuard extends AuthGuard('jwt') {
-  private readonly logger = new Logger(JwtAccessGuard.name);
+export class JwtRefreshGuard extends AuthGuard('refresh') {
+  private readonly logger = new Logger(JwtRefreshGuard.name);
   constructor() {
     super();
   }
 
-  handleRequest<TUser = any>(
-    err: any,
-    user: any,
-    info: any,
-    context: ExecutionContext,
-    status?: any,
-  ): TUser {
+  handleRequest<TUser = any>(err: any, user: any, info: any): TUser {
     if (info) {
       if (info instanceof TokenExpiredError) {
         this.logger.debug('Token expired: ', info);

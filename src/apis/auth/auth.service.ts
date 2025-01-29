@@ -19,4 +19,8 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
+
+  async refreshAccessToken(user: UserEntity): Promise<string> {
+    return await this.tokenService.createAccessToken(user.idx, user.email);
+  }
 }
