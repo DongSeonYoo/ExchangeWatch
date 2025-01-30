@@ -91,6 +91,7 @@ export class WatchlistController {
    * @remarks 등록된 관심 통화쌍을 삭제합니다. 삭제권한이 없는 경우에도 404Error를 반환합니다
    */
   @Delete(':idx')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiExceptions({
     exampleTitle: '통화쌍이 존재하지 않을 경우',
     schema: CurrencyPairNotFoundException,
@@ -109,6 +110,7 @@ export class WatchlistController {
    * @remarks 등록된 관심 통화쌍의 순서를 변경합니다. 변경 권한이 없는 경우에도 404Error를 반환합니다
    */
   @Put('order')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiExceptions({
     exampleTitle: '통화쌍이 존재하지 않을 경우',
     schema: CurrencyPairNotFoundException,
