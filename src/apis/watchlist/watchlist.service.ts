@@ -5,6 +5,7 @@ import { AddWatchlistItemReqDto } from './dto/add-watchlist-item.dto';
 import { WatchlistEntity } from './entitites/watch-list.entity';
 import { AlreadyRegisterPairException } from './exceptions/already-register-pair.excepetion';
 import { MaximumPairException } from './exceptions/maximum-pair.exception';
+import { SelectWatchListReqDto } from './dto/select-watchlis.dto';
 
 @Injectable()
 export class WatchlistService {
@@ -54,5 +55,18 @@ export class WatchlistService {
     });
 
     return createdItem;
+  }
+
+  async getInterestCurrencyList(userIdx: number, dto: SelectWatchListReqDto) {
+    const data = await this.watchListRepository.findUserWatchListsWithCursor({
+      userIdx,
+      cursor: dto.cursor,
+      limit: dto.limit,
+    });
+
+    return {
+      items: data.items,
+      nextCursor: data.nextCursor,
+    };
   }
 }

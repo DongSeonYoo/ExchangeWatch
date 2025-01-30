@@ -59,6 +59,42 @@ export class WatchListRepository {
       .then((e) => (e ? WatchlistEntity.from(e) : null));
   }
 
+  async findUserWatchListsWithCursor(input: {
+    userIdx: number;
+    limit: number;
+    cursor?: number;
+  }): Promise<{
+    items: WatchlistEntity[];
+    nextCursor?: number;
+  }> {
+    const items = await this.prisma.watchlist.findMany({
+      where: {
+        userIdx: input.userIdx,
+        ...(input.cursor && {
+          displayOrder: {
+            lt: input.cursor,
+          },
+        }),
+      },
+      orderBy: {
+        displayOrder: 'desc',
+      },
+      take: input.limit + 1,
+    });
+
+    const hasNextPage = items.length > input.limit;
+    if (hasNextPage) {
+      items.pop(); // remove last data
+    }
+
+    return {
+      items: items.map((item) => WatchlistEntity.from(item)),
+      nextCursor: hasNextPage
+        ? items[items.length - 1].displayOrder
+        : undefined,
+    };
+  }
+
   async countUserPairs(userIdx: number): Promise<number> {
     return await this.prisma.watchlist.count({
       where: {
