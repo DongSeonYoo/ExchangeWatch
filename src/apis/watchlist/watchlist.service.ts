@@ -6,6 +6,7 @@ import { WatchlistEntity } from './entitites/watch-list.entity';
 import { AlreadyRegisterPairException } from './exceptions/already-register-pair.excepetion';
 import { MaximumPairException } from './exceptions/maximum-pair.exception';
 import { SelectWatchListReqDto } from './dto/select-watchlis.dto';
+import { CurrencyPairNotFoundException } from './exceptions/currency-pair-not-found.exception';
 
 @Injectable()
 export class WatchlistService {
@@ -68,5 +69,16 @@ export class WatchlistService {
       items: data.items,
       nextCursor: data.nextCursor,
     };
+  }
+
+  async deleteInterstCurrency(pairIdx: number, userIdx: number): Promise<void> {
+    const foundExistPair =
+      await this.watchListRepository.findCurrencyPairWithUser(pairIdx, userIdx);
+    if (!foundExistPair) {
+      throw new CurrencyPairNotFoundException();
+    }
+    await this.watchListRepository.deleteCurrencyPair(pairIdx, userIdx);
+
+    return;
   }
 }

@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
   Query,
@@ -27,6 +28,8 @@ import {
   SelectWatchListReqDto,
   SelectWatchListResDto,
 } from './dto/select-watchlis.dto';
+import { CurrencyPairNotFoundException } from './exceptions/currency-pair-not-found.exception';
+import { UpdateWatchListItemOrderReqDto } from './dto/update-watchlist-order.dto';
 
 @ApiTags('WatchList')
 @AccessAuth()
@@ -84,9 +87,22 @@ export class WatchlistController {
 
   /**
    * 관심 통화 삭제
+   *
+   * @remarks 등록된 관심 통화쌍을 삭제합니다. 삭제권한이 없는 경우에도 404Error를 반환합니다
    */
   @Delete(':idx')
-  async deleteInterstCurrency() {}
+  @ApiExceptions({
+    exampleTitle: '통화쌍이 존재하지 않을 경우',
+    schema: CurrencyPairNotFoundException,
+  })
+  async deleteInterstCurrency(
+    @Param('idx') pairIdx: number,
+    @LoggedInUser() user: UserEntity,
+  ): Promise<void> {
+    await this.watchlistService.deleteInterstCurrency(pairIdx, user.idx);
+
+    return;
+  }
 
   /**
    * 순서 변경

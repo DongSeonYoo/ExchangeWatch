@@ -102,4 +102,19 @@ export class WatchListRepository {
       },
     });
   }
+
+  async deleteCurrencyPair(
+    pairIdx: number,
+    userIdx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await (tx ?? this.prisma).watchlist.delete({
+      where: {
+        idx: pairIdx,
+        userIdx: userIdx,
+      },
+    });
+
+    return;
+  }
 }
