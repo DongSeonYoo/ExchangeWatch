@@ -21,17 +21,19 @@ export class WatchlistService {
     dto: AddWatchlistItemReqDto,
   ): Promise<WatchlistEntity> {
     // 1. Check AlreadyRegisterPairException
-    const checkRegisterPair = await this.watchListRepository.findCurrencyPair(
-      userIdx,
-      dto.baseCurrency,
-      dto.currencyCode,
-    );
+    const checkRegisterPair =
+      await this.watchListRepository.findInterestPairByUser(
+        userIdx,
+        dto.baseCurrency,
+        dto.currencyCode,
+      );
     if (checkRegisterPair) {
       throw new AlreadyRegisterPairException();
     }
 
     // 2. Check MaximumPairException
-    const pairCount = await this.watchListRepository.countUserPairs(userIdx);
+    const pairCount =
+      await this.watchListRepository.findInterestPairCountByUser(userIdx);
     if (pairCount >= this.MAX_PAIR_COUNT) {
       throw new MaximumPairException();
     }
@@ -44,7 +46,7 @@ export class WatchlistService {
       );
       const displayOrder = lastOrder === undefined ? 0 : lastOrder + 1;
 
-      return await this.watchListRepository.insertCurrency(
+      return await this.watchListRepository.createInterestPair(
         {
           userIdx: userIdx,
           baseCurrency: dto.baseCurrency,
@@ -62,7 +64,7 @@ export class WatchlistService {
     userIdx: number,
     dto: SelectWatchListReqDto,
   ): Promise<{ items: WatchlistEntity[]; nextCursor: number | undefined }> {
-    const data = await this.watchListRepository.findUserWatchListsWithCursor({
+    const data = await this.watchListRepository.findInterestPairsWithCursor({
       userIdx,
       cursor: dto.cursor,
       limit: dto.limit,
@@ -75,12 +77,14 @@ export class WatchlistService {
   }
 
   async deleteInterstCurrency(pairIdx: number, userIdx: number): Promise<void> {
-    const foundExistPair =
-      await this.watchListRepository.findCurrencyPairWithUser(pairIdx, userIdx);
+    const foundExistPair = await this.watchListRepository.findInterestPairByIdx(
+      pairIdx,
+      userIdx,
+    );
     if (!foundExistPair) {
       throw new CurrencyPairNotFoundException();
     }
-    await this.watchListRepository.deleteCurrencyPair(pairIdx, userIdx);
+    await this.watchListRepository.deleteInterestPair(pairIdx, userIdx);
 
     return;
   }
@@ -91,7 +95,7 @@ export class WatchlistService {
     userIdx: number,
   ): Promise<void> {
     const foundExistsPair =
-      await this.watchListRepository.findCurrencyPairWithUser(pairIdx, userIdx);
+      await this.watchListRepository.findInterestPairByIdx(pairIdx, userIdx);
     if (!foundExistsPair) {
       throw new CurrencyPairNotFoundException();
     }
@@ -99,7 +103,7 @@ export class WatchlistService {
     await this.txManager.runTransaction(async (tx) => {
       // Check item with the corresponding order
       const targetPair =
-        await this.watchListRepository.findCurrencyPairWithOrderAndUser(
+        await this.watchListRepository.findInterestPairWithOrderAndUser(
           newOrder,
           userIdx,
           tx,
