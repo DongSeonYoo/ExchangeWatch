@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { WatchlistService } from './watchlist.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -22,6 +23,10 @@ import { ApiExceptions } from '../../decorators/swaggers/exception.decorator';
 import { AlreadyRegisterPairException } from './exceptions/already-register-pair.excepetion';
 import { MaximumPairException } from './exceptions/maximum-pair.exception';
 import { InvalidCurrencyCodeException } from '../../decorators/validations/is-valid-currency.validator';
+import {
+  SelectWatchListReqDto,
+  SelectWatchListResDto,
+} from './dto/select-watchlis.dto';
 
 @ApiTags('WatchList')
 @AccessAuth()
@@ -65,7 +70,17 @@ export class WatchlistController {
    * 관심 통화 목록 조회
    */
   @Get()
-  async getInterestCurrencyList() {}
+  @ApiSuccess(SelectWatchListResDto)
+  async getInterestCurrencyList(
+    @Query() dto: SelectWatchListReqDto,
+    @LoggedInUser() user: UserEntity,
+  ) {
+    const { items, nextCursor } =
+      await this.watchlistService.getInterestCurrencyList(user.idx, dto);
+    nextCursor;
+
+    return SelectWatchListResDto.of(items, nextCursor);
+  }
 
   /**
    * 관심 통화 삭제
