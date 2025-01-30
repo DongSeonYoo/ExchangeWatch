@@ -89,7 +89,7 @@ export class WatchlistService {
     return;
   }
 
-  async updateInterestPair(
+  async updateInterestPairOrder(
     pairIdx: number,
     newOrder: number,
     userIdx: number,

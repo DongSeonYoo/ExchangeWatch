@@ -117,7 +117,7 @@ export class WatchlistController {
     @Body() dto: UpdateWatchListItemOrderReqDto,
     @LoggedInUser() user: UserEntity,
   ): Promise<void> {
-    await this.watchlistService.updateInterestPair(
+    await this.watchlistService.updateInterestPairOrder(
       dto.pairIdx,
       dto.displayOrder,
       user.idx,
