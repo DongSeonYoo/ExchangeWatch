@@ -8,7 +8,7 @@ import { WatchlistEntity } from './entitites/watch-list.entity';
 export class WatchListRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async insertCurrency(
+  async createInterestPair(
     input: IWatchList.ICreate,
     tx?: Prisma.TransactionClient,
   ): Promise<WatchlistEntity> {
@@ -43,23 +43,37 @@ export class WatchListRepository {
     return lastOrder?.displayOrder;
   }
 
-  async findCurrencyPair(
+  async findInterestPairByUser(
     userIdx: number,
     baseCurrency: string,
     currencyCode: string,
   ): Promise<WatchlistEntity | null> {
-    return await this.prisma.watchlist
-      .findFirst({
-        where: {
-          userIdx,
-          baseCurrency,
-          currencyCode,
-        },
-      })
-      .then((e) => (e ? WatchlistEntity.from(e) : null));
+    const foundPair = await this.prisma.watchlist.findFirst({
+      where: {
+        userIdx,
+        baseCurrency,
+        currencyCode,
+      },
+    });
+
+    return foundPair ? WatchlistEntity.from(foundPair) : null;
   }
 
-  async findUserWatchListsWithCursor(input: {
+  async findInterestPairByIdx(
+    currencyPair: number,
+    userIdx: number,
+  ): Promise<WatchlistEntity | null> {
+    const foundPair = await this.prisma.watchlist.findFirst({
+      where: {
+        idx: currencyPair,
+        userIdx: userIdx,
+      },
+    });
+
+    return foundPair ? WatchlistEntity.from(foundPair) : null;
+  }
+
+  async findInterestPairsWithCursor(input: {
     userIdx: number;
     limit: number;
     cursor?: number;
@@ -95,11 +109,60 @@ export class WatchListRepository {
     };
   }
 
-  async countUserPairs(userIdx: number): Promise<number> {
+  async findInterestPairWithOrderAndUser(
+    userIdx: number,
+    order: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<WatchlistEntity | null> {
+    const item = await (tx ?? this.prisma).watchlist.findFirst({
+      where: {
+        userIdx,
+        displayOrder: order,
+      },
+    });
+
+    return item ? WatchlistEntity.from(item) : null;
+  }
+
+  async findInterestPairCountByUser(userIdx: number): Promise<number> {
     return await this.prisma.watchlist.count({
       where: {
         userIdx,
       },
     });
+  }
+
+  async deleteInterestPair(
+    pairIdx: number,
+    userIdx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await (tx ?? this.prisma).watchlist.delete({
+      where: {
+        idx: pairIdx,
+        userIdx: userIdx,
+      },
+    });
+
+    return;
+  }
+
+  async updateInterestPair(
+    pairIdx: number,
+    newOrder: number,
+    userIdx: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await (tx ?? this.prisma).watchlist.update({
+      data: {
+        displayOrder: newOrder,
+      },
+      where: {
+        idx: pairIdx,
+        userIdx: userIdx,
+      },
+    });
+
+    return;
   }
 }
