@@ -58,7 +58,10 @@ export class WatchlistService {
     return createdItem;
   }
 
-  async getInterestCurrencyList(userIdx: number, dto: SelectWatchListReqDto) {
+  async getInterestCurrencyList(
+    userIdx: number,
+    dto: SelectWatchListReqDto,
+  ): Promise<{ items: WatchlistEntity[]; nextCursor: number | undefined }> {
     const data = await this.watchListRepository.findUserWatchListsWithCursor({
       userIdx,
       cursor: dto.cursor,
@@ -80,5 +83,45 @@ export class WatchlistService {
     await this.watchListRepository.deleteCurrencyPair(pairIdx, userIdx);
 
     return;
+  }
+
+  async updateInterestPair(
+    pairIdx: number,
+    newOrder: number,
+    userIdx: number,
+  ): Promise<void> {
+    const foundExistsPair =
+      await this.watchListRepository.findCurrencyPairWithUser(pairIdx, userIdx);
+    if (!foundExistsPair) {
+      throw new CurrencyPairNotFoundException();
+    }
+
+    await this.txManager.runTransaction(async (tx) => {
+      // Check item with the corresponding order
+      const targetPair =
+        await this.watchListRepository.findCurrencyPairWithOrderAndUser(
+          newOrder,
+          userIdx,
+          tx,
+        );
+
+      // When item exists
+      if (targetPair) {
+        // Replace order to exists order
+        await this.watchListRepository.updateInterestPair(
+          targetPair.idx,
+          foundExistsPair.displayOrder,
+          userIdx,
+          tx,
+        );
+      }
+
+      await this.watchListRepository.updateInterestPair(
+        pairIdx,
+        newOrder,
+        userIdx,
+        tx,
+      );
+    });
   }
 }

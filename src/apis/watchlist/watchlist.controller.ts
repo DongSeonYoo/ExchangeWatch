@@ -6,8 +6,8 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { WatchlistService } from './watchlist.service';
@@ -106,7 +106,23 @@ export class WatchlistController {
 
   /**
    * 순서 변경
+   * @remarks 등록된 관심 통화쌍의 순서를 변경합니다. 변경 권한이 없는 경우에도 404Error를 반환합니다
    */
-  @Patch('order')
-  async changeCurrencyOrder() {}
+  @Put('order')
+  @ApiExceptions({
+    exampleTitle: '통화쌍이 존재하지 않을 경우',
+    schema: CurrencyPairNotFoundException,
+  })
+  async changeCurrencyOrder(
+    @Body() dto: UpdateWatchListItemOrderReqDto,
+    @LoggedInUser() user: UserEntity,
+  ): Promise<void> {
+    await this.watchlistService.updateInterestPair(
+      dto.pairIdx,
+      dto.displayOrder,
+      user.idx,
+    );
+
+    return;
+  }
 }
