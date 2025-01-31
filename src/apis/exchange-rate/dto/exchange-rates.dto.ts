@@ -31,7 +31,12 @@ export class CurrentExchangeRateReqDto {
 
 export class RateDetail {
   /**
-   * 환율
+   * 통화명 이름
+   */
+  name: string;
+
+  /**
+   * 현재 환율
    */
   rate: number;
 
