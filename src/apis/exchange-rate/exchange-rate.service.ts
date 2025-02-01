@@ -3,14 +3,31 @@ import { MockFixerService } from '../fixer/mock/fixer-mock.service';
 import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import { RedisService } from '../../redis/redis.service';
-import { RateDetail } from './dto/exchange-rates.dto';
+import {
+  CurrentExchangeRateReqDto,
+  RateDetail,
+} from './dto/exchange-rates.dto';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
 import { DateUtilService } from '../../utils/date-util/date-util.service';
 import { ExchangeRatesDailyEntity } from './entitites/exchange-rate-daily.entity';
+import { getCurrencyNameInKorean } from './mapper/symbol-kr.mapper';
 
 @Injectable()
 export class ExchangeRateService {
+  private readonly majorCurrencyLists = [
+    'USD',
+    'EUR',
+    'JPY',
+    'GBP',
+    'CNY',
+    'AUD',
+    'CAD',
+    'CHF',
+    'SGD',
+    'HKD',
+  ];
+
   constructor(
     private readonly fixerService: MockFixerService,
     private readonly redisService: RedisService,
@@ -19,23 +36,24 @@ export class ExchangeRateService {
     private readonly dateUtilService: DateUtilService,
   ) {}
 
-  async getCurrencyExchangeRates(
-    baseCurrency: string,
-    currencyCodes?: string[],
-  ) {
+  async getCurrencyExchangeRates(input: CurrentExchangeRateReqDto) {
+    const currencyCodes = input.currencyCodes?.length
+      ? input.currencyCodes
+      : this.majorCurrencyLists;
+
     const today = new Date();
     const [latestRates, fluctuationRates] = await Promise.all([
-      this.fixerService.getLatestRates(baseCurrency, currencyCodes),
+      this.fixerService.getLatestRates(input.baseCurrency, currencyCodes),
       this.fixerService.getFluctuationRates(
         today,
         today,
-        baseCurrency,
+        input.baseCurrency,
         currencyCodes,
       ),
     ]);
 
-    const targetCodes = currencyCodes?.length
-      ? currencyCodes
+    const targetCodes = input.currencyCodes?.length
+      ? input.currencyCodes
       : Object.keys(latestRates.rates);
 
     const processedRates = targetCodes.reduce<Record<string, RateDetail>>(
@@ -43,6 +61,7 @@ export class ExchangeRateService {
         const rate = latestRates.rates[code];
         const fluctuation = fluctuationRates.rates[code];
         acc[code] = {
+          name: getCurrencyNameInKorean(code),
           rate: rate,
           dayChange: fluctuation.change,
           dayChangePercent: fluctuation.change_pct,
