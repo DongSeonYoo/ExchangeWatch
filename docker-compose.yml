@@ -17,6 +17,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      frankfurter:
+        condition: service_started
     env_file:
       - .env
     volumes:
@@ -51,6 +53,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  frankfurter:
+    image: lineofflight/frankfurter
+    ports:
+      - '4000:8080'
 
 volumes:
   redis_data:
