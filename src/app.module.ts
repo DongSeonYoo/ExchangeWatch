@@ -24,6 +24,7 @@ import { WatchlistModule } from './apis/watchlist/watchlist.module';
 import { FixerModule } from './apis/fixer/fixer.module';
 import { appConfig } from './configs/env/env.config';
 import { envValidationSchema } from './configs/env/env.validation';
+import { FrankFurterModule } from './apis/frankfurter/frankfurter.module';
 
 @Module({
   imports: [
@@ -47,7 +48,7 @@ import { envValidationSchema } from './configs/env/env.validation';
     AlertHistoryModule,
     NewsModule,
     WatchlistModule,
-    FixerModule,
+    FrankFurterModule,
   ],
   providers: [
     LoggerMiddleware,

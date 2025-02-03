@@ -9,9 +9,10 @@ import { IsBeforeConstraint } from '../../decorators/validations/is-before.valid
 import { IsAfterConstraint } from '../../decorators/validations/is-after.validator';
 import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
+import { FrankFurterModule } from '../frankfurter/frankfurter.module';
 
 @Module({
-  imports: [FixerModule, RedisModule, ScheduleModule.forRoot()],
+  imports: [RedisModule, ScheduleModule.forRoot(), FrankFurterModule],
   controllers: [ExchangeRateController],
   providers: [
     ExchangeRateService,

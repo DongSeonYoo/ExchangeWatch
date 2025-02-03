@@ -22,6 +22,10 @@ export const appConfig = registerAs('', () => ({
     apiUrl: process.env.FIXER_API_URL,
   },
 
+  frankFurter: {
+    baseUrl: process.env.FRANK_FURTER_URL,
+  },
+
   aws: {
     bucketName: process.env.AWS_BUCKET_NAME,
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
