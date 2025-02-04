@@ -21,10 +21,9 @@ import { PriceNotificationModule } from './apis/price-notification/price-notific
 import { AlertHistoryModule } from './apis/alert-history/alert-history.module';
 import { NewsModule } from './apis/news/news.module';
 import { WatchlistModule } from './apis/watchlist/watchlist.module';
-import { FixerModule } from './apis/fixer/fixer.module';
 import { appConfig } from './configs/env/env.config';
 import { envValidationSchema } from './configs/env/env.validation';
-import { FrankFurterModule } from './apis/frankfurter/frankfurter.module';
+import { ExternalAPIModule } from './externals/external.module';
 
 @Module({
   imports: [
@@ -48,7 +47,7 @@ import { FrankFurterModule } from './apis/frankfurter/frankfurter.module';
     AlertHistoryModule,
     NewsModule,
     WatchlistModule,
-    FrankFurterModule,
+    ExternalAPIModule,
   ],
   providers: [
     LoggerMiddleware,

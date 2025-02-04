@@ -44,4 +44,13 @@ export namespace IFixerAPIResponse {
     change: number;
     change_pct: number;
   };
+
+  export interface IErrorResponse {
+    success: boolean;
+    error: {
+      code: number;
+      type: string;
+      info: string;
+    };
+  }
 }

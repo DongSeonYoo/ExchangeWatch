@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import { RedisService } from '../../redis/redis.service';
@@ -11,7 +11,7 @@ import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
 import { DateUtilService } from '../../utils/date-util/date-util.service';
 import { ExchangeRatesDailyEntity } from './entitites/exchange-rate-daily.entity';
 import { getCurrencyNameInKorean } from './mapper/symbol-kr.mapper';
-import { FrankFurterService } from '../frankfurter/frankfurter.service';
+import { IExchangeRateAPIService } from '../../externals/exchange-rates/interfaces/exchange-rate-api-service';
 
 @Injectable()
 export class ExchangeRateService {
@@ -50,7 +50,8 @@ export class ExchangeRateService {
   ];
 
   constructor(
-    private readonly exchangeRateExternalAPI: FrankFurterService,
+    @Inject('EXCHANGE_RATE_API')
+    private readonly exchangeRateExternalAPI: IExchangeRateAPIService,
     private readonly redisService: RedisService,
     private readonly exchangeRateRepository: ExchangeRateRepository,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
@@ -68,8 +69,8 @@ export class ExchangeRateService {
         input.baseCurrency,
         currencyCodes,
       ),
-      this.exchangeRateExternalAPI.getFluctuationRates(
-        today,
+      this.exchangeRateExternalAPI.getOHLCData(
+        this.dateUtilService.getYesterday(today),
         today,
         input.baseCurrency,
         currencyCodes,
@@ -88,9 +89,9 @@ export class ExchangeRateService {
           name: getCurrencyNameInKorean(code),
           rate: rate,
           dayChange: fluctuation.change,
-          dayChangePercent: fluctuation.change_pct,
-          high24h: Math.max(fluctuation.start_rate, fluctuation.end_rate),
-          low24h: Math.min(fluctuation.start_rate, fluctuation.end_rate),
+          dayChangePercent: fluctuation.changePct,
+          high24h: Math.max(fluctuation.startRate, fluctuation.endRate),
+          low24h: Math.min(fluctuation.startRate, fluctuation.endRate),
         };
 
         return acc;
@@ -99,7 +100,7 @@ export class ExchangeRateService {
     );
 
     return {
-      baseCurrency: latestRates.base,
+      baseCurrency: latestRates.baseCurrency,
       rates: processedRates,
     };
   }
@@ -156,7 +157,7 @@ export class ExchangeRateService {
       await Promise.all(
         missingDates.map(async (date) => {
           const fluctuationData =
-            await this.exchangeRateExternalAPI.getFluctuationRates(
+            await this.exchangeRateExternalAPI.getOHLCData(
               this.dateUtilService.getYesterday(date),
               date,
               input.baseCurrency,
@@ -167,11 +168,11 @@ export class ExchangeRateService {
           await this.exchangeRateDailyRepository.saveDailyRates({
             baseCurrency: input.baseCurrency,
             currencyCode: input.currencyCode,
-            openRate: fluctuation.start_rate,
-            closeRate: fluctuation.end_rate,
-            highRate: Math.max(fluctuation.start_rate, fluctuation.end_rate),
-            lowRate: Math.min(fluctuation.start_rate, fluctuation.end_rate),
-            avgRate: (fluctuation.start_rate + fluctuation.end_rate) / 2,
+            openRate: fluctuation.startRate,
+            closeRate: fluctuation.endRate,
+            highRate: Math.max(fluctuation.startRate, fluctuation.endRate),
+            lowRate: Math.min(fluctuation.startRate, fluctuation.endRate),
+            avgRate: (fluctuation.startRate + fluctuation.endRate) / 2,
             ohlcDate: date,
             rateCount: 1,
           });
@@ -196,11 +197,10 @@ export class ExchangeRateService {
    * OHLC data aggregate on a specific date
    */
   async aggregateDailyRates(startDate: Date, endDate: Date) {
-    const fluctuationData =
-      await this.exchangeRateExternalAPI.getFluctuationRates(
-        startDate,
-        endDate,
-      );
+    const fluctuationData = await this.exchangeRateExternalAPI.getOHLCData(
+      startDate,
+      endDate,
+    );
 
     const dailyStats = await this.exchangeRateRepository.findDailyStats(
       startDate,
@@ -212,8 +212,8 @@ export class ExchangeRateService {
       await this.exchangeRateDailyRepository.saveDailyRates({
         baseCurrency: stats.baseCurrency,
         currencyCode: stats.currencyCode,
-        openRate: fluctuation.start_rate,
-        closeRate: fluctuation.end_rate,
+        openRate: fluctuation.startRate,
+        closeRate: fluctuation.endRate,
         highRate: stats.maxRate,
         lowRate: stats.minRate,
         avgRate: stats.avgRate,
