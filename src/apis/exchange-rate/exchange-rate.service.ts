@@ -1,5 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import { MockFixerService } from '../fixer/mock/fixer-mock.service';
+import { Inject, Injectable } from '@nestjs/common';
 import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import { RedisService } from '../../redis/redis.service';
@@ -12,24 +11,47 @@ import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
 import { DateUtilService } from '../../utils/date-util/date-util.service';
 import { ExchangeRatesDailyEntity } from './entitites/exchange-rate-daily.entity';
 import { getCurrencyNameInKorean } from './mapper/symbol-kr.mapper';
+import { IExchangeRateAPIService } from '../../externals/exchange-rates/interfaces/exchange-rate-api-service';
 
 @Injectable()
 export class ExchangeRateService {
   private readonly majorCurrencyLists = [
-    'USD',
-    'EUR',
-    'JPY',
-    'GBP',
-    'CNY',
     'AUD',
+    'BGN',
+    'BRL',
     'CAD',
     'CHF',
-    'SGD',
+    'CNY',
+    'CZK',
+    'DKK',
+    'GBP',
     'HKD',
+    'HUF',
+    'IDR',
+    'ILS',
+    'INR',
+    'ISK',
+    'JPY',
+    'KRW',
+    'MXN',
+    'MYR',
+    'NOK',
+    'NZD',
+    'PHP',
+    'PLN',
+    'RON',
+    'SEK',
+    'SGD',
+    'THB',
+    'TRY',
+    'USD',
+    'ZAR',
+    'EUR',
   ];
 
   constructor(
-    private readonly fixerService: MockFixerService,
+    @Inject('EXCHANGE_RATE_API')
+    private readonly exchangeRateExternalAPI: IExchangeRateAPIService,
     private readonly redisService: RedisService,
     private readonly exchangeRateRepository: ExchangeRateRepository,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
@@ -43,9 +65,12 @@ export class ExchangeRateService {
 
     const today = new Date();
     const [latestRates, fluctuationRates] = await Promise.all([
-      this.fixerService.getLatestRates(input.baseCurrency, currencyCodes),
-      this.fixerService.getFluctuationRates(
-        today,
+      this.exchangeRateExternalAPI.getLatestRates(
+        input.baseCurrency,
+        currencyCodes,
+      ),
+      this.exchangeRateExternalAPI.getOHLCData(
+        this.dateUtilService.getYesterday(today),
         today,
         input.baseCurrency,
         currencyCodes,
@@ -64,9 +89,9 @@ export class ExchangeRateService {
           name: getCurrencyNameInKorean(code),
           rate: rate,
           dayChange: fluctuation.change,
-          dayChangePercent: fluctuation.change_pct,
-          high24h: Math.max(fluctuation.start_rate, fluctuation.end_rate),
-          low24h: Math.min(fluctuation.start_rate, fluctuation.end_rate),
+          dayChangePercent: fluctuation.changePct,
+          high24h: Math.max(fluctuation.startRate, fluctuation.endRate),
+          low24h: Math.min(fluctuation.startRate, fluctuation.endRate),
         };
 
         return acc;
@@ -75,7 +100,7 @@ export class ExchangeRateService {
     );
 
     return {
-      baseCurrency: latestRates.base,
+      baseCurrency: latestRates.baseCurrency,
       rates: processedRates,
     };
   }
@@ -119,8 +144,8 @@ export class ExchangeRateService {
       input.startedAt,
       input.endedAt,
     );
-    const existingDates = historicalDataFromDB.map((e) => e.ohlcDate);
 
+    const existingDates = historicalDataFromDB.map((e) => e.ohlcDate);
     const missingDates = requestedAllDate.filter((reqDate) => {
       const strExistDates = existingDates.map((e) => e.toISOString());
       const strReqDates = reqDate.toISOString();
@@ -131,22 +156,23 @@ export class ExchangeRateService {
     if (missingDates.length > 0) {
       await Promise.all(
         missingDates.map(async (date) => {
-          const fluctuationData = await this.fixerService.getFluctuationRates(
-            date,
-            date,
-            input.baseCurrency,
-            [input.currencyCode],
-          );
+          const fluctuationData =
+            await this.exchangeRateExternalAPI.getOHLCData(
+              this.dateUtilService.getYesterday(date),
+              date,
+              input.baseCurrency,
+              [input.currencyCode],
+            );
           const fluctuation = fluctuationData.rates[input.currencyCode];
 
           await this.exchangeRateDailyRepository.saveDailyRates({
             baseCurrency: input.baseCurrency,
             currencyCode: input.currencyCode,
-            openRate: fluctuation.start_rate,
-            closeRate: fluctuation.end_rate,
-            highRate: Math.max(fluctuation.start_rate, fluctuation.end_rate),
-            lowRate: Math.min(fluctuation.start_rate, fluctuation.end_rate),
-            avgRate: (fluctuation.start_rate + fluctuation.end_rate) / 2,
+            openRate: fluctuation.startRate,
+            closeRate: fluctuation.endRate,
+            highRate: Math.max(fluctuation.startRate, fluctuation.endRate),
+            lowRate: Math.min(fluctuation.startRate, fluctuation.endRate),
+            avgRate: (fluctuation.startRate + fluctuation.endRate) / 2,
             ohlcDate: date,
             rateCount: 1,
           });
@@ -171,7 +197,7 @@ export class ExchangeRateService {
    * OHLC data aggregate on a specific date
    */
   async aggregateDailyRates(startDate: Date, endDate: Date) {
-    const fluctuationData = await this.fixerService.getFluctuationRates(
+    const fluctuationData = await this.exchangeRateExternalAPI.getOHLCData(
       startDate,
       endDate,
     );
@@ -186,8 +212,8 @@ export class ExchangeRateService {
       await this.exchangeRateDailyRepository.saveDailyRates({
         baseCurrency: stats.baseCurrency,
         currencyCode: stats.currencyCode,
-        openRate: fluctuation.start_rate,
-        closeRate: fluctuation.end_rate,
+        openRate: fluctuation.startRate,
+        closeRate: fluctuation.endRate,
         highRate: stats.maxRate,
         lowRate: stats.minRate,
         avgRate: stats.avgRate,
@@ -207,20 +233,22 @@ export class ExchangeRateService {
    * 3. update cache
    */
   async saveLatestRates(): Promise<void> {
-    const rates = await this.fixerService.getLatestRates();
-    const baseCurrency = rates.base;
-    const records: IExchangeRate.ICreate[] = Object.entries(rates.rates).map(
-      ([currencyCode, rate]) => ({
-        baseCurrency,
-        currencyCode,
-        rate,
-      }),
-    );
+    const rates = await this.exchangeRateExternalAPI.getLatestRates();
 
-    // TODO: distribute transaction & analize excution time
-    await Promise.all([
-      this.exchangeRateRepository.saveLatestRates(records),
-      this.redisService.updateLatestRateCache(records),
-    ]);
+    this.majorCurrencyLists.map(async (majorBaseCurrency) => {
+      const res: IExchangeRate.ICreate[] = Object.entries(rates.rates).map(
+        ([currencyCode, rate]) => ({
+          baseCurrency: majorBaseCurrency,
+          currencyCode,
+          rate,
+        }),
+      );
+
+      // TODO: distribute transaction & analize excution time
+      await Promise.all([
+        this.exchangeRateRepository.saveLatestRates(res),
+        this.redisService.updateLatestRateCache(res),
+      ]);
+    });
   }
 }

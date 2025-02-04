@@ -27,8 +27,8 @@ export class DateUtilService {
    *
    * @returns date data converted YYYY-MM-DD
    */
-  getYesterday(): Date {
-    return new Date(this.subDate(1, 'day'));
+  getYesterday(day: Date = new Date()): Date {
+    return dayjs(day).subtract(1, 'day').toDate();
   }
 
   /**

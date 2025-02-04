@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
-import { MockFixerService } from './mock/fixer-mock.service';
-import { FixerService } from './fixer.service';
 import { HttpModule } from '@nestjs/axios';
+import { MockFixerService } from './fixer-mock.service';
 
 @Module({
   imports: [
@@ -10,7 +9,6 @@ import { HttpModule } from '@nestjs/axios';
       maxRedirects: 5,
     }),
   ],
-  exports: [MockFixerService, FixerService],
-  providers: [MockFixerService, FixerService],
+  providers: [MockFixerService],
 })
 export class FixerModule {}

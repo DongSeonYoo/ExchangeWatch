@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ExchangeRateService } from '../exchange-rate.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { DateUtilService } from '../../../utils/date-util/date-util.service';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -24,7 +24,7 @@ export class ExchageRateScheduler {
    * @throws {FixerAPIException} When API call fails
    * @throws {DatabaseException} When database operation fails
    */
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron('1 0 * * *')
   async aggregateLatestRates() {
     try {
       await this.exchangeRateService.saveLatestRates();

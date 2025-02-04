@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExchangeRateService } from '../../src/apis/exchange-rate/exchange-rate.service';
 import { anyOfClass, instance, mock, verify, when } from 'ts-mockito';
-import { MockFixerService } from '../../src/apis/fixer/mock/fixer-mock.service';
+import { MockFixerService } from '../../src/externals/exchange-rates/fixer/mock/fixer-mock.service';
 import { RedisService } from '../../src/redis/redis.service';
 import { ExchangeRateRepository } from '../../src/apis/exchange-rate/repositores/exchange-rate.repository';
 import { ExchangeRateDailyRepository } from '../../src/apis/exchange-rate/repositores/exchange-rate-daily.repository';
