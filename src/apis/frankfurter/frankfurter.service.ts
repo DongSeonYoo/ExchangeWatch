@@ -54,7 +54,8 @@ export class FrankFurterService implements IFrankfurterService {
     base?: string,
     symbols?: string[],
   ): Promise<IFrankFurter.IHistorical> {
-    let url = `${this.baseUrl}/${date}`;
+    const convertDate = date.toISOString().split('T')[0];
+    let url = `${this.baseUrl}/${convertDate}`;
 
     const params = new URLSearchParams();
     if (base) {
