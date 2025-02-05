@@ -1,21 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { WatchListRepository } from './watchlist.repository';
-import { TransactionManager } from '../../prisma/prisma-transaction.manager';
 import { AddWatchlistItemReqDto } from './dto/add-watchlist-item.dto';
 import { WatchlistEntity } from './entitites/watch-list.entity';
 import { AlreadyRegisterPairException } from './exceptions/already-register-pair.excepetion';
 import { MaximumPairException } from './exceptions/maximum-pair.exception';
 import { SelectWatchListReqDto } from './dto/select-watchlis.dto';
 import { CurrencyPairNotFoundException } from './exceptions/currency-pair-not-found.exception';
+import { Transactional } from '@nestjs-cls/transactional';
 
 @Injectable()
 export class WatchlistService {
   private readonly MAX_PAIR_COUNT = 10;
-  constructor(
-    private readonly watchListRepository: WatchListRepository,
-    private readonly txManager: TransactionManager,
-  ) {}
+  constructor(private readonly watchListRepository: WatchListRepository) {}
 
+  @Transactional()
   async createInterestCurrency(
     userIdx: number,
     dto: AddWatchlistItemReqDto,
@@ -39,25 +37,15 @@ export class WatchlistService {
     }
 
     // Start Transactions
-    const createdItem = this.txManager.runTransaction(async (tx) => {
-      const lastOrder = await this.watchListRepository.findLastOrder(
-        userIdx,
-        tx,
-      );
-      const displayOrder = lastOrder === undefined ? 0 : lastOrder + 1;
+    const lastOrder = await this.watchListRepository.findLastOrder(userIdx);
+    const displayOrder = lastOrder === undefined ? 0 : lastOrder + 1;
 
-      return await this.watchListRepository.createInterestPair(
-        {
-          userIdx: userIdx,
-          baseCurrency: dto.baseCurrency,
-          currencyCode: dto.currencyCode,
-          displayOrder: displayOrder,
-        },
-        tx,
-      );
+    return await this.watchListRepository.createInterestPair({
+      userIdx: userIdx,
+      baseCurrency: dto.baseCurrency,
+      currencyCode: dto.currencyCode,
+      displayOrder: displayOrder,
     });
-
-    return createdItem;
   }
 
   async getInterestCurrencyList(
@@ -89,6 +77,7 @@ export class WatchlistService {
     return;
   }
 
+  @Transactional()
   async updateInterestPairOrder(
     pairIdx: number,
     newOrder: number,
@@ -100,32 +89,27 @@ export class WatchlistService {
       throw new CurrencyPairNotFoundException();
     }
 
-    await this.txManager.runTransaction(async (tx) => {
-      // Check item with the corresponding order
-      const targetPair =
-        await this.watchListRepository.findInterestPairWithOrderAndUser(
-          newOrder,
-          userIdx,
-          tx,
-        );
-
-      // When item exists
-      if (targetPair) {
-        // Replace order to exists order
-        await this.watchListRepository.updateInterestPair(
-          targetPair.idx,
-          foundExistsPair.displayOrder,
-          userIdx,
-          tx,
-        );
-      }
-
-      await this.watchListRepository.updateInterestPair(
-        pairIdx,
+    // Check item with the corresponding order
+    const targetPair =
+      await this.watchListRepository.findInterestPairWithOrderAndUser(
         newOrder,
         userIdx,
-        tx,
       );
-    });
+
+    // When item exists
+    if (targetPair) {
+      // Replace order to exists order
+      await this.watchListRepository.updateInterestPair(
+        targetPair.idx,
+        foundExistsPair.displayOrder,
+        userIdx,
+      );
+    }
+
+    await this.watchListRepository.updateInterestPair(
+      pairIdx,
+      newOrder,
+      userIdx,
+    );
   }
 }
