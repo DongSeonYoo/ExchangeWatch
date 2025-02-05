@@ -9,6 +9,7 @@ import { FrankFurterService } from './frankfurter.service';
       maxRedirects: 5,
     }),
   ],
+  exports: [FrankFurterService],
   providers: [FrankFurterService],
 })
 export class FrankFurterModule {}
