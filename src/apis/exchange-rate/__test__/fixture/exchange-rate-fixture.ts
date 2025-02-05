@@ -1,4 +1,4 @@
-import { IFixerAPIResponse } from '../../../src/externals/exchange-rates/fixer/interfaces/fixer-response.interface';
+import { IFixerAPIResponse } from '../../../../externals/exchange-rates/fixer/interfaces/fixer-response.interface';
 
 export class ExchangeRateFixture {
   static createLatestRates(

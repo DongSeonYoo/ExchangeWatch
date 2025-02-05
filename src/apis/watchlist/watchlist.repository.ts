@@ -1,34 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
 import { IWatchList } from './interfaces/watch-list.interface';
 import { Prisma } from '@prisma/client';
 import { WatchlistEntity } from './entitites/watch-list.entity';
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 
 @Injectable()
 export class WatchListRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+  ) {}
 
   async createInterestPair(
     input: IWatchList.ICreate,
-    tx?: Prisma.TransactionClient,
   ): Promise<WatchlistEntity> {
-    return await (tx ?? this.prisma).watchlist
-      .create({
-        data: {
-          userIdx: input.userIdx,
-          baseCurrency: input.baseCurrency,
-          currencyCode: input.currencyCode,
-          displayOrder: input.displayOrder,
-        },
-      })
-      .then((e) => WatchlistEntity.from(e));
+    const result = await this.txHost.tx.watchlist.create({
+      data: {
+        userIdx: input.userIdx,
+        baseCurrency: input.baseCurrency,
+        currencyCode: input.currencyCode,
+        displayOrder: input.displayOrder,
+      },
+    });
+
+    return WatchlistEntity.from(result);
   }
 
-  async findLastOrder(
-    userIdx: number,
-    tx?: Prisma.TransactionClient,
-  ): Promise<number | undefined> {
-    const lastOrder = await (tx ?? this.prisma).watchlist.findFirst({
+  async findLastOrder(userIdx: number): Promise<number | undefined> {
+    const lastOrder = await this.txHost.tx.watchlist.findFirst({
       select: {
         displayOrder: true,
       },
@@ -48,7 +47,7 @@ export class WatchListRepository {
     baseCurrency: string,
     currencyCode: string,
   ): Promise<WatchlistEntity | null> {
-    const foundPair = await this.prisma.watchlist.findFirst({
+    const foundPair = await this.txHost.tx.watchlist.findFirst({
       where: {
         userIdx,
         baseCurrency,
@@ -63,7 +62,7 @@ export class WatchListRepository {
     currencyPair: number,
     userIdx: number,
   ): Promise<WatchlistEntity | null> {
-    const foundPair = await this.prisma.watchlist.findFirst({
+    const foundPair = await this.txHost.tx.watchlist.findFirst({
       where: {
         idx: currencyPair,
         userIdx: userIdx,
@@ -81,7 +80,7 @@ export class WatchListRepository {
     items: WatchlistEntity[];
     nextCursor?: number;
   }> {
-    const items = await this.prisma.watchlist.findMany({
+    const items = await this.txHost.tx.watchlist.findMany({
       where: {
         userIdx: input.userIdx,
         ...(input.cursor && {
@@ -112,9 +111,8 @@ export class WatchListRepository {
   async findInterestPairWithOrderAndUser(
     userIdx: number,
     order: number,
-    tx?: Prisma.TransactionClient,
   ): Promise<WatchlistEntity | null> {
-    const item = await (tx ?? this.prisma).watchlist.findFirst({
+    const item = await this.txHost.tx.watchlist.findFirst({
       where: {
         userIdx,
         displayOrder: order,
@@ -125,19 +123,15 @@ export class WatchListRepository {
   }
 
   async findInterestPairCountByUser(userIdx: number): Promise<number> {
-    return await this.prisma.watchlist.count({
+    return await this.txHost.tx.watchlist.count({
       where: {
         userIdx,
       },
     });
   }
 
-  async deleteInterestPair(
-    pairIdx: number,
-    userIdx: number,
-    tx?: Prisma.TransactionClient,
-  ): Promise<void> {
-    await (tx ?? this.prisma).watchlist.delete({
+  async deleteInterestPair(pairIdx: number, userIdx: number): Promise<void> {
+    await this.txHost.tx.watchlist.delete({
       where: {
         idx: pairIdx,
         userIdx: userIdx,
@@ -151,9 +145,8 @@ export class WatchListRepository {
     pairIdx: number,
     newOrder: number,
     userIdx: number,
-    tx?: Prisma.TransactionClient,
   ): Promise<void> {
-    await (tx ?? this.prisma).watchlist.update({
+    await this.txHost.tx.watchlist.update({
       data: {
         displayOrder: newOrder,
       },

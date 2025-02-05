@@ -24,6 +24,10 @@ import { WatchlistModule } from './apis/watchlist/watchlist.module';
 import { appConfig } from './configs/env/env.config';
 import { envValidationSchema } from './configs/env/env.validation';
 import { ExternalAPIModule } from './externals/external.module';
+import { ClsModule } from 'nestjs-cls';
+import { ClsPluginTransactional } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
+import { PrismaService } from './prisma/prisma.service';
 
 @Module({
   imports: [
@@ -36,6 +40,16 @@ import { ExternalAPIModule } from './externals/external.module';
       },
       cache: true,
       expandVariables: true,
+    }),
+    ClsModule.forRoot({
+      plugins: [
+        new ClsPluginTransactional({
+          imports: [PrismaModule],
+          adapter: new TransactionalAdapterPrisma({
+            prismaInjectionToken: PrismaService,
+          }),
+        }),
+      ],
     }),
     UsersModule,
     AuthModule,

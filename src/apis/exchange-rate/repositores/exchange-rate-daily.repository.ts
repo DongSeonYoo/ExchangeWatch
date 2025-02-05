@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
 import { IExchangeRateDaily } from '../interface/exchange-rate-daily.interface';
 import { Prisma } from '@prisma/client';
 import { ExchangeRatesDailyEntity } from '../entitites/exchange-rate-daily.entity';
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 
 @Injectable()
 export class ExchangeRateDailyRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+  ) {}
 
-  async saveDailyRates(
-    input: IExchangeRateDaily.ICreate,
-    tx?: Prisma.TransactionClient,
-  ): Promise<void> {
-    await (tx ?? this.prisma).exchangeRatesDaily.create({
+  async saveDailyRates(input: IExchangeRateDaily.ICreate): Promise<void> {
+    await this.txHost.tx.exchangeRatesDaily.create({
       data: input,
     });
 
@@ -21,9 +21,8 @@ export class ExchangeRateDailyRepository {
 
   async findDailyRates(
     input: IExchangeRateDaily.IFindDailyRatesInput,
-    tx?: Prisma.TransactionClient,
   ): Promise<ExchangeRatesDailyEntity[]> {
-    const result = await (tx ?? this.prisma).exchangeRatesDaily.findMany({
+    const result = await this.txHost.tx.exchangeRatesDaily.findMany({
       where: {
         baseCurrency: input.baseCurrency,
         currencyCode: input.currencyCode,
