@@ -3,7 +3,6 @@ import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-cu
 import { Transform } from 'class-transformer';
 import { IsBeforeThan } from '../../../decorators/validations/is-before-than.validator';
 import { ApiExtraModels } from '@nestjs/swagger';
-import { IsBefore } from '../../../decorators/validations/is-before.validator';
 import { IsAfter } from '../../../decorators/validations/is-after.validator';
 import { ExchangeRatesDailyEntity } from '../entitites/exchange-rate-daily.entity';
 
@@ -33,8 +32,7 @@ export class CurrentExchangeHistoryReqDto {
    */
   @IsDate()
   @Transform(({ value }) => new Date(value))
-  @IsBeforeThan('endedAt')
-  @IsBefore(1, 'month')
+  @IsBeforeThan('endedAt', 1, 'years')
   startedAt: Date;
 
   /**

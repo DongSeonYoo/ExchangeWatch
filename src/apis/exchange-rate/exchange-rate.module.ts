@@ -4,11 +4,11 @@ import { ExchangeRateController } from './exchange-rate.controller';
 import { RedisModule } from '../../redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ExchageRateScheduler } from './schedulers/exchange-rate.scheduler';
-import { IsBeforeConstraint } from '../../decorators/validations/is-before.validator';
 import { IsAfterConstraint } from '../../decorators/validations/is-after.validator';
 import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 import { ExternalAPIModule } from '../../externals/external.module';
+import { IsBeforeThanConstraint } from '../../decorators/validations/is-before-than.validator';
 
 @Module({
   imports: [RedisModule, ScheduleModule.forRoot(), ExternalAPIModule],
@@ -18,8 +18,8 @@ import { ExternalAPIModule } from '../../externals/external.module';
     ExchageRateScheduler,
     ExchangeRateRepository,
     ExchangeRateDailyRepository,
-    IsBeforeConstraint,
     IsAfterConstraint,
+    IsBeforeThanConstraint,
   ],
 })
 export class ExchangeRateModule {}

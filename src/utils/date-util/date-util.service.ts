@@ -18,8 +18,12 @@ export class DateUtilService {
   /**
    * Subtracts a specified amount of time from the current date
    */
-  subDate(amount: number, dateType: ManipulateType): Date {
-    return dayjs(new Date()).subtract(amount, dateType).toDate();
+  subDate(
+    amount: number,
+    dateType: ManipulateType,
+    date: Date = new Date(),
+  ): Date {
+    return dayjs(date).subtract(amount, dateType).toDate();
   }
 
   /**

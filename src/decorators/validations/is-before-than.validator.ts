@@ -3,12 +3,54 @@ import {
   registerDecorator,
   ValidationOptions,
   ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
+import { ValidateDateType } from './is-before.validator';
+import { DateUtilService } from '../../utils/date-util/date-util.service';
+
+@ValidatorConstraint({ name: 'isBeforeThan', async: true })
+export class IsBeforeThanConstraint implements ValidatorConstraintInterface {
+  constructor(private readonly dateUtilServie: DateUtilService) {}
+
+  validate(value: Date, args: ValidationArguments) {
+    if (!(value instanceof Date) || isNaN(value.getTime())) {
+      return false;
+    }
+    const [targetPropertyName, amount, dateFormat] = args.constraints as [
+      string,
+      number,
+      ValidateDateType,
+    ];
+
+    const targetProperty = args.object[targetPropertyName];
+    const dateLimit = this.dateUtilServie.subDate(
+      amount,
+      dateFormat,
+      targetProperty,
+    );
+
+    return value > dateLimit;
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    const [targetProperty, amount, dateFormat] = args.constraints as [
+      string,
+      number,
+      ValidateDateType,
+    ];
+    throw new IsBeforeThanException(
+      `${args.property} cannot be more than ${amount} ${dateFormat} before ${targetProperty}`,
+    );
+  }
+}
 
 /**
  * Check if the date properties have valid range
  *
- * @param targetPropertyName target property name in same context or class
+ * @param targetPropertyName target property name in same context or class (dto)
+ * @param amount
+ * @param dateFormat years | month | day
  * @param [validationOptions]
  *
  * @throws IsBeforeThanException
@@ -16,6 +58,8 @@ import {
  */
 export function IsBeforeThan(
   targetPropertyName: string,
+  amount: number,
+  dateFormat: ValidateDateType,
   validationOptions?: ValidationOptions,
 ) {
   return function (obj: Object, propertyName: string) {
@@ -24,24 +68,8 @@ export function IsBeforeThan(
       target: obj.constructor,
       propertyName: propertyName,
       options: validationOptions,
-      constraints: [targetPropertyName],
-      validator: {
-        validate(value: any, args: ValidationArguments) {
-          const [relatedProperty] = args.constraints;
-          const targetValue: string | undefined = args.object[relatedProperty];
-          if (!targetValue) {
-            throw new InvalidPropertyException(relatedProperty);
-          }
-
-          return value < targetValue;
-        },
-
-        defaultMessage(args: ValidationArguments) {
-          throw new IsBeforeThanException(
-            `${args.property} is cannot be earlier than ${args.constraints}`,
-          );
-        },
-      },
+      constraints: [targetPropertyName, amount, dateFormat],
+      validator: IsBeforeThanConstraint,
     });
   };
 }
