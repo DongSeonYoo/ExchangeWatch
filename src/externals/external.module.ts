@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
-import { FrankFurterModule } from './exchange-rates/frankfurter/frankfurter.module';
-import { FixerModule } from './exchange-rates/fixer/fixer.module';
 import { FrankFurterService } from './exchange-rates/frankfurter/frankfurter.service';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [FrankFurterModule, FixerModule, HttpModule.register({})],
+  imports: [
+    HttpModule.register({
+      timeout: 5000,
+      maxRedirects: 5,
+    }),
+  ],
   exports: ['EXCHANGE_RATE_API'],
   providers: [
     {
