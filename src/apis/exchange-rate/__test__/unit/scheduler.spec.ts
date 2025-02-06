@@ -13,16 +13,19 @@ describe('ExchageRateScheduler', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExchageRateScheduler,
-        DateUtilService,
         {
           provide: ExchangeRateService,
           useValue: instance(exchangeRateService),
         },
+        {
+          provide: DateUtilService,
+          useValue: instance(dateUtilService),
+        },
       ],
     }).compile();
 
-    dateUtilService = module.get<DateUtilService>(DateUtilService);
-    scheduler = module.get<ExchageRateScheduler>(ExchageRateScheduler);
+    scheduler = module.get(ExchageRateScheduler);
+    dateUtilService = module.get(DateUtilService);
   });
 
   it('should be define', () => {

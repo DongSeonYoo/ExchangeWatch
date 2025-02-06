@@ -6,20 +6,23 @@ import { ExchangeRateRepository } from '../../repositores/exchange-rate.reposito
 import { ExchangeRateDailyRepository } from '../../repositores/exchange-rate-daily.repository';
 import { DateUtilService } from '../../../../utils/date-util/date-util.service';
 import { instance, mock } from 'ts-mockito';
+import { IExchangeRateAPIService } from '../../../../externals/exchange-rates/interfaces/exchange-rate-api-service';
+import { mockExchangeRateAPI } from '../../../../../test/unit/setup';
 
 describe('ExchangeRateService', () => {
-  let service: ExchangeRateService;
+  let exchangeRateService: ExchangeRateService;
 
   let mockFixerService = mock(MockFixerService);
   let redisService = mock(RedisService);
   let exchangeRateRepository = mock(ExchangeRateRepository);
   let exchangeRateDailyRepository = mock(ExchangeRateDailyRepository);
+  let dateUtilService = mock(DateUtilService);
+  let exchangeRateAPI: IExchangeRateAPIService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExchangeRateService,
-        DateUtilService,
         {
           provide: MockFixerService,
           useValue: instance(mockFixerService),
@@ -36,18 +39,22 @@ describe('ExchangeRateService', () => {
           provide: ExchangeRateDailyRepository,
           useValue: instance(exchangeRateDailyRepository),
         },
+        {
+          provide: 'EXCHANGE_RATE_API',
+          useValue: mockExchangeRateAPI,
+        },
+        {
+          provide: DateUtilService,
+          useValue: instance(dateUtilService),
+        },
       ],
     }).compile();
 
-    service = module.get<ExchangeRateService>(ExchangeRateService);
+    exchangeRateService = module.get(ExchangeRateService);
+    exchangeRateAPI = module.get('EXCHANGE_RATE_API');
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('when occured error about external API', () => {
-    it.todo('should handle error when occured latestRates API');
-    it.todo('should handle error when occured fluctuation API');
+    expect(exchangeRateService).toBeDefined();
   });
 });

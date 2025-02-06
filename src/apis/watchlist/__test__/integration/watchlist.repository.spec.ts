@@ -1,11 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { WatchListRepository } from '../../watchlist.repository';
-import { PrismaModule } from '../../../../prisma/prisma.module';
-import { TestConfigModule } from '../../../../../test/integration/config/test-config.module';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IWatchList } from '../../interfaces/watch-list.interface';
 import { UserEntity } from '../../../users/entities/user.entity';
 import { WatchlistEntity } from '../../entitites/watch-list.entity';
+import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 
 describe('WatchListRepository Integration', () => {
   let watchListRepository: WatchListRepository;
@@ -18,7 +17,7 @@ describe('WatchListRepository Integration', () => {
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
-      imports: [TestConfigModule, PrismaModule],
+      imports: [...TestIntegrateModules.create()],
       providers: [WatchListRepository],
     }).compile();
 
@@ -27,7 +26,6 @@ describe('WatchListRepository Integration', () => {
   });
 
   beforeEach(async () => {
-    // init test data
     await prisma.users.create({
       data: {
         ...mockUser,
@@ -35,12 +33,6 @@ describe('WatchListRepository Integration', () => {
         socialId: '',
       },
     });
-  });
-
-  afterEach(async () => {
-    // clear test data
-    await prisma.watchlist.deleteMany();
-    await prisma.users.deleteMany();
   });
 
   it('should be defined', () => {
