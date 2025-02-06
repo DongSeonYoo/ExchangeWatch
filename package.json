@@ -22,7 +22,7 @@
     "docker:down": "docker-compose down -v",
     "docker-frank": "docker run -d -p 4000:8080 lineofflight/frankfurter",
     "docker-test:up": "docker-compose -f docker-compose-test.yml up -d",
-    "docker-test:down": "docker-compose docker-compose-test.yml down -v"
+    "docker-test:down": "docker compose docker-compose-test.yml down -v"
   },
   "dependencies": {
     "@nestjs-cls/transactional": "^2.4.6",

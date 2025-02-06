@@ -1,17 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExchangeRateController } from '../../exchange-rate.controller';
 import { ExchangeRateService } from '../../exchange-rate.service';
+import { ExternalAPIModule } from '../../../../externals/external.module';
+import { ExchangeRateRepository } from '../../repositores/exchange-rate.repository';
+import { ExchangeRateDailyRepository } from '../../repositores/exchange-rate-daily.repository';
+import { DateUtilService } from '../../../../utils/date-util/date-util.service';
+import { RedisService } from '../../../../redis/redis.service';
+import { Logger } from '@nestjs/common';
+import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 
 describe('ExchangeRateController', () => {
   let controller: ExchangeRateController;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [...TestIntegrateModules.create(), ExternalAPIModule],
       controllers: [ExchangeRateController],
-      providers: [ExchangeRateService],
+      providers: [
+        ExchangeRateService,
+        ExchangeRateRepository,
+        ExchangeRateDailyRepository,
+        DateUtilService,
+        RedisService,
+        Logger,
+      ],
     }).compile();
 
-    controller = module.get<ExchangeRateController>(ExchangeRateController);
+    controller = module.get(ExchangeRateController);
   });
 
   it('should be defined', () => {

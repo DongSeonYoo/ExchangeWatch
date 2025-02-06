@@ -1,7 +1,12 @@
+import 'reflect-metadata';
 import { PrismaClient } from '@prisma/client';
 import { testConfiguration } from './config/test.config';
+import Redis from 'ioredis';
+import Module from 'module';
+import { DynamicModule } from '@nestjs/common';
 
-const prisma = new PrismaClient({
+// Create database(postgres) connection for test
+export const testPrismaConn = new PrismaClient({
   datasources: {
     db: {
       url: testConfiguration().database.url,
@@ -9,21 +14,47 @@ const prisma = new PrismaClient({
   },
 });
 
-beforeAll(async () => {
-  // DB 연결
-  console.log('connected tset database');
-  await prisma.$connect();
+// Create database(postgres) connection for test
+export const testRedisConn = new Redis({
+  host: testConfiguration().redis.host,
+  port: testConfiguration().redis.port,
 });
 
-beforeEach(async () => {
-  // 테스트 데이터 초기화
-  await prisma.$transaction([
-    prisma.exchangeRates.deleteMany(),
-    prisma.exchangeRatesDaily.deleteMany(),
-  ]);
+// Connect test-database
+beforeAll(() => {
+  testPrismaConn.$connect().then(() => {
+    console.log('@@Connected postgres for test@@');
+  });
+
+  testRedisConn.on('ready', () => {
+    console.log('@@Connected redis for test@@');
+  });
+
+  testRedisConn.on('error', (err) => {
+    console.log('redis connection error', err);
+  });
 });
 
+// Remove tables test independency
+afterEach(async () => {
+  await testPrismaConn.watchlist.deleteMany();
+  await testPrismaConn.exchangeRates.deleteMany();
+  await testPrismaConn.exchangeRatesDaily.deleteMany();
+  await testPrismaConn.news.deleteMany();
+  await testPrismaConn.price_notifications.deleteMany();
+  await testPrismaConn.price_notifications.deleteMany();
+  await testPrismaConn.users.deleteMany();
+});
+
+// @TODO Clear data in redis for test independency
+afterEach(async () => {});
+
+// Close connection
 afterAll(async () => {
-  // DB 연결 종료
-  await prisma.$disconnect();
+  await testPrismaConn.$disconnect().then(() => {
+    console.log('!disconnected postgres for test!');
+  });
+  await testRedisConn.quit().then(() => {
+    console.log('!disconnected redis for test');
+  });
 });

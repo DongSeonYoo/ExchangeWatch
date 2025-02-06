@@ -3,17 +3,21 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { WatchlistController } from '../../watchlist.controller';
 import { WatchListRepository } from '../../watchlist.repository';
 import { WatchlistService } from '../../watchlist.service';
-import { TestConfigModule } from '../../../../../test/integration/config/test-config.module';
-import { TransactionManager } from '../../../../prisma/prisma-transaction.manager';
-import { PrismaModule } from '../../../../prisma/prisma.module';
+import { TestConfigModule } from '../../../../../test/integration/modules/test-config.module';
 import { AddWatchlistItemReqDto } from '../../dto/add-watchlist-item.dto';
 import { UserEntity } from '../../../users/entities/user.entity';
+import { TestClsModule } from '../../../../../test/integration/modules/test-cls.module';
+import { TEST_PRISMA_TOKEN } from '../../../../../test/integration/modules/test-prisma.module';
+import { ConfigService } from '@nestjs/config';
+import { TestConfig } from '../../../../../test/integration/config/test.config';
+import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 
 describe('WatchListController Integration', () => {
   let watchListController: WatchlistController;
   let watchListService: WatchlistService;
   let watchListRepository: WatchListRepository;
   let prisma: PrismaService;
+  let configService: ConfigService<TestConfig, true>;
 
   const mockUser = {
     idx: 1,
@@ -23,15 +27,16 @@ describe('WatchListController Integration', () => {
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
-      imports: [TestConfigModule, PrismaModule],
+      imports: [...TestIntegrateModules.create()],
       controllers: [WatchlistController],
-      providers: [WatchlistService, WatchListRepository, TransactionManager],
+      providers: [WatchlistService, WatchListRepository],
     }).compile();
 
     watchListController = module.get(WatchlistController);
     watchListService = module.get(WatchlistService);
     watchListRepository = module.get(WatchListRepository);
-    prisma = module.get(PrismaService);
+    prisma = module.get(TEST_PRISMA_TOKEN);
+    configService = module.get(ConfigService);
   });
 
   beforeEach(async () => {
@@ -42,11 +47,6 @@ describe('WatchListController Integration', () => {
         socialId: '',
       },
     });
-  });
-
-  afterEach(async () => {
-    await prisma.watchlist.deleteMany();
-    await prisma.users.deleteMany();
   });
 
   it('should be defined', () => {
