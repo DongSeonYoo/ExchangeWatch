@@ -1,6 +1,13 @@
+import { ConfigType } from '@nestjs/config';
+
 export const testConfiguration = () => ({
   database: {
     url: process.env.TEST_DATABASE_URL,
+  },
+  redis: {
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.TEST_REDIS_PORT!, 10),
+    password: process.env.REDIS_PASSWORD,
   },
   token: {
     JWT_ACCESS_SECRET: 'test_access_secret',
@@ -9,3 +16,5 @@ export const testConfiguration = () => ({
     REFRESH_TOKEN_EXPIRES_IN: '7d',
   },
 });
+
+export type TestConfig = ConfigType<typeof testConfiguration>;
