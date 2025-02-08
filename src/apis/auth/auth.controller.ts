@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiTags } from '@nestjs/swagger';
 import { GoogleOAuthGuard } from './guards/google.guard';
@@ -97,6 +105,7 @@ export class AuthController {
    * @remarks 헤더에 http-only 속성으로 적용되어있는 refresh token을 통해 새로운 access token을 발급받습니다.
    */
   @Post('refresh')
+  @HttpCode(HttpStatus.OK)
   @RefreshAuth()
   @ApiSuccess({
     accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
