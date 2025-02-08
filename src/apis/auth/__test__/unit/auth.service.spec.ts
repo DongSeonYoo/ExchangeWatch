@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from '../../auth.service';
 import { RedisService } from '../../../../redis/redis.service';
-import { instance, mock } from 'ts-mockito';
+import { instance, mock, when } from 'ts-mockito';
 import { TokenService } from '../../../../token/token.service';
+import { UserEntity } from '../../../users/entities/user.entity';
 
-describe('AuthService', () => {
-  let service: AuthService;
+describe('AuthService (Unit test)', () => {
+  let authService: AuthService;
   let redisService = mock(RedisService);
   let tokenService = mock(TokenService);
 
@@ -24,10 +25,43 @@ describe('AuthService', () => {
       ],
     }).compile();
 
-    service = module.get<AuthService>(AuthService);
+    authService = module.get<AuthService>(AuthService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  describe('issueAccessAndRefreshToken', () => {
+    let mockUser = {
+      idx: 1,
+      name: 'dongseon',
+    } as UserEntity;
+
+    it('should return access & refresh token when given a user entity', async () => {
+      // Arrange
+      when(
+        tokenService.createAccessToken(mockUser.idx, mockUser.email),
+      ).thenResolve('accesstoken');
+      when(tokenService.createRefreshToken(mockUser.idx)).thenResolve(
+        'refreshtoken',
+      );
+
+      // Act
+      const result = await authService.issueAccessAndRefreshToken(mockUser);
+
+      // Assert
+      expect(result.accessToken).toBe('accesstoken');
+      expect(result.refreshToken).toBe('refreshtoken');
+    });
+
+    it('should return refresh token when given a user entity', async () => {
+      // Ararnge
+      when(
+        tokenService.createAccessToken(mockUser.idx, mockUser.email),
+      ).thenResolve('accesstoken');
+
+      // Act
+      const result = await authService.refreshAccessToken(mockUser);
+
+      // Assert
+      expect(result).toBe('accesstoken');
+    });
   });
 });

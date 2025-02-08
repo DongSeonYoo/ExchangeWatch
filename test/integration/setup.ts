@@ -36,6 +36,16 @@ beforeAll(() => {
 });
 
 // Remove tables test independency
+beforeEach(async () => {
+  await testPrismaConn.watchlist.deleteMany();
+  await testPrismaConn.exchangeRates.deleteMany();
+  await testPrismaConn.exchangeRatesDaily.deleteMany();
+  await testPrismaConn.news.deleteMany();
+  await testPrismaConn.price_notifications.deleteMany();
+  await testPrismaConn.price_notifications.deleteMany();
+  await testPrismaConn.users.deleteMany();
+});
+
 afterEach(async () => {
   await testPrismaConn.watchlist.deleteMany();
   await testPrismaConn.exchangeRates.deleteMany();
