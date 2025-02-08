@@ -15,6 +15,12 @@ export const testConfiguration = () => ({
     ACCESS_TOKEN_EXPIRES_IN: '15m',
     REFRESH_TOKEN_EXPIRES_IN: '7d',
   },
+
+  google: {
+    GOOGLE_CLIENT_ID: 'googe-test-client',
+    GOOGLE_CLIENT_SECRET: 'google-test-client-secret',
+    GOOGLE_REDIRECT_URL: 'google-test-redirect-url',
+  },
 });
 
 export type TestConfig = ConfigType<typeof testConfiguration>;
