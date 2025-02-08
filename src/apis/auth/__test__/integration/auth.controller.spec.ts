@@ -108,9 +108,10 @@ describe('AuthController (Integration)', () => {
   });
 
   describe('POST /api/auth/refresh', () => {
+    let mockUser: UserEntity;
     beforeEach(async () => {
       // Arrange
-      const mockUser: UserEntity = {
+      mockUser = {
         idx: 1,
         email: 'email',
         name: 'dongseon',
@@ -128,7 +129,7 @@ describe('AuthController (Integration)', () => {
       // Arrange
       const validRefreshToken = await app
         .get(TokenService)
-        .createRefreshToken(1);
+        .createRefreshToken(mockUser.idx);
 
       // Act
       const response = await supertest(app.getHttpServer())
@@ -155,17 +156,15 @@ describe('AuthController (Integration)', () => {
 
     it('should return 401 Unauthorized if refresh token is expired', async () => {
       // Arrange
-      let expiredRefreshToken = await app
-        .get(JwtService)
-        .signAsync(
-          { sub: 1, email: 'test@example.com' },
-          {
-            secret: configService.get('token.JWT_REFRESH_SECRET', {
-              infer: true,
-            }),
-            expiresIn: '-1s',
-          },
-        );
+      let expiredRefreshToken = await app.get(JwtService).signAsync(
+        { sub: mockUser.idx, email: mockUser.email },
+        {
+          secret: configService.get('token.JWT_REFRESH_SECRET', {
+            infer: true,
+          }),
+          expiresIn: '-1s',
+        },
+      );
 
       // Act
       const response = await supertest(app.getHttpServer())
