@@ -51,6 +51,16 @@ afterEach(async () => {
   await testRedisConn.flushall();
 });
 
+beforeEach(async () => {
+  await testPrismaConn.watchlist.deleteMany();
+  await testPrismaConn.exchangeRates.deleteMany();
+  await testPrismaConn.exchangeRatesDaily.deleteMany();
+  await testPrismaConn.news.deleteMany();
+  await testPrismaConn.price_notifications.deleteMany();
+  await testPrismaConn.price_notifications.deleteMany();
+  await testPrismaConn.users.deleteMany();
+});
+
 // Close connection
 afterAll(async () => {
   await testPrismaConn.$disconnect().then(() => {
