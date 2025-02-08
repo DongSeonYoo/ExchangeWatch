@@ -18,12 +18,6 @@ export const testConfiguration = () => ({
     REFRESH_TOKEN_TTL: process.env.REFRESH_TOKEN_TTL,
   },
   google: {
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    GOOGLE_REDIRECT_URL: process.env.GOOGLE_REDIRECT_URL,
-  },
-
-  google: {
     GOOGLE_CLIENT_ID: 'googe-test-client',
     GOOGLE_CLIENT_SECRET: 'google-test-client-secret',
     GOOGLE_REDIRECT_URL: 'google-test-redirect-url',
