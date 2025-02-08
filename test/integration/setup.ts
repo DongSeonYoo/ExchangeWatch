@@ -46,8 +46,10 @@ afterEach(async () => {
   await testPrismaConn.users.deleteMany();
 });
 
-// @TODO Clear data in redis for test independency
-afterEach(async () => {});
+// Clear data in redis for test independency
+afterEach(async () => {
+  await testRedisConn.flushall();
+});
 
 // Close connection
 afterAll(async () => {

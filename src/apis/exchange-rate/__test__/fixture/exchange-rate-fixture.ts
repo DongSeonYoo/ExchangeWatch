@@ -1,29 +1,25 @@
-import { IFixerAPIResponse } from '../../../../externals/exchange-rates/fixer/interfaces/fixer-response.interface';
+import { IExchangeRateExternalAPI } from '../../../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
 
 export class ExchangeRateFixture {
   static createLatestRates(
     baseCurrency: string,
-    rates: IFixerAPIResponse.IRateResponse['rates'],
-  ): IFixerAPIResponse.IRateResponse {
+    rates: IExchangeRateExternalAPI.ILatestRatesResponse['rates'],
+  ): IExchangeRateExternalAPI.ILatestRatesResponse {
     return {
-      base: baseCurrency,
-      timestamp: new Date(),
+      baseCurrency: baseCurrency,
       date: new Date(),
-      success: true,
       rates: rates,
     };
   }
 
   static createFluctuationRates(
     base: string,
-    rates: IFixerAPIResponse.IFluctuationResponse['rates'],
-  ): IFixerAPIResponse.IFluctuationResponse {
+    rates: IExchangeRateExternalAPI.IFluctuationResponse['rates'],
+  ): IExchangeRateExternalAPI.IFluctuationResponse {
     return {
-      base,
-      fluctuation: true,
-      start_date: new Date(),
-      end_date: new Date(),
-      success: true,
+      baseCurrency: base,
+      startDate: new Date(),
+      endDate: new Date(),
       rates: rates,
     };
   }
