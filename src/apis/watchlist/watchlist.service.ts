@@ -13,7 +13,6 @@ export class WatchlistService {
   private readonly MAX_PAIR_COUNT = 10;
   constructor(private readonly watchListRepository: WatchListRepository) {}
 
-  @Transactional()
   async createInterestCurrency(
     userIdx: number,
     dto: AddWatchlistItemReqDto,
@@ -36,7 +35,6 @@ export class WatchlistService {
       throw new MaximumPairException();
     }
 
-    // Start Transactions
     const lastOrder = await this.watchListRepository.findLastOrder(userIdx);
     const displayOrder = lastOrder === undefined ? 0 : lastOrder + 1;
 
