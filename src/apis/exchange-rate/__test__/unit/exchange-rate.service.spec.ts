@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExchangeRateService } from '../../exchange-rate.service';
-import { MockFixerService } from '../../../../externals/exchange-rates/fixer/fixer-mock.service';
 import { RedisService } from '../../../../redis/redis.service';
 import { ExchangeRateRepository } from '../../repositores/exchange-rate.repository';
 import { ExchangeRateDailyRepository } from '../../repositores/exchange-rate-daily.repository';
@@ -11,22 +10,17 @@ import { mockExchangeRateAPI } from '../../../../../test/unit/setup';
 
 describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;
-
-  let mockFixerService = mock(MockFixerService);
   let redisService = mock(RedisService);
   let exchangeRateRepository = mock(ExchangeRateRepository);
   let exchangeRateDailyRepository = mock(ExchangeRateDailyRepository);
   let dateUtilService = mock(DateUtilService);
+
   let exchangeRateAPI: IExchangeRateAPIService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExchangeRateService,
-        {
-          provide: MockFixerService,
-          useValue: instance(mockFixerService),
-        },
         {
           provide: RedisService,
           useValue: instance(redisService),
