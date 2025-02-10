@@ -35,10 +35,6 @@ describe('WatchListRepository Integration', () => {
     });
   });
 
-  it('should be defined', () => {
-    expect(watchListRepository).toBeDefined();
-  });
-
   describe('createInterestPair', () => {
     it('create pair', async () => {
       // Arrange

@@ -3,27 +3,21 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { WatchlistController } from '../../watchlist.controller';
 import { WatchListRepository } from '../../watchlist.repository';
 import { WatchlistService } from '../../watchlist.service';
-import { TestConfigModule } from '../../../../../test/integration/modules/test-config.module';
-import { AddWatchlistItemReqDto } from '../../dto/add-watchlist-item.dto';
+import {
+  AddWatchlistItemReqDto,
+  AddWatchlistItemResDto,
+} from '../../dto/add-watchlist-item.dto';
 import { UserEntity } from '../../../users/entities/user.entity';
-import { TestClsModule } from '../../../../../test/integration/modules/test-cls.module';
 import { TEST_PRISMA_TOKEN } from '../../../../../test/integration/modules/test-prisma.module';
-import { ConfigService } from '@nestjs/config';
-import { TestConfig } from '../../../../../test/integration/config/test.config';
 import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
+import { AlreadyRegisterPairException } from '../../exceptions/already-register-pair.excepetion';
+import { MaximumPairException } from '../../exceptions/maximum-pair.exception';
 
 describe('WatchListController Integration', () => {
   let watchListController: WatchlistController;
-  let watchListService: WatchlistService;
   let watchListRepository: WatchListRepository;
   let prisma: PrismaService;
-  let configService: ConfigService<TestConfig, true>;
-
-  const mockUser = {
-    idx: 1,
-    email: 'dongseon@google.com',
-    name: 'dongseon',
-  } as UserEntity;
+  let mockUser: UserEntity;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -33,50 +27,153 @@ describe('WatchListController Integration', () => {
     }).compile();
 
     watchListController = module.get(WatchlistController);
-    watchListService = module.get(WatchlistService);
     watchListRepository = module.get(WatchListRepository);
     prisma = module.get(TEST_PRISMA_TOKEN);
-    configService = module.get(ConfigService);
   });
 
   beforeEach(async () => {
+    mockUser = {
+      idx: 1,
+      email: 'test@mail.com',
+      name: 'dongseon',
+      socialId: 'google',
+      socialProvider: 'GOOGLE',
+    } as UserEntity;
+
     await prisma.users.create({
       data: {
         ...mockUser,
-        socialProvider: '',
-        socialId: '',
       },
     });
   });
 
-  it('should be defined', () => {
-    expect(watchListController).toBeDefined();
-  });
-
   describe('registerInterestCurrency', () => {
     it('should create new watchlist item', async () => {
-      // Arragne
-      const dto: AddWatchlistItemReqDto = {
-        baseCurrency: 'USD',
+      // Arrange
+      const reqDto: AddWatchlistItemReqDto = {
+        baseCurrency: 'EUR',
         currencyCode: 'KRW',
       };
 
       // Act
       const result = await watchListController.registerInterestCurrency(
-        dto,
+        reqDto,
         mockUser,
       );
-      const saved = await prisma.watchlist.findFirst({
+
+      // Assert
+      const addedItem = await prisma.watchlist.findFirst({
         where: {
           userIdx: mockUser.idx,
-          baseCurrency: dto.baseCurrency,
-          currencyCode: dto.currencyCode,
+          ...reqDto,
+        },
+      });
+      expect(result).toBeInstanceOf(AddWatchlistItemResDto);
+      expect(addedItem?.userIdx).toBe(mockUser.idx);
+      expect(addedItem?.baseCurrency).toBe(reqDto.baseCurrency);
+      expect(addedItem?.currencyCode).toBe(reqDto.currencyCode);
+    });
+
+    it('should throw AlreadyRegisterPairException when the currency pair is already registred', async () => {
+      // Arrange
+      const reqDto: AddWatchlistItemReqDto = {
+        baseCurrency: 'EUR',
+        currencyCode: 'KRW',
+      };
+      await prisma.watchlist.create({
+        data: {
+          baseCurrency: 'EUR',
+          currencyCode: 'KRW',
+          userIdx: mockUser.idx,
+          displayOrder: 0,
         },
       });
 
+      // Act
+      const result = async () =>
+        await watchListController.registerInterestCurrency(reqDto, mockUser);
+
       // Assert
-      expect(result.idx).toBeDefined();
-      expect(saved).toBeTruthy();
+      await expect(result).rejects.toThrow(AlreadyRegisterPairException);
+    });
+
+    it('should throw MaximumPairException when the user has maximum number of interest currency pair', async () => {
+      // Arrange
+      const reqDto: AddWatchlistItemReqDto = {
+        baseCurrency: 'EUR',
+        currencyCode: 'KRW',
+      };
+      await prisma.watchlist.createMany({
+        data: [
+          {
+            baseCurrency: 'JPY',
+            currencyCode: 'USD',
+            userIdx: mockUser.idx,
+            displayOrder: 0,
+          },
+          {
+            baseCurrency: 'USD',
+            currencyCode: 'JPY',
+            userIdx: mockUser.idx,
+            displayOrder: 1,
+          },
+          {
+            baseCurrency: 'KRW',
+            currencyCode: 'EUR',
+            userIdx: mockUser.idx,
+            displayOrder: 2,
+          },
+          {
+            baseCurrency: 'JPY',
+            currencyCode: 'KRW',
+            userIdx: mockUser.idx,
+            displayOrder: 3,
+          },
+          {
+            baseCurrency: 'KRW',
+            currencyCode: 'JPY',
+            userIdx: mockUser.idx,
+            displayOrder: 4,
+          },
+          {
+            baseCurrency: 'USD',
+            currencyCode: 'KRW',
+            userIdx: mockUser.idx,
+            displayOrder: 5,
+          },
+          {
+            baseCurrency: 'KRW',
+            currencyCode: 'USD',
+            userIdx: mockUser.idx,
+            displayOrder: 6,
+          },
+          {
+            baseCurrency: 'EUR',
+            currencyCode: 'USD',
+            userIdx: mockUser.idx,
+            displayOrder: 7,
+          },
+          {
+            baseCurrency: 'USD',
+            currencyCode: 'EUR',
+            userIdx: mockUser.idx,
+            displayOrder: 8,
+          },
+          {
+            baseCurrency: 'AUD',
+            currencyCode: 'KRW',
+            userIdx: mockUser.idx,
+            displayOrder: 9,
+          },
+        ],
+      });
+
+      // Act
+      const act = async () =>
+        await watchListController.registerInterestCurrency(reqDto, mockUser);
+
+      // Assert
+      await expect(act).rejects.toThrow(MaximumPairException);
     });
   });
 });
