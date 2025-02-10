@@ -6,7 +6,10 @@ module.exports = {
   projects: [
     {
       displayName: 'unit',
-      testMatch: ['**/__test__/unit/**/*.spec.ts'],
+      testMatch: [
+        '**/__test__/**/*.spec.ts',
+        '!**/__test__/integration/**/*.spec.ts',
+      ],
       setupFilesAfterEnv: ['<rootDir>/test/unit/setup.ts'],
       testEnvironment: 'node',
       transform: {

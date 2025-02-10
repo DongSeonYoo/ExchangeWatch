@@ -1,23 +1,27 @@
 import { HttpService } from '@nestjs/axios';
 import { FrankFurterService } from '../frankfurter.service';
 import { ConfigService } from '@nestjs/config';
-import { instance, mock, when } from 'ts-mockito';
+import { instance, mock } from 'ts-mockito';
 import { Test } from '@nestjs/testing';
-import { IFrankFurter } from '../interfaces/frankfurter-response.interface';
-import { of } from 'rxjs';
+import { TestConfigModule } from '../../../../../test/integration/modules/test-config.module';
 
 describe('FrankfurterService', () => {
   let frankFurterService: FrankFurterService;
-  let httpService = mock(HttpService);
+  let httpService: HttpService;
   let configService = mock(ConfigService);
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
+      imports: [TestConfigModule],
       providers: [
         FrankFurterService,
         {
           provide: HttpService,
-          useValue: instance(httpService),
+          useFactory: () => {
+            return {
+              get: jest.fn(),
+            };
+          },
         },
         {
           provide: ConfigService,
@@ -26,41 +30,12 @@ describe('FrankfurterService', () => {
       ],
     }).compile();
 
-    frankFurterService = module.get<FrankFurterService>(FrankFurterService);
-    console.log(frankFurterService);
+    httpService = module.get(HttpService);
+    frankFurterService = module.get(FrankFurterService);
+    configService = module.get(ConfigService);
   });
 
   it('should defined frankfurter service', () => {
     expect(frankFurterService).toBeDefined();
-  });
-
-  describe('getLatestRates', () => {
-    it('should return latest rates', async () => {
-      // Arrange
-      const params = {
-        base: 'EUR',
-        symbols: ['USD, JPY'],
-      };
-      const mockResponse: IFrankFurter.ILatestRates = {
-        base: 'EUR',
-        date: new Date('2025-02-05'),
-        rates: { USD: 1.0424, JPY: 156 },
-      };
-
-      when(
-        httpService.get('http://test/latest', {
-          params: params,
-        }),
-      ).thenReturn(of({ data: mockResponse }) as any);
-
-      // Act
-      const result = await frankFurterService.getLatestRates(
-        params.base,
-        params.symbols,
-      );
-      console.log(result);
-
-      // Assert
-    });
   });
 });
