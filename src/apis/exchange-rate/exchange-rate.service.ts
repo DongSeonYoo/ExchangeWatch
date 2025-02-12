@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import { RedisService } from '../../redis/redis.service';
@@ -12,6 +12,7 @@ import { DateUtilService } from '../../utils/date-util/date-util.service';
 import { ExchangeRatesDailyEntity } from './entitites/exchange-rate-daily.entity';
 import { getCurrencyNameInKorean } from './mapper/symbol-kr.mapper';
 import { IExchangeRateAPIService } from '../../externals/exchange-rates/interfaces/exchange-rate-api-service';
+import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
 
 @Injectable()
 export class ExchangeRateService {
@@ -48,6 +49,8 @@ export class ExchangeRateService {
     'ZAR',
     'EUR',
   ];
+  private subscriptions = new Map<string, Set<string>>();
+  private readonly logger = new Logger(ExchangeRateService.name);
 
   constructor(
     @Inject('EXCHANGE_RATE_API')
@@ -58,10 +61,18 @@ export class ExchangeRateService {
     private readonly dateUtilService: DateUtilService,
   ) {}
 
-  async getCurrencyExchangeRates(input: CurrentExchangeRateReqDto) {
+  async getCurrencyExchangeRates(input: CurrentExchangeRateReqDto): Promise<{
+    baseCurrency: string;
+    rates: Record<string, RateDetail>;
+  }> {
     const currencyCodes = input.currencyCodes?.length
       ? input.currencyCodes
       : this.majorCurrencyLists;
+
+    const cacheData = await this.redisService.getLatestRateCache(
+      input.baseCurrency,
+      currencyCodes,
+    );
 
     const today = new Date();
     const [latestRates, fluctuationRates] = await Promise.all([
@@ -250,5 +261,50 @@ export class ExchangeRateService {
         this.redisService.updateLatestRateCache(res),
       ]);
     });
+  }
+
+  /**
+   * create subscribe about currency pair
+   * if subscribe is empty, create new subscribe and insert new client(subscriber)
+   */
+  subscribe(clientId: string, dto: ExchangeRateSubscribeDto) {
+    const pair = `${dto.baseCurrency}/${dto.currencyCode}`;
+    if (!this.subscriptions.has(pair)) {
+      this.subscriptions.set(pair, new Set());
+    }
+    this.subscriptions.get(pair)?.add(clientId);
+
+    console.log(this.subscriptions);
+
+    this.logger.verbose(`${clientId} has subscribe to ${pair}`);
+  }
+
+  /**
+   * remove subscription if dosen't have any client(subscriber)
+   */
+  unsubscribe(clientId: string, dto: ExchangeRateSubscribeDto) {
+    const pair = `${dto.baseCurrency}/${dto.currencyCode}`;
+    if (this.subscriptions.has(pair)) {
+      this.subscriptions.get(pair)?.delete(clientId);
+      if (this.subscriptions.get(pair)?.size === 0) {
+        this.subscriptions.delete(pair);
+      }
+    }
+
+    this.logger.verbose(`${clientId} has unsubscribed from ${pair}`);
+  }
+
+  /**
+   * remove all subscription of client
+   */
+  unsubscribeAll(clientId: string) {
+    this.subscriptions.forEach((clients, pair) => {
+      clients.delete(clientId);
+      if (clients.size === 0) {
+        this.subscriptions.delete(pair);
+      }
+    });
+
+    this.logger.verbose(`All subscriptions removed for client ${clientId}`);
   }
 }
