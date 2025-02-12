@@ -9,6 +9,7 @@ import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 import { ExternalAPIModule } from '../../externals/external.module';
 import { IsBeforeThanConstraint } from '../../decorators/validations/is-before-than.validator';
+import { ExchangeRateGateWay } from './exchange-rate.gateway';
 
 @Module({
   imports: [RedisModule, ScheduleModule.forRoot(), ExternalAPIModule],
@@ -20,6 +21,7 @@ import { IsBeforeThanConstraint } from '../../decorators/validations/is-before-t
     ExchangeRateDailyRepository,
     IsAfterConstraint,
     IsBeforeThanConstraint,
+    ExchangeRateGateWay,
   ],
 })
 export class ExchangeRateModule {}

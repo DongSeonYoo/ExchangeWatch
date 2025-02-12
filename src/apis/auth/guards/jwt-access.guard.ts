@@ -11,6 +11,19 @@ export class JwtAccessGuard extends AuthGuard('jwt') {
     super();
   }
 
+  /**
+   * convert WS protocol to HTTP
+   */
+  getRequest(context: ExecutionContext) {
+    const type = context.getType();
+    if (type === 'ws') {
+      return context.switchToWs().getClient().handshake;
+    }
+    if (type === 'http') {
+      return context.switchToHttp().getRequest();
+    }
+  }
+
   handleRequest<TUser = any>(
     err: any,
     user: any,
@@ -19,13 +32,12 @@ export class JwtAccessGuard extends AuthGuard('jwt') {
     status?: any,
   ): TUser {
     if (info) {
+      this.logger.debug(info);
       if (info instanceof TokenExpiredError) {
-        this.logger.debug('Token expired: ', info);
         throw new JwtAuthException('TOKEN_EXPIRED');
       }
 
       if (info instanceof JsonWebTokenError) {
-        this.logger.debug('Token invalid: ', info);
         throw new JwtAuthException('INVALID_TOKEN');
       }
 
