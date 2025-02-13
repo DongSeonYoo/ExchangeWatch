@@ -10,6 +10,6 @@ jest.mock('@nestjs-cls/transactional', () => ({
 export const mockExchangeRateAPI: IExchangeRateAPIService = {
   getLatestRates: jest.fn(),
   getHistoricalRates: jest.fn(),
-  getOHLCData: jest.fn(),
+  getFluctuationData: jest.fn(),
   getTimeSeriesData: jest.fn(),
 };

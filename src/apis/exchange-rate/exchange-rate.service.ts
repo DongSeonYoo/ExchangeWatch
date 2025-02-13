@@ -69,18 +69,13 @@ export class ExchangeRateService {
       ? input.currencyCodes
       : this.majorCurrencyLists;
 
-    const cacheData = await this.redisService.getLatestRateCache(
-      input.baseCurrency,
-      currencyCodes,
-    );
-
     const today = new Date();
     const [latestRates, fluctuationRates] = await Promise.all([
       this.exchangeRateExternalAPI.getLatestRates(
         input.baseCurrency,
         currencyCodes,
       ),
-      this.exchangeRateExternalAPI.getOHLCData(
+      this.exchangeRateExternalAPI.getFluctuationData(
         this.dateUtilService.getYesterday(today),
         today,
         input.baseCurrency,
@@ -168,7 +163,7 @@ export class ExchangeRateService {
       await Promise.all(
         missingDates.map(async (date) => {
           const fluctuationData =
-            await this.exchangeRateExternalAPI.getOHLCData(
+            await this.exchangeRateExternalAPI.getFluctuationData(
               this.dateUtilService.getYesterday(date),
               date,
               input.baseCurrency,
@@ -208,10 +203,8 @@ export class ExchangeRateService {
    * OHLC data aggregate on a specific date
    */
   async aggregateDailyRates(startDate: Date, endDate: Date) {
-    const fluctuationData = await this.exchangeRateExternalAPI.getOHLCData(
-      startDate,
-      endDate,
-    );
+    const fluctuationData =
+      await this.exchangeRateExternalAPI.getFluctuationData(startDate, endDate);
 
     const dailyStats = await this.exchangeRateRepository.findDailyStats(
       startDate,

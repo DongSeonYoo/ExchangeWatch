@@ -80,7 +80,7 @@ export class FrankFurterService implements IExchangeRateAPIService {
     };
   }
 
-  async getOHLCData(
+  async getFluctuationData(
     startDate: Date,
     endDate: Date,
     baseCurrency?: string,

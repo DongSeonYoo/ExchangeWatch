@@ -22,7 +22,7 @@ export class MockFixerService implements IExchangeRateAPIService {
     };
   }
 
-  async getOHLCData(
+  async getFluctuationData(
     startDate: Date,
     endDate: Date,
     baseCurrency?: string,
