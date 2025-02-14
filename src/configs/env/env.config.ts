@@ -34,10 +34,9 @@ export const appConfig = registerAs('', () => ({
   },
 
   cache: {
-    latestCurrencyTTL: parseInt(
-      process.env.LATEST_CURRENCY_CACHE_TTL || '900',
-      10,
-    ),
+    latestCurrencyTTL: parseInt(process.env.LATEST_CURRENCY_CACHE_TTL || ''),
+    historicalTTL: parseInt(process.env.HISTORICAL_CACHE_TTL || ''),
+    fluctuationTTL: parseInt(process.env.FLUCTUATION_CACHE_TTL || ''),
   },
 
   google: {
