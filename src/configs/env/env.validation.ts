@@ -22,7 +22,12 @@ export const envValidationSchema = Joi.object({
   FIXER_API_KEY: Joi.string().required(),
   FIXER_API_URL: Joi.string().uri().required(),
 
+  // Frnank furter API
   FRANK_FURTER_URL: Joi.string().uri().required(),
+
+  // CurrencyLayer API
+  CURRENCY_LAYER_API_KEY: Joi.string().required(),
+  CURRENCY_LAYER_BASE_URL: Joi.string().uri().required(),
 
   // AWS (Optional)
   AWS_BUCKET_NAME: Joi.string().allow('').optional(),
