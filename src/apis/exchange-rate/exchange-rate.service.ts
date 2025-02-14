@@ -13,6 +13,7 @@ import { ExchangeRatesDailyEntity } from './entitites/exchange-rate-daily.entity
 import { getCurrencyNameInKorean } from './mapper/symbol-kr.mapper';
 import { IExchangeRateAPIService } from '../../externals/exchange-rates/interfaces/exchange-rate-api-service';
 import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
+import { IExchangeRateExternalAPI } from '../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
 
 @Injectable()
 export class ExchangeRateService {
@@ -83,31 +84,14 @@ export class ExchangeRateService {
       ),
     ]);
 
-    const targetCodes = input.currencyCodes?.length
-      ? input.currencyCodes
-      : Object.keys(latestRates.rates);
-
-    const processedRates = targetCodes.reduce<Record<string, RateDetail>>(
-      (acc, code) => {
-        const rate = latestRates.rates[code];
-        const fluctuation = fluctuationRates.rates[code];
-        acc[code] = {
-          name: getCurrencyNameInKorean(code),
-          rate: rate,
-          dayChange: fluctuation.change,
-          dayChangePercent: fluctuation.changePct,
-          high24h: Math.max(fluctuation.startRate, fluctuation.endRate),
-          low24h: Math.min(fluctuation.startRate, fluctuation.endRate),
-        };
-
-        return acc;
-      },
-      {},
+    const dailyCurrencyAggregate = this.generateDailyData(
+      latestRates.rates,
+      fluctuationRates.rates,
     );
 
     return {
       baseCurrency: latestRates.baseCurrency,
-      rates: processedRates,
+      rates: dailyCurrencyAggregate,
     };
   }
 
@@ -254,6 +238,40 @@ export class ExchangeRateService {
         this.redisService.updateLatestRateCache(res),
       ]);
     });
+  }
+
+  /**
+   * Gernerate daily data by combining recent currency-rate and fluctuation rate
+   * @param latestRates (Record<string, number>)
+   * @param fluctuationRates (Record<string, TFluctuation>)
+   */
+  private generateDailyData(
+    latestRates: Record<string, number>,
+    fluctuationRates: Record<string, IExchangeRateExternalAPI.TFluctuation>,
+  ): Record<string, RateDetail> {
+    return Object.keys(latestRates).reduce<Record<string, RateDetail>>(
+      (acc, currency) => {
+        const rate = latestRates[currency];
+        const fluctuation = fluctuationRates[currency] || {
+          startRate: rate,
+          endRate: rate,
+          change: 0,
+          changePct: 0,
+        };
+
+        acc[currency] = {
+          name: getCurrencyNameInKorean(currency),
+          rate,
+          dayChange: fluctuation.change,
+          dayChangePercent: fluctuation.changePct,
+          high24h: Math.max(fluctuation.startRate, fluctuation.endRate),
+          low24h: Math.min(fluctuation.startRate, fluctuation.endRate),
+        };
+
+        return acc;
+      },
+      {},
+    );
   }
 
   /**
