@@ -26,6 +26,11 @@ export const appConfig = registerAs('', () => ({
     baseUrl: process.env.FRANK_FURTER_URL,
   },
 
+  currencyLayer: {
+    apiKey: process.env.CURRENCY_LAYER_API_KEY,
+    baseUrl: process.env.CURRENCY_LAYER_BASE_URL,
+  },
+
   aws: {
     bucketName: process.env.AWS_BUCKET_NAME,
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,

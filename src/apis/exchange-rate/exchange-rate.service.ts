@@ -13,44 +13,13 @@ import { getCurrencyNameInKorean } from './mapper/symbol-kr.mapper';
 import { IExchangeRateAPIService } from '../../externals/exchange-rates/interfaces/exchange-rate-api-service';
 import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
 import { IExchangeRateExternalAPI } from '../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
+import { supportCurrencyList } from './constants/support-currency.constant';
 
 @Injectable()
 export class ExchangeRateService {
-  private readonly majorCurrencyLists = [
-    'AUD',
-    'BGN',
-    'BRL',
-    'CAD',
-    'CHF',
-    'CNY',
-    'CZK',
-    'DKK',
-    'GBP',
-    'HKD',
-    'HUF',
-    'IDR',
-    'ILS',
-    'INR',
-    'ISK',
-    'JPY',
-    'KRW',
-    'MXN',
-    'MYR',
-    'NOK',
-    'NZD',
-    'PHP',
-    'PLN',
-    'RON',
-    'SEK',
-    'SGD',
-    'THB',
-    'TRY',
-    'USD',
-    'ZAR',
-    'EUR',
-  ];
   private subscriptions = new Map<string, Set<string>>();
   private readonly logger = new Logger(ExchangeRateService.name);
+  private readonly supportCurrencyList = supportCurrencyList;
 
   constructor(
     @Inject('EXCHANGE_RATE_API')
@@ -64,21 +33,20 @@ export class ExchangeRateService {
     baseCurrency: string;
     rates: Record<string, RateDetail>;
   }> {
-    const currencyCodes = input.currencyCodes?.length
+    const targetCodes = input.currencyCodes?.length
       ? input.currencyCodes
-      : this.majorCurrencyLists;
-
+      : this.supportCurrencyList;
     const today = new Date();
     const [latestRates, fluctuationRates] = await Promise.all([
       this.exchangeRateExternalAPI.getLatestRates(
         input.baseCurrency,
-        currencyCodes,
+        targetCodes,
       ),
       this.exchangeRateExternalAPI.getFluctuationData(
         this.dateUtilService.getYesterday(today),
         today,
         input.baseCurrency,
-        currencyCodes,
+        targetCodes,
       ),
     ]);
 
@@ -221,7 +189,7 @@ export class ExchangeRateService {
   async saveLatestRates(): Promise<void> {
     const rates = await this.exchangeRateExternalAPI.getLatestRates();
 
-    this.majorCurrencyLists.map(async (majorBaseCurrency) => {
+    this.supportCurrencyList.map(async (majorBaseCurrency) => {
       const res: IExchangeRate.ICreate[] = Object.entries(rates.rates).map(
         ([currencyCode, rate]) => ({
           baseCurrency: majorBaseCurrency,
@@ -250,12 +218,7 @@ export class ExchangeRateService {
     return Object.keys(latestRates).reduce<Record<string, RateDetail>>(
       (acc, currency) => {
         const rate = latestRates[currency];
-        const fluctuation = fluctuationRates[currency] || {
-          startRate: rate,
-          endRate: rate,
-          change: 0,
-          changePct: 0,
-        };
+        const fluctuation = fluctuationRates[currency];
 
         acc[currency] = {
           name: getCurrencyNameInKorean(currency),
