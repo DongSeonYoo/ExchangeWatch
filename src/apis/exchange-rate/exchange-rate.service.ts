@@ -1,7 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
-import { RedisService } from '../../redis/redis.service';
 import {
   CurrentExchangeRateReqDto,
   RateDetail,
@@ -56,7 +55,6 @@ export class ExchangeRateService {
   constructor(
     @Inject('EXCHANGE_RATE_API')
     private readonly exchangeRateExternalAPI: IExchangeRateAPIService,
-    private readonly redisService: RedisService,
     private readonly exchangeRateRepository: ExchangeRateRepository,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
     private readonly dateUtilService: DateUtilService,
@@ -235,7 +233,7 @@ export class ExchangeRateService {
       // TODO: distribute transaction & analize excution time
       await Promise.all([
         this.exchangeRateRepository.saveLatestRates(res),
-        this.redisService.updateLatestRateCache(res),
+        // this.cacheService.setLatestRateCache(res),
       ]);
     });
   }
