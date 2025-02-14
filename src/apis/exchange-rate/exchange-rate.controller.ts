@@ -21,7 +21,7 @@ export class ExchangeRateController {
   /**
    * 현재 환율 조회
    *
-   * @remarks 현재 최신 환율을 조회합니다. 아마 메인 페이지에서 주요 환율데이터를 초기 로드 할 듯 싶습니다 currencyCode가 비어있다면 주요 20개의 통화를 가져옵니다.
+   * @remarks 현재 최신 환율을 조회합니다. 아마 메인 페이지에서 주요 환율데이터를 초기 로드 할 듯 싶습니다 currencyCode가 비어있다면 주요 30개의 통화를 가져옵니다.
    * 현재 baseCurrency는 EUR만 가능합니다.
    */
   @Get('current')
