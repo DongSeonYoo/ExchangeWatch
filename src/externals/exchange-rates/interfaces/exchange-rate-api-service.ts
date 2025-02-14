@@ -14,8 +14,8 @@ export interface IExchangeRateAPIService {
     currencyCodes?: string[],
   ): Promise<IExchangeRateExternalAPI.IHistoricalResponse>;
 
-  // OHLC data by preiod
-  getOHLCData(
+  // fluctuation data by preiod
+  getFluctuationData(
     startDate: Date,
     endDate: Date,
     baseCurrency?: string,

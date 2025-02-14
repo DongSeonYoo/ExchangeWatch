@@ -32,6 +32,8 @@ export const envValidationSchema = Joi.object({
 
   // Cache Policy
   LATEST_CURRENCY_CACHE_TTL: Joi.number().required(),
+  HISTORICAL_CACHE_TTL: Joi.number().required(),
+  FLUCTUATION_CACHE_TTL: Joi.number().required(),
 
   // Google OAuth
   GOOGLE_CLIENT_ID: Joi.string().required(),

@@ -36,7 +36,7 @@ export class FixerService implements IExchangeRateAPIService {
     }));
   }
 
-  async getOHLCData(
+  async getFluctuationData(
     startDate: Date,
     endDate: Date,
     baseCurrency?: string,
