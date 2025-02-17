@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { FrankFurterService } from './exchange-rates/frankfurter/frankfurter.service';
 import { HttpModule } from '@nestjs/axios';
+import { MockCurrencyLayerService } from './exchange-rates/currencylayer/mock/currencylayer-mock.service';
 
 @Module({
   imports: [
@@ -13,7 +13,7 @@ import { HttpModule } from '@nestjs/axios';
   providers: [
     {
       provide: 'EXCHANGE_RATE_API',
-      useClass: FrankFurterService,
+      useClass: MockCurrencyLayerService,
     },
   ],
 })

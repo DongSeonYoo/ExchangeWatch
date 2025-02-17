@@ -3,6 +3,7 @@ import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { IExchangeRate } from './interface/exchange-rate.interface';
 import {
   CurrentExchangeRateReqDto,
+  CurrentExchangeRateResDto,
   RateDetail,
 } from './dto/exchange-rates.dto';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
@@ -14,6 +15,7 @@ import { IExchangeRateAPIService } from '../../externals/exchange-rates/interfac
 import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
 import { IExchangeRateExternalAPI } from '../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { supportCurrencyList } from './constants/support-currency.constant';
+import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
 
 @Injectable()
 export class ExchangeRateService {
@@ -29,10 +31,9 @@ export class ExchangeRateService {
     private readonly dateUtilService: DateUtilService,
   ) {}
 
-  async getCurrencyExchangeRates(input: CurrentExchangeRateReqDto): Promise<{
-    baseCurrency: string;
-    rates: Record<string, RateDetail>;
-  }> {
+  async getCurrencyExchangeRates(
+    input: CurrentExchangeRateReqDto,
+  ): Promise<CurrentExchangeRateResDto> {
     const targetCodes = input.currencyCodes?.length
       ? input.currencyCodes
       : this.supportCurrencyList;
@@ -81,102 +82,114 @@ export class ExchangeRateService {
    *
    * 2. Calculating missing data
    *  - compare the selected date from DB with the requested date
-   *  - if there is missing data, call external API(fixer)
+   *  - if there is missing data, call external API
    *  - save the data collcted at this context to the DB
    *  - response data just put in to the client
    */
   async getHistoricalRates(
     input: CurrentExchangeHistoryReqDto,
   ): Promise<ExchangeRatesDailyEntity[]> {
+    // 1
     const historicalDataFromDB =
       await this.exchangeRateDailyRepository.findDailyRates({
         baseCurrency: input.baseCurrency,
         currencyCode: input.currencyCode,
-        endedAt: input.endedAt,
         startedAt: input.startedAt,
+        endedAt: input.endedAt,
       });
 
-    const requestedAllDate = this.dateUtilService.getDatesBeetween(
+    // 2
+    const requestedDates: Date[] = this.dateUtilService.getDatesBeetween(
       input.startedAt,
       input.endedAt,
     );
+    const existingDates = historicalDataFromDB.map(
+      (entity) => entity.ohlcDate.toISOString().split('T')[0],
+    );
+    const missingDates = requestedDates.filter(
+      (date) => !existingDates.includes(date.toISOString().split('T')[0]),
+    );
+    const missingDailyData = await Promise.all(
+      missingDates.map(async (date) => {
+        const yesterday = this.dateUtilService.getYesterday(date);
+        const fluctuationData =
+          await this.exchangeRateExternalAPI.getFluctuationData(
+            yesterday,
+            date,
+            input.baseCurrency,
+            [input.currencyCode],
+          );
+        const fluctuation = fluctuationData.rates[input.currencyCode];
 
-    const existingDates = historicalDataFromDB.map((e) => e.ohlcDate);
-    const missingDates = requestedAllDate.filter((reqDate) => {
-      const strExistDates = existingDates.map((e) => e.toISOString());
-      const strReqDates = reqDate.toISOString();
-
-      return !strExistDates.includes(strReqDates);
-    });
-
-    if (missingDates.length > 0) {
-      await Promise.all(
-        missingDates.map(async (date) => {
-          const fluctuationData =
-            await this.exchangeRateExternalAPI.getFluctuationData(
-              this.dateUtilService.getYesterday(date),
-              date,
-              input.baseCurrency,
-              [input.currencyCode],
-            );
-          const fluctuation = fluctuationData.rates[input.currencyCode];
-
-          await this.exchangeRateDailyRepository.saveDailyRates({
-            baseCurrency: input.baseCurrency,
-            currencyCode: input.currencyCode,
-            openRate: fluctuation.startRate,
-            closeRate: fluctuation.endRate,
-            highRate: Math.max(fluctuation.startRate, fluctuation.endRate),
-            lowRate: Math.min(fluctuation.startRate, fluctuation.endRate),
-            avgRate: (fluctuation.startRate + fluctuation.endRate) / 2,
-            ohlcDate: date,
-            rateCount: 1,
-          });
-
-          const missedOHLCdata =
-            await this.exchangeRateDailyRepository.findDailyRates({
-              baseCurrency: input.baseCurrency,
-              currencyCode: input.currencyCode,
-              startedAt: date,
-              endedAt: date,
-            });
-
-          historicalDataFromDB.push(...missedOHLCdata);
-        }),
+        const dailyData: IExchangeRateDaily.ICreate = {
+          baseCurrency: input.baseCurrency,
+          currencyCode: input.currencyCode,
+          ohlcDate: date,
+          openRate: fluctuation.startRate,
+          closeRate: fluctuation.endRate,
+          // TODO: calcuate high or low data from exchange_rate table
+          highRate: Math.max(fluctuation.startRate, fluctuation.endRate),
+          lowRate: Math.min(fluctuation.startRate, fluctuation.endRate),
+          avgRate: (fluctuation.startRate + fluctuation.endRate) / 2,
+          rateCount: 1,
+        };
+        return dailyData;
+      }),
+    );
+    const validMissingDailyData = missingDailyData.filter(
+      (data) => data !== null,
+    );
+    if (validMissingDailyData.length > 0) {
+      await this.exchangeRateDailyRepository.saveDailyRates(
+        validMissingDailyData,
       );
     }
 
-    return historicalDataFromDB;
+    return await this.exchangeRateDailyRepository.findDailyRates({
+      baseCurrency: input.baseCurrency,
+      currencyCode: input.currencyCode,
+      startedAt: input.startedAt,
+      endedAt: input.endedAt,
+    });
   }
 
   /**
    * OHLC data aggregate on a specific date
    */
-  async aggregateDailyRates(startDate: Date, endDate: Date) {
+  async aggregateDailyRates(startDate: Date, endDate: Date): Promise<void> {
+    const allFluctuationData = await Promise.all(
+      this.supportCurrencyList.map(async (baseCurrency) => {
+        const targetCurrencies = this.supportCurrencyList.filter(
+          (currency) => currency !== baseCurrency,
+        );
+
+        return this.exchangeRateExternalAPI.getFluctuationData(
+          startDate,
+          endDate,
+          baseCurrency,
+          targetCurrencies,
+        );
+      }),
+    );
+
     const fluctuationData =
       await this.exchangeRateExternalAPI.getFluctuationData(startDate, endDate);
 
-    const dailyStats = await this.exchangeRateRepository.findDailyStats(
-      startDate,
-      endDate,
-    );
+    const dailyRecords: IExchangeRateDaily.ICreate[] = Object.entries(
+      fluctuationData.rates,
+    ).map(([currency, data]) => ({
+      baseCurrency: fluctuationData.baseCurrency,
+      currencyCode: currency,
+      ohlcDate: startDate,
+      openRate: data.startRate,
+      closeRate: data.endRate,
+      highRate: Math.max(data.startRate, data.endRate),
+      lowRate: Math.min(data.startRate, data.endRate),
+      avgRate: (data.startRate + data.endRate) / 2,
+      rateCount: 1,
+    }));
 
-    dailyStats.map(async (stats) => {
-      const fluctuation = fluctuationData.rates[stats.currencyCode];
-      await this.exchangeRateDailyRepository.saveDailyRates({
-        baseCurrency: stats.baseCurrency,
-        currencyCode: stats.currencyCode,
-        openRate: fluctuation.startRate,
-        closeRate: fluctuation.endRate,
-        highRate: stats.maxRate,
-        lowRate: stats.minRate,
-        avgRate: stats.avgRate,
-        rateCount: stats.count,
-        ohlcDate: startDate,
-      });
-    });
-
-    return;
+    await this.exchangeRateDailyRepository.saveDailyRates(dailyRecords);
   }
 
   /**
@@ -212,8 +225,8 @@ export class ExchangeRateService {
    * @param fluctuationRates (Record<string, TFluctuation>)
    */
   private generateDailyData(
-    latestRates: Record<string, number>,
-    fluctuationRates: Record<string, IExchangeRateExternalAPI.TFluctuation>,
+    latestRates: IExchangeRateExternalAPI.ILatestRatesResponse['rates'],
+    fluctuationRates: IExchangeRateExternalAPI.IFluctuationResponse['rates'],
   ): Record<string, RateDetail> {
     return Object.keys(latestRates).reduce<Record<string, RateDetail>>(
       (acc, currency) => {
@@ -245,8 +258,6 @@ export class ExchangeRateService {
       this.subscriptions.set(pair, new Set());
     }
     this.subscriptions.get(pair)?.add(clientId);
-
-    console.log(this.subscriptions);
 
     this.logger.verbose(`${clientId} has subscribe to ${pair}`);
   }

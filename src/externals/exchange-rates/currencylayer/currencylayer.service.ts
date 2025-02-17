@@ -39,7 +39,7 @@ export class CurrencyLayerService implements IExchangeRateAPIService {
       throw new Error(`CurrencyLayer Error: ${JSON.stringify(data)}`);
     }
 
-    const rates = this.parseQuotes(data.source, data.quotes);
+    const rates = this.parseRealTimeQuotes(data.source, data.quotes);
 
     return {
       baseCurrency: data.source,
@@ -64,7 +64,7 @@ export class CurrencyLayerService implements IExchangeRateAPIService {
     if (!data.success) {
       throw new Error(`CurrencyLayer Error: ${JSON.stringify(data)}`);
     }
-    const rates = this.parseQuotes(data.source, data.quotes);
+    const rates = this.parseRealTimeQuotes(data.source, data.quotes);
 
     return {
       baseCurrency: data.source,
@@ -86,28 +86,17 @@ export class CurrencyLayerService implements IExchangeRateAPIService {
     );
     const url = `${this.apiUrl}/change?access_key=${this.apiKey}&source=${baseCurrency}&currencies=${currencies}&start_date=${startDateString}&end_date=${endDateString}`;
 
-    const { data } = await this.httpService.axiosRef.get(url);
+    const { data } =
+      await this.httpService.axiosRef.get<ICurrencyLayerResponse.IFluctuationResponse>(
+        url,
+      );
     if (!data.success) {
       this.logger.error('CurrencyLayer Error: ', data);
       throw new Error(`CurrencyLayer Error: ${JSON.stringify(data)}`);
     }
-
-    const fluctuationRates: Record<
-      string,
-      IExchangeRateExternalAPI.TFluctuation
-    > = Object.fromEntries(
-      Object.entries<any>(data.quotes).map(([pair, info]) => {
-        const targetCurrency = pair.replace(data.source, '');
-        return [
-          targetCurrency,
-          {
-            startRate: info.start_rate,
-            endRate: info.end_rate,
-            change: info.change,
-            changePct: info.change_pct,
-          },
-        ];
-      }),
+    const fluctuationRates = this.parseFluctuationQuotes(
+      data.source,
+      data.quotes,
     );
 
     return {
@@ -139,20 +128,11 @@ export class CurrencyLayerService implements IExchangeRateAPIService {
     if (!data.success) {
       throw new Error(`CurrencyLayer Error: ${JSON.stringify(data)}`);
     }
+    data;
 
-    const timeSeriesRates: Record<
-      string,
-      Record<string, number>
-    > = Object.fromEntries(
-      Object.entries(data.quotes).map(([dateKey, quotesObj]) => [
-        dateKey,
-        Object.fromEntries(
-          Object.entries(quotesObj).map(([pair, rate]) => [
-            pair.replace(data.source, ''),
-            rate,
-          ]),
-        ),
-      ]),
+    const timeSeriesRates = this.parseTimeSeriesQuotes(
+      data.source,
+      data.quotes,
     );
 
     return {
@@ -164,25 +144,114 @@ export class CurrencyLayerService implements IExchangeRateAPIService {
   }
 
   /**
-   * Parses a simple quotes object.
+   * Parses a quotes object from RealTimeData of CurrencyLayer
+   * Use for: RealTimeRate OR HistoricalRate
    *
-   * Example:
    * Input: { "USDKRW": 1304.55, "USDEUR": 0.9234 }
    * Output: { "KRW": 1304.55, "EUR": 0.9234 }
    *
    * @param source - Base currency code (e.g., "USD").
-   * @param quotes - Quotes object from CurrencyLayer.
+   * @param quotes - Quotes object from RealTimeData of CurrencyLayer.
    * @returns Parsed rates.
    */
-  private parseQuotes(
+  protected parseRealTimeQuotes(
     source: string,
-    quotes: Record<string, number>,
-  ): Record<string, number> {
+    quotes: ICurrencyLayerResponse.IRealTimeRates['quotes'],
+  ): IExchangeRateExternalAPI.ILatestRatesResponse['rates'] {
     return Object.fromEntries(
       Object.entries(quotes).map(([pair, rate]) => {
         const targetCurrency = pair.replace(source, '');
         return [targetCurrency, rate];
       }),
+    );
+  }
+
+  /**
+   * Parses quotes object from ChangeData of CurrencyLayer
+   *
+   * Input:
+            "USDAUD": {
+              "start_rate": 1.281236,
+              "end_rate": 1.108609,
+              "change": -0.1726,
+              "change_pct": -13.4735
+            },
+   * Output:
+            "AUD": {
+              "startRate": 1.281236,
+              "endRate": 1.108609,
+              "change": -0.1726,
+              "changePct": -13.4735
+            },
+   *
+   * @param source - Base currency code (e.g., "USD").
+   * @param quotes - Quotes object from ChangeData of CurrencyLayer.
+   * @returns Parsed rates.
+   */
+  protected parseFluctuationQuotes(
+    source: string,
+    quotes: ICurrencyLayerResponse.IFluctuationResponse['quotes'],
+  ): IExchangeRateExternalAPI.IFluctuationResponse['rates'] {
+    return Object.fromEntries(
+      Object.entries(quotes).map(([pair, info]) => {
+        const targetCurrency = pair.replace(source, '');
+        return [
+          targetCurrency,
+          {
+            startRate: info.start_rate,
+            endRate: info.end_rate,
+            change: info.change,
+            changePct: info.change_pct,
+          },
+        ];
+      }),
+    );
+  }
+
+  /**
+   * Parses quotes object from TimeSeriesData of CurrencyLayer
+   *
+   * Input:
+        "2025-01-02": {
+            "USDUSD": 1,
+            "USDGBP": 0.668525,
+            "USDEUR": 0.738541
+        },
+        "2025-01-02": {
+            "USDUSD": 1,
+            "USDGBP": 0.668827,
+            "USDEUR": 0.736145
+        },
+   * Output:
+        "2025-01-01": {
+            "USD": 1,
+            "GBP": 0.668525,
+            "EUR": 0.738541
+        },
+        "2025-01-02": {
+            "USD": 1,
+            "GBP": 0.668827,
+            "EUR": 0.736145
+        },
+   *
+   * @param source - Base currency code (e.g., "USD").
+   * @param quotes - Quotes object from TimeSeriesData of CurrencyLayer.
+   * @returns Parsed rates.
+   */
+  protected parseTimeSeriesQuotes(
+    source: string,
+    quotes: ICurrencyLayerResponse.ITimeFrameRates['quotes'],
+  ): IExchangeRateExternalAPI.ITimeSeriesResponse['rates'] {
+    return Object.fromEntries(
+      Object.entries(quotes).map(([dateKey, quotesObj]) => [
+        dateKey,
+        Object.fromEntries(
+          Object.entries(quotesObj).map(([pair, rate]) => [
+            pair.replace(source, ''),
+            rate,
+          ]),
+        ),
+      ]),
     );
   }
 

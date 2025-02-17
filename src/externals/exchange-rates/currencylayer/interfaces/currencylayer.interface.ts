@@ -29,4 +29,22 @@ export namespace ICurrencyLayerResponse {
     source: string;
     quotes: Record<string, Record<string, number>>;
   }
+
+  export interface IFluctuationResponse {
+    success: boolean;
+    terms: string;
+    privacy: string;
+    change: boolean;
+    start_date: Date;
+    end_date: Date;
+    source: string;
+    quotes: Record<string, TFluctuation>;
+  }
+
+  export interface TFluctuation {
+    start_rate: number;
+    end_rate: number;
+    change: number;
+    change_pct: number;
+  }
 }
