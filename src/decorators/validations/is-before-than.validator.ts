@@ -30,7 +30,7 @@ export class IsBeforeThanConstraint implements ValidatorConstraintInterface {
       targetProperty,
     );
 
-    return value > dateLimit;
+    return value > dateLimit && value < targetProperty;
   }
 
   defaultMessage(args: ValidationArguments): string {
@@ -40,7 +40,7 @@ export class IsBeforeThanConstraint implements ValidatorConstraintInterface {
       ValidateDateType,
     ];
     throw new IsBeforeThanException(
-      `${args.property} cannot be more than ${amount} ${dateFormat} before ${targetProperty}`,
+      `${args.property} must be more whitin ${amount} ${dateFormat} before before ${targetProperty}`,
     );
   }
 }
