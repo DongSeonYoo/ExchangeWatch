@@ -228,5 +228,9 @@ describe('ExchangeRateService', () => {
         ['KRW'],
       );
     });
+
+    it.todo(
+      'should not fetching missing data from external API when DB has complete data',
+    );
   });
 });
