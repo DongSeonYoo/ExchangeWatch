@@ -8,6 +8,8 @@ import { MockProxy, mock } from 'jest-mock-extended';
 import { supportCurrencyList } from '../../constants/support-currency.constant';
 import typia from 'typia';
 import { CurrentExchangeRateResDto } from '../../dto/exchange-rates.dto';
+import { CurrentExchangeHistoryReqDto } from '../../dto/exchange-rates-history.dto';
+import { ExchangeRatesDailyEntity } from '../../entitites/exchange-rate-daily.entity';
 
 describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;
@@ -152,5 +154,79 @@ describe('ExchangeRateService', () => {
     it.todo('hadnling external API(ratesRate)');
 
     it.todo('handling external API(fluctuationRate)');
+  });
+
+  describe('getHistoricalRates', () => {
+    // given이 너무 비대하다... getHistoricalRates메서드의 책임이 너무 많음
+    it('should feching missing data from external API when DB has partial data', async () => {
+      // Arrage
+      const input: CurrentExchangeHistoryReqDto = {
+        baseCurrency: 'EUR',
+        currencyCode: 'KRW',
+        startedAt: new Date('2025-01-01'),
+        endedAt: new Date('2025-01-03'),
+      };
+
+      dateUtilService.getDatesBeetween.mockReturnValueOnce([
+        new Date('2025-01-01'),
+        new Date('2025-01-02'),
+        new Date('2025-01-03'),
+      ]);
+
+      exchangeRateDailyRepository.findDailyRates
+        .mockResolvedValueOnce([
+          {
+            ohlcDate: new Date('2025-01-01'),
+          } as ExchangeRatesDailyEntity,
+          {
+            ohlcDate: new Date('2025-01-02'),
+          } as ExchangeRatesDailyEntity,
+        ])
+        .mockResolvedValueOnce([
+          {
+            ohlcDate: new Date('2025-01-01'),
+          } as ExchangeRatesDailyEntity,
+          {
+            ohlcDate: new Date('2025-01-02'),
+          } as ExchangeRatesDailyEntity,
+          {
+            ohlcDate: new Date('2025-01-03'),
+          } as ExchangeRatesDailyEntity,
+        ]);
+      dateUtilService.getYesterday.mockReturnValueOnce(new Date('2025-01-02'));
+      exchangeRateExternalService.getFluctuationData.mockResolvedValue({
+        baseCurrency: input.baseCurrency,
+        startDate: input.startedAt,
+        endDate: input.endedAt,
+        rates: {
+          KRW: {
+            startRate: 1,
+            change: 1,
+            changePct: 1,
+            endRate: 1,
+          },
+        },
+      });
+
+      // Act
+      const result = await exchangeRateService.getHistoricalRates(input);
+
+      // Assert
+      expect(result).toHaveLength(3);
+      expect(result.map((e) => e.ohlcDate)).toEqual([
+        new Date('2025-01-01'),
+        new Date('2025-01-02'),
+        new Date('2025-01-03'),
+      ]);
+
+      expect(
+        exchangeRateExternalService.getFluctuationData,
+      ).toHaveBeenCalledWith(
+        new Date('2025-01-02'),
+        new Date('2025-01-03'),
+        'EUR',
+        ['KRW'],
+      );
+    });
   });
 });
