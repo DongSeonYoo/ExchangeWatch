@@ -5,6 +5,9 @@ import { ExchangeRateDailyRepository } from '../../repositores/exchange-rate-dai
 import { DateUtilService } from '../../../../utils/date-util/date-util.service';
 import { IExchangeRateAPIService } from '../../../../externals/exchange-rates/interfaces/exchange-rate-api-service';
 import { MockProxy, mock } from 'jest-mock-extended';
+import { supportCurrencyList } from '../../constants/support-currency.constant';
+import typia from 'typia';
+import { CurrentExchangeRateResDto } from '../../dto/exchange-rates.dto';
 
 describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;
@@ -53,35 +56,31 @@ describe('ExchangeRateService', () => {
       const baseCurrency = 'EUR';
       const currencyCodes = ['USD', 'KRW'];
       const today = new Date();
-      const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      const yesterday = new Date();
 
       dateUtilService.getYesterday.mockReturnValue(yesterday);
       exchangeRateExternalService.getLatestRates.mockResolvedValue({
         baseCurrency,
         date: today,
-        rates: {
-          USD: 1.048531,
-          KRW: 1511.415692,
-        },
+        rates: Object.fromEntries(
+          currencyCodes.map((currency) => [currency, 1]),
+        ),
       });
       exchangeRateExternalService.getFluctuationData.mockResolvedValue({
+        baseCurrency,
         startDate: yesterday,
         endDate: today,
-        baseCurrency: baseCurrency,
-        rates: {
-          USD: {
-            startRate: 1.039134,
-            endRate: 1.046102,
-            change: 0.007,
-            changePct: 0.6706,
-          },
-          KRW: {
-            startRate: 1509.986723,
-            endRate: 1506.297246,
-            change: -3.6895,
-            changePct: -0.2443,
-          },
-        },
+        rates: Object.fromEntries(
+          currencyCodes.map((currency) => [
+            currency,
+            {
+              startRate: 1,
+              endRate: 1,
+              change: 1,
+              changePct: 1,
+            },
+          ]),
+        ),
       });
 
       // Act
@@ -91,17 +90,67 @@ describe('ExchangeRateService', () => {
       });
 
       // Assert
-      expect(result.rates['USD'].rate).toEqual(1.048531);
-      expect(result.rates['USD'].dayChange).toEqual(0.007);
-      expect(result.rates['USD'].dayChangePercent).toEqual(0.6706);
-      expect(result.rates['USD'].high24h).toEqual(1.046102);
-      expect(result.rates['USD'].low24h).toEqual(1.039134);
-
-      expect(result.rates['KRW'].rate).toEqual(1511.415692);
-      expect(result.rates['KRW'].dayChange).toEqual(-3.6895);
-      expect(result.rates['KRW'].dayChangePercent).toEqual(-0.2443);
-      expect(result.rates['KRW'].high24h).toEqual(1509.986723);
-      expect(result.rates['KRW'].low24h).toEqual(1506.297246);
+      expect(Object.keys(result.rates)).toEqual(
+        expect.arrayContaining(currencyCodes),
+      );
+      expect(() =>
+        typia.assert<CurrentExchangeRateResDto>(result),
+      ).not.toThrow();
     });
+
+    it('should return supported currencies in our services if currencyCodes is empty', async () => {
+      // Arrange
+      const baseCurrency = 'EUR';
+      const currencyCodes = [];
+      const supportedCurrencyList = supportCurrencyList;
+      const today = new Date();
+      const yesterday = new Date();
+
+      exchangeRateExternalService.getLatestRates.mockResolvedValue({
+        baseCurrency,
+        date: today,
+        rates: Object.fromEntries(
+          supportedCurrencyList.map((currency) => [currency, 1]),
+        ),
+      });
+      exchangeRateExternalService.getFluctuationData.mockResolvedValue({
+        baseCurrency,
+        startDate: yesterday,
+        endDate: today,
+        rates: Object.fromEntries(
+          supportedCurrencyList.map((currency) => [
+            currency,
+            {
+              startRate: 1,
+              endRate: 1,
+              change: 1,
+              changePct: 1,
+            },
+          ]),
+        ),
+      });
+
+      // Act
+      const result = await exchangeRateService.getCurrencyExchangeRates({
+        baseCurrency,
+        currencyCodes,
+      });
+
+      // Assert
+      expect(result.baseCurrency).toBe(baseCurrency);
+      expect(Object.keys(result.rates)).not.toEqual(
+        expect.arrayContaining(currencyCodes),
+      );
+      expect(Object.keys(result.rates)).toEqual(
+        expect.arrayContaining(supportCurrencyList),
+      );
+      expect(() =>
+        typia.assertEquals<CurrentExchangeRateResDto>(result),
+      ).not.toThrow();
+    });
+
+    it.todo('hadnling external API(ratesRate)');
+
+    it.todo('handling external API(fluctuationRate)');
   });
 });
