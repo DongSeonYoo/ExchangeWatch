@@ -46,7 +46,7 @@ export class DateUtilService {
     const lastDate = dayjs(endedAt);
 
     while (currentDate.isBefore(lastDate) || currentDate.isSame(lastDate)) {
-      dates.push(currentDate.toDate());
+      dates.push(new Date(currentDate.toISOString().split('T')[0]));
       currentDate = currentDate.add(1, 'day');
     }
 
