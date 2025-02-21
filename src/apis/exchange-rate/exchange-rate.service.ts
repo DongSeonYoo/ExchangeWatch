@@ -9,7 +9,6 @@ import {
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
 import { DateUtilService } from '../../utils/date-util/date-util.service';
-import { ExchangeRatesDailyEntity } from './entitites/exchange-rate-daily.entity';
 import { getCurrencyNameInKorean } from './mapper/symbol-kr.mapper';
 import { IExchangeRateAPIService } from '../../externals/exchange-rates/interfaces/exchange-rate-api-service';
 import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
@@ -88,6 +87,7 @@ export class ExchangeRateService {
             (existingDate) => existingDate.getTime() === date.getTime(),
           ),
       );
+
     // if DB has complete data, return directly
     if (!missingDates.length) return historicalData;
 
@@ -104,10 +104,29 @@ export class ExchangeRateService {
     );
 
     // convert missingdata for insertable to database
-    const dailyRecord = apiResponse.flatMap((response, i) =>
-      this.generateOHLCdata(response, missingDates[i]),
+    const dailyRecord: IExchangeRateDaily.ICreate[] = apiResponse.map(
+      (res, i) => {
+        const fluctuation = res.rates[input.currencyCode];
+        const ohlc = this.generateOHLCdata(
+          fluctuation.startRate,
+          fluctuation.endRate,
+          fluctuation.changePct,
+        );
+
+        return {
+          baseCurrency: input.baseCurrency,
+          currencyCode: input.currencyCode,
+          ohlcDate: missingDates[i],
+          openRate: ohlc.openRate,
+          highRate: ohlc.highRate,
+          lowRate: ohlc.lowRate,
+          closeRate: ohlc.closeRate,
+          avgRate: (ohlc.openRate + ohlc.closeRate) / 2,
+          rateCount: 1,
+        };
+      },
     );
-    // save converted data
+
     await this.exchangeRateDailyRepository.saveDailyRates(dailyRecord);
 
     return await this.exchangeRateDailyRepository.findDailyRates(input);
@@ -210,24 +229,35 @@ export class ExchangeRateService {
 
   /**
    * Generate OHLC data by fluctuation data from the external API
-   * @param fluctuationData (IExchangeRateExternalAPI.IFluctuationResponse)
-   * @param date (Date)
+   *
+   * @param ohlcDate (Date)
    */
-  private generateOHLCdata(
-    fluctuationData: IExchangeRateExternalAPI.IFluctuationResponse,
-    date: Date,
-  ): IExchangeRateDaily.ICreate[] {
-    return Object.entries(fluctuationData.rates).map(([currency, data]) => ({
-      baseCurrency: fluctuationData.baseCurrency,
-      currencyCode: currency,
-      ohlcDate: date,
-      openRate: data.startRate,
-      closeRate: data.endRate,
-      highRate: Math.max(data.startRate, data.endRate),
-      lowRate: Math.min(data.startRate, data.endRate),
-      avgRate: (data.startRate + data.endRate) / 2,
-      rateCount: 1,
-    }));
+  generateOHLCdata(
+    startRate: number,
+    endRate: number,
+    changePct?: number,
+  ): {
+    openRate: number;
+    highRate: number;
+    lowRate: number;
+    closeRate: number;
+  } {
+    const highRate =
+      changePct !== undefined
+        ? startRate * (1 + changePct / 100)
+        : Math.max(startRate, endRate);
+
+    const lowRate =
+      changePct !== undefined
+        ? startRate * (1 - changePct / 100)
+        : Math.min(startRate, endRate);
+
+    return {
+      openRate: startRate,
+      highRate,
+      lowRate,
+      closeRate: endRate,
+    };
   }
 
   /**
