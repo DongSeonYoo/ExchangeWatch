@@ -217,7 +217,7 @@ export class ExchangeRateService {
     fluctuationData: IExchangeRateExternalAPI.IFluctuationResponse,
     date: Date,
   ): IExchangeRateDaily.ICreate[] {
-    return Object.entries(fluctuationData).map(([currency, data]) => ({
+    return Object.entries(fluctuationData.rates).map(([currency, data]) => ({
       baseCurrency: fluctuationData.baseCurrency,
       currencyCode: currency,
       ohlcDate: date,
