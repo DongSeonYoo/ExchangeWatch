@@ -6,4 +6,10 @@ export namespace IExchangeRate {
       ExchangeRatesEntity,
       'baseCurrency' | 'currencyCode' | 'rate'
     > {}
+
+  export interface IFindByDate
+    extends Pick<ExchangeRatesEntity, 'baseCurrency' | 'currencyCode'> {
+    startDate: Date;
+    endDate: Date;
+  }
 }
