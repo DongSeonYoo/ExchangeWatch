@@ -15,7 +15,6 @@ import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
 import { IExchangeRateExternalAPI } from '../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { supportCurrencyList } from './constants/support-currency.constant';
 import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
-import { ExchangeRatesEntity } from './entitites/exchange-rate.entity';
 
 @Injectable()
 export class ExchangeRateService {
@@ -205,25 +204,6 @@ export class ExchangeRateService {
     );
 
     await this.exchangeRateDailyRepository.saveDailyRates(ohlcRecords);
-  }
-
-  async getExistingRates(
-    currencyPairs: { baseCurrency: string; currencyCode: string }[],
-    startDate: Date,
-    endDate: Date,
-  ): Promise<ExchangeRatesEntity[]> {
-    const results = await Promise.all(
-      currencyPairs.map(({ baseCurrency, currencyCode }) =>
-        this.exchangeRateRepository.findRatesByDate({
-          baseCurrency,
-          currencyCode,
-          startDate,
-          endDate,
-        }),
-      ),
-    );
-
-    return results.flat();
   }
 
   generateCurrencyPairs(
