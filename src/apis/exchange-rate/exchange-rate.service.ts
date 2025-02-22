@@ -15,6 +15,7 @@ import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
 import { IExchangeRateExternalAPI } from '../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { supportCurrencyList } from './constants/support-currency.constant';
 import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
+import { ExchangeRatesEntity } from './entitites/exchange-rate.entity';
 
 @Injectable()
 export class ExchangeRateService {
@@ -140,11 +141,7 @@ export class ExchangeRateService {
    * - if data are missing, sppply data by calling an external API
    */
   async calculateDailyRates(startDate: Date, endDate: Date) {
-    const currencyPairs = this.supportCurrencyList.flatMap((baseCurrency) =>
-      supportCurrencyList
-        .filter((targetCurrency) => baseCurrency !== targetCurrency)
-        .map((currencyCode) => ({ baseCurrency, currencyCode })),
-    );
+    const currencyPairs = this.generateCurrencyPairs(this.supportCurrencyList);
 
     const ohlcRecords = await Promise.all(
       currencyPairs.map(
@@ -208,6 +205,35 @@ export class ExchangeRateService {
     );
 
     await this.exchangeRateDailyRepository.saveDailyRates(ohlcRecords);
+  }
+
+  async getExistingRates(
+    currencyPairs: { baseCurrency: string; currencyCode: string }[],
+    startDate: Date,
+    endDate: Date,
+  ): Promise<ExchangeRatesEntity[]> {
+    const results = await Promise.all(
+      currencyPairs.map(({ baseCurrency, currencyCode }) =>
+        this.exchangeRateRepository.findRatesByDate({
+          baseCurrency,
+          currencyCode,
+          startDate,
+          endDate,
+        }),
+      ),
+    );
+
+    return results.flat();
+  }
+
+  generateCurrencyPairs(
+    currencyList: string[],
+  ): { baseCurrency: string; currencyCode: string }[] {
+    return currencyList.flatMap((baseCurrency) =>
+      currencyList
+        .filter((targetCurrency) => baseCurrency !== targetCurrency)
+        .map((currencyCode) => ({ baseCurrency, currencyCode })),
+    );
   }
 
   /**
