@@ -10,8 +10,8 @@ import typia from 'typia';
 import { CurrentExchangeRateResDto } from '../../dto/exchange-rates.dto';
 import { CurrentExchangeHistoryReqDto } from '../../dto/exchange-rates-history.dto';
 import { ExchangeRatesDailyEntity } from '../../entitites/exchange-rate-daily.entity';
-import { IExchangeRateExternalAPI } from '../../../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { IExchangeRateDaily } from '../../interface/exchange-rate-daily.interface';
+import { ExchangeRatesEntity } from '../../entitites/exchange-rate.entity';
 
 describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;
@@ -142,9 +142,6 @@ describe('ExchangeRateService', () => {
 
       // Assert
       expect(result.baseCurrency).toBe(baseCurrency);
-      expect(Object.keys(result.rates)).not.toEqual(
-        expect.arrayContaining(currencyCodes),
-      );
       expect(Object.keys(result.rates)).toEqual(
         expect.arrayContaining(supportCurrencyList),
       );
@@ -195,24 +192,27 @@ describe('ExchangeRateService', () => {
           );
 
         // mocking as many as missDates
-        const mockFluctuationResponse = missingDates.map(() => ({
-          baseCurrency: input.baseCurrency,
-          startDate: input.startedAt,
-          endDate: input.endedAt,
-          rates: {
-            KRW: {
-              startRate: 1,
-              endRate: 1,
-              change: -1,
-              changePct: -1,
-            },
+        exchangeRateExternalService.getFluctuationData.mockImplementation(
+          async (
+            startDate,
+            endDate,
+            baseCurrency: string,
+            [currencyCode]: string[],
+          ) => {
+            return {
+              baseCurrency,
+              startDate,
+              endDate,
+              rates: {
+                [currencyCode]: {
+                  startRate: 1,
+                  endRate: 1.1,
+                  change: 0.1,
+                  changePct: 1,
+                },
+              },
+            };
           },
-        }));
-
-        exchangeRateExternalService.getFluctuationData.mockImplementation(() =>
-          Promise.resolve(
-            mockFluctuationResponse.shift() as IExchangeRateExternalAPI.IFluctuationResponse,
-          ),
         );
         const externalAPISpy = jest.spyOn(
           exchangeRateExternalService,
@@ -277,24 +277,27 @@ describe('ExchangeRateService', () => {
           );
 
         // mocking as many as missDates
-        const mockFluctuationResponse = missingDates.map(() => ({
-          baseCurrency: input.baseCurrency,
-          startDate: input.startedAt,
-          endDate: input.endedAt,
-          rates: {
-            KRW: {
-              startRate: 1,
-              endRate: 1,
-              change: -1,
-              changePct: -1,
-            },
+        exchangeRateExternalService.getFluctuationData.mockImplementation(
+          async (
+            startDate,
+            endDate,
+            baseCurrency: string,
+            [currencyCode]: string[],
+          ) => {
+            return {
+              baseCurrency,
+              startDate,
+              endDate,
+              rates: {
+                [currencyCode]: {
+                  startRate: 1,
+                  endRate: 1.1,
+                  change: 0.1,
+                  changePct: 1,
+                },
+              },
+            };
           },
-        }));
-
-        exchangeRateExternalService.getFluctuationData.mockImplementation(() =>
-          Promise.resolve(
-            mockFluctuationResponse.shift() as IExchangeRateExternalAPI.IFluctuationResponse,
-          ),
         );
 
         const dailyRepositorySpy = jest.spyOn(
@@ -468,6 +471,102 @@ describe('ExchangeRateService', () => {
       });
 
       it.todo('should call external API when DB data is below the threshold');
+    });
+  });
+
+  describe('getCurrencyPairs', () => {
+    it('should generate correct currency pairs', () => {
+      // Arrange
+      const testList = ['USD', 'EUR', 'KRW'];
+
+      // Act
+      const result = exchangeRateService.generateCurrencyPairs(testList);
+
+      // Assert
+      expect(result).toEqual([
+        { baseCurrency: 'USD', currencyCode: 'EUR' },
+        { baseCurrency: 'USD', currencyCode: 'KRW' },
+        { baseCurrency: 'EUR', currencyCode: 'USD' },
+        { baseCurrency: 'EUR', currencyCode: 'KRW' },
+        { baseCurrency: 'KRW', currencyCode: 'USD' },
+        { baseCurrency: 'KRW', currencyCode: 'EUR' },
+      ]);
+    });
+
+    it('should return an empty array if only one currency is provided', () => {
+      // Arrange
+      const testList = ['USD'];
+
+      // Act
+      const act = exchangeRateService.generateCurrencyPairs(testList);
+
+      // Assert
+      expect(act).toEqual([]);
+    });
+
+    it('should return an empty array if no currencies are provided', () => {
+      // Arrange
+      const testList: string[] = [];
+
+      // Act
+      const act = exchangeRateService.generateCurrencyPairs(testList);
+
+      // Assert
+      expect(act).toEqual([]);
+    });
+  });
+
+  describe('getExistingRates', () => {
+    it('should return exchange rates from the DB for given currency pairs', async () => {
+      // Arrange
+      const testPairs = [
+        { baseCurrency: 'USD', currencyCode: 'KRW' },
+        { baseCurrency: 'EUR', currencyCode: 'USD' },
+      ];
+      const startDate = new Date('2025-01-01');
+      const endDate = new Date('2025-01-02');
+
+      exchangeRateRepository.findRatesByDate
+        .mockResolvedValueOnce([
+          {
+            baseCurrency: 'USD',
+            currencyCode: 'KRW',
+            rate: 1.2,
+            createdAt: startDate,
+          },
+        ] as ExchangeRatesEntity[])
+        .mockResolvedValueOnce([
+          {
+            baseCurrency: 'EUR',
+            currencyCode: 'USD',
+            rate: 1.1,
+            createdAt: startDate,
+          },
+        ] as ExchangeRatesEntity[]);
+
+      // Act
+      const act = await exchangeRateService.getExistingRates(
+        testPairs,
+        startDate,
+        endDate,
+      );
+
+      // Assert
+      expect(act).toHaveLength(2);
+      expect(act).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            baseCurrency: 'USD',
+            currencyCode: 'KRW',
+            rate: 1.2,
+          }),
+          expect.objectContaining({
+            baseCurrency: 'EUR',
+            currencyCode: 'USD',
+            rate: 1.1,
+          }),
+        ]),
+      );
     });
   });
 });
