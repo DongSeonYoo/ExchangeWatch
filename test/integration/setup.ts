@@ -47,6 +47,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  jest.clearAllMocks();
   await testPrismaConn.watchlist.deleteMany();
   await testPrismaConn.exchangeRates.deleteMany();
   await testPrismaConn.exchangeRatesDaily.deleteMany();
