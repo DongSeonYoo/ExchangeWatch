@@ -355,4 +355,119 @@ describe('ExchangeRateService', () => {
       });
     });
   });
+
+  describe('calculateDailyRates', () => {
+    describe('should save daily rates into exchangeRateDaily from exchangeRate', () => {
+      it('should save 930 rates when DB has complete data', async () => {
+        // Arragne
+        const startDate = new Date('2025-01-01');
+        const endDate = new Date('2025-01-02');
+
+        exchangeRateRepository.findRatesByDate.mockResolvedValue([
+          {
+            rate: 1,
+            createdAt: startDate,
+          },
+          {
+            rate: 1,
+            createdAt: endDate,
+          },
+        ] as ExchangeRatesEntity[]);
+
+        const externalAPIspy = jest.spyOn(
+          exchangeRateExternalService,
+          'getFluctuationData',
+        );
+        const saveDailyRateSpy = jest.spyOn(
+          exchangeRateDailyRepository,
+          'saveDailyRates',
+        );
+        const generateOHLCSpy = jest.spyOn(
+          exchangeRateService,
+          'generateOHLCdata',
+        );
+
+        // Act
+        const act = await exchangeRateService.calculateDailyRates(
+          startDate,
+          endDate,
+        );
+
+        // Assert
+        expect(externalAPIspy).not.toHaveBeenCalled();
+        expect(saveDailyRateSpy).toHaveBeenCalledWith(expect.any(Array));
+
+        expect(generateOHLCSpy).toHaveBeenCalledTimes(930);
+        expect(() => {
+          typia.assert<IExchangeRateDaily.ICreate[]>(
+            saveDailyRateSpy.mock.calls[0][0],
+          );
+        }).not.toThrow();
+      });
+
+      it('should call external API when db has no data', async () => {
+        // Arrage
+        const startDate = new Date('2025-01-01');
+        const endDate = new Date('2025-01-02');
+
+        exchangeRateRepository.findRatesByDate.mockResolvedValue(
+          [] as ExchangeRatesEntity[],
+        );
+
+        exchangeRateExternalService.getFluctuationData.mockImplementation(
+          async (
+            startDate,
+            endDate,
+            baseCurrency: string,
+            [currencyCode]: string[],
+          ) => {
+            return {
+              baseCurrency,
+              startDate,
+              endDate,
+              rates: {
+                [currencyCode]: {
+                  startRate: 1,
+                  endRate: 1.1,
+                  change: 0.1,
+                  changePct: 1,
+                },
+              },
+            };
+          },
+        );
+
+        const externalAPIspy = jest.spyOn(
+          exchangeRateExternalService,
+          'getFluctuationData',
+        );
+        const saveDailyRateSpy = jest.spyOn(
+          exchangeRateDailyRepository,
+          'saveDailyRates',
+        );
+        const generateOHLCSpy = jest.spyOn(
+          exchangeRateService,
+          'generateOHLCdata',
+        );
+
+        // Assert
+        const act = await exchangeRateService.calculateDailyRates(
+          startDate,
+          endDate,
+        );
+
+        // Act
+        expect(externalAPIspy).toHaveBeenCalledTimes(930);
+        expect(generateOHLCSpy).toHaveBeenCalledTimes(930);
+        expect(saveDailyRateSpy.mock.calls[0][0]).toHaveLength(930);
+        expect(() =>
+          typia.assert<IExchangeRateDaily.ICreate[]>(
+            saveDailyRateSpy.mock.calls[0][0],
+          ),
+        ).not.toThrow();
+      });
+
+      it.todo('should call external API when DB data is below the threshold');
+    });
+  });
 });
