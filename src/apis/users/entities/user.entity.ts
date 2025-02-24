@@ -1,5 +1,5 @@
 import Prisma from '@prisma/client';
-import { SocialProvider } from '../../../constant';
+import { SocialProvider } from '../../auth/constant/auth.contant';
 
 export class UserEntity {
   /**

@@ -1,4 +1,4 @@
-import { SocialProvider } from '../../../constant';
+import { SocialProvider } from '../../auth/constant/auth.contant';
 
 export namespace IUser {
   export interface ICreateBySocial {
