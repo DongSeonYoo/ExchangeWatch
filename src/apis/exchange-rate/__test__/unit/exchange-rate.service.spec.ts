@@ -12,6 +12,7 @@ import { CurrentExchangeHistoryReqDto } from '../../dto/exchange-rates-history.d
 import { ExchangeRatesDailyEntity } from '../../entitites/exchange-rate-daily.entity';
 import { IExchangeRateDaily } from '../../interface/exchange-rate-daily.interface';
 import { ExchangeRatesEntity } from '../../entitites/exchange-rate.entity';
+import { ExchangeRateFixture } from '../fixture/exchange-rate-fixture';
 
 describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;
@@ -61,31 +62,38 @@ describe('ExchangeRateService', () => {
       const currencyCodes = ['USD', 'KRW'];
       const today = new Date();
       const yesterday = new Date();
-
-      dateUtilService.getYesterday.mockReturnValue(yesterday);
-      exchangeRateExternalService.getLatestRates.mockResolvedValue({
-        baseCurrency,
-        date: today,
-        rates: Object.fromEntries(
-          currencyCodes.map((currency) => [currency, 1]),
-        ),
+      const latestRatesResponse = ExchangeRateFixture.createLatestRates('EUR', {
+        USD: 1.1,
+        KRW: 0.8,
       });
-      exchangeRateExternalService.getFluctuationData.mockResolvedValue({
-        baseCurrency,
-        startDate: yesterday,
-        endDate: today,
-        rates: Object.fromEntries(
-          currencyCodes.map((currency) => [
-            currency,
-            {
+      const fluctuationRatesRepsonse =
+        ExchangeRateFixture.createFluctuationRates(
+          baseCurrency,
+          yesterday,
+          today,
+          {
+            USD: {
               startRate: 1,
               endRate: 1,
               change: 1,
               changePct: 1,
             },
-          ]),
-        ),
-      });
+            KRW: {
+              startRate: 1,
+              endRate: 1,
+              change: 1,
+              changePct: 1,
+            },
+          },
+        );
+
+      dateUtilService.getYesterday.mockReturnValue(yesterday);
+      exchangeRateExternalService.getLatestRates.mockResolvedValue(
+        latestRatesResponse,
+      );
+      exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+        fluctuationRatesRepsonse,
+      );
 
       // Act
       const result = await exchangeRateService.getCurrencyExchangeRates({
@@ -110,18 +118,17 @@ describe('ExchangeRateService', () => {
       const today = new Date();
       const yesterday = new Date();
 
-      exchangeRateExternalService.getLatestRates.mockResolvedValue({
+      const mockLatestRates = ExchangeRateFixture.createLatestRates(
         baseCurrency,
-        date: today,
-        rates: Object.fromEntries(
+        Object.fromEntries(
           supportedCurrencyList.map((currency) => [currency, 1]),
         ),
-      });
-      exchangeRateExternalService.getFluctuationData.mockResolvedValue({
+      );
+      const mockFluctuation = ExchangeRateFixture.createFluctuationRates(
         baseCurrency,
-        startDate: yesterday,
-        endDate: today,
-        rates: Object.fromEntries(
+        yesterday,
+        today,
+        Object.fromEntries(
           supportedCurrencyList.map((currency) => [
             currency,
             {
@@ -132,7 +139,14 @@ describe('ExchangeRateService', () => {
             },
           ]),
         ),
-      });
+      );
+
+      exchangeRateExternalService.getLatestRates.mockResolvedValue(
+        mockLatestRates,
+      );
+      exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+        mockFluctuation,
+      );
 
       // Act
       const result = await exchangeRateService.getCurrencyExchangeRates({
@@ -192,28 +206,22 @@ describe('ExchangeRateService', () => {
           );
 
         // mocking as many as missDates
-        exchangeRateExternalService.getFluctuationData.mockImplementation(
-          async (
-            startDate,
-            endDate,
-            baseCurrency: string,
-            [currencyCode]: string[],
-          ) => {
-            return {
-              baseCurrency,
-              startDate,
-              endDate,
-              rates: {
-                [currencyCode]: {
-                  startRate: 1,
-                  endRate: 1.1,
-                  change: 0.1,
-                  changePct: 1,
-                },
+        exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+          ExchangeRateFixture.createFluctuationRates(
+            'EUR',
+            new Date('2025-01-01'),
+            new Date('2025-01-04'),
+            {
+              KRW: {
+                startRate: 1,
+                endRate: 1,
+                change: 1,
+                changePct: 1,
               },
-            };
-          },
+            },
+          ),
         );
+
         const externalAPISpy = jest.spyOn(
           exchangeRateExternalService,
           'getFluctuationData',
@@ -277,27 +285,20 @@ describe('ExchangeRateService', () => {
           );
 
         // mocking as many as missDates
-        exchangeRateExternalService.getFluctuationData.mockImplementation(
-          async (
-            startDate,
-            endDate,
-            baseCurrency: string,
-            [currencyCode]: string[],
-          ) => {
-            return {
-              baseCurrency,
-              startDate,
-              endDate,
-              rates: {
-                [currencyCode]: {
-                  startRate: 1,
-                  endRate: 1.1,
-                  change: 0.1,
-                  changePct: 1,
-                },
+        exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+          ExchangeRateFixture.createFluctuationRates(
+            'EUR',
+            new Date('2025-01-01'),
+            new Date('2025-01-04'),
+            {
+              KRW: {
+                startRate: 1,
+                endRate: 1,
+                change: 1,
+                changePct: 1,
               },
-            };
-          },
+            },
+          ),
         );
 
         const dailyRepositorySpy = jest.spyOn(
@@ -417,27 +418,23 @@ describe('ExchangeRateService', () => {
           [] as ExchangeRatesEntity[],
         );
 
-        exchangeRateExternalService.getFluctuationData.mockImplementation(
-          async (
-            startDate,
-            endDate,
-            baseCurrency: string,
-            [currencyCode]: string[],
-          ) => {
-            return {
-              baseCurrency,
-              startDate,
-              endDate,
-              rates: {
-                [currencyCode]: {
+        exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+          ExchangeRateFixture.createFluctuationRates(
+            'EUR',
+            new Date('2025-01-01'),
+            new Date('2025-01-02'),
+            Object.fromEntries(
+              supportCurrencyList.map((currency) => [
+                currency,
+                {
                   startRate: 1,
-                  endRate: 1.1,
-                  change: 0.1,
+                  endRate: 1,
+                  change: 1,
                   changePct: 1,
                 },
-              },
-            };
-          },
+              ]),
+            ),
+          ),
         );
 
         const externalAPIspy = jest.spyOn(

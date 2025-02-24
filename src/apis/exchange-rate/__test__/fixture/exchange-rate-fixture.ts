@@ -13,14 +13,16 @@ export class ExchangeRateFixture {
   }
 
   static createFluctuationRates(
-    base: string,
+    baseCurrency: string,
+    startDate: Date,
+    endDate: Date,
     rates: IExchangeRateExternalAPI.IFluctuationResponse['rates'],
   ): IExchangeRateExternalAPI.IFluctuationResponse {
     return {
-      baseCurrency: base,
-      startDate: new Date(),
-      endDate: new Date(),
-      rates: rates,
+      baseCurrency,
+      startDate,
+      endDate,
+      rates,
     };
   }
 }
