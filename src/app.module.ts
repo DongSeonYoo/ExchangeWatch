@@ -17,8 +17,6 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { TokenModule } from './token/token.module';
 import { DateUtilModule } from './utils/date-util/date-util.module';
 import { ExchangeRateModule } from './apis/exchange-rate/exchange-rate.module';
-import { PriceNotificationModule } from './apis/price-notification/price-notification.module';
-import { AlertHistoryModule } from './apis/alert-history/alert-history.module';
 import { NewsModule } from './apis/news/news.module';
 import { WatchlistModule } from './apis/watchlist/watchlist.module';
 import { appConfig } from './configs/env/env.config';
@@ -28,6 +26,7 @@ import { ClsModule } from 'nestjs-cls';
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { PrismaService } from './prisma/prisma.service';
+import { NotificationModule } from './apis/notifications/notification.module';
 
 @Module({
   imports: [
@@ -57,11 +56,11 @@ import { PrismaService } from './prisma/prisma.service';
     TokenModule,
     DateUtilModule,
     ExchangeRateModule,
-    PriceNotificationModule,
-    AlertHistoryModule,
+    NotificationModule,
     NewsModule,
     WatchlistModule,
     ExternalAPIModule,
+    NotificationModule,
   ],
   providers: [
     LoggerMiddleware,
