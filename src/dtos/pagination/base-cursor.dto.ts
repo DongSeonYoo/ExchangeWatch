@@ -6,7 +6,7 @@
 export interface IBaseCursorReq<T extends string | number> {
   limit: number;
 
-  cursor: T;
+  cursor?: T;
 }
 
 export interface IBaseCursorRes<T extends string | number> {
