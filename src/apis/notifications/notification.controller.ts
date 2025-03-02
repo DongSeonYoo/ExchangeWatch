@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ApiSuccess } from '../../decorators/swaggers/success.decorator';
 import { ApiExceptions } from '../../decorators/swaggers/exception.decorator';
@@ -21,6 +22,10 @@ import {
   CreatePriceNotificationResDto,
 } from './dtos/price-notification/create-price-notification.dto';
 import { AccessAuth } from '../../decorators/swaggers/login-auth.decorator';
+import {
+  SelectPriceNotificationReqDto,
+  SelectPriceNotificationResDto,
+} from './dtos/price-notification/select-price-notification.dto';
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -59,12 +64,21 @@ export class NotificationController {
   }
 
   /**
-   * 알림 목록 조회
+   * 가격 알림 목록 조회
    *
-   * @remarks 사용자가 설정한(등록한) 알림 목록을 조회합니다
+   * @remarks 사용자가 설정한(등록한) 가격 알림 목록을 조회합니다
    */
   @Get('price')
-  async getNotificationList() {}
+  @ApiSuccess(SelectPriceNotificationResDto)
+  async getNotificationList(
+    @Query() dto: SelectPriceNotificationReqDto,
+    @LoggedInUser() user: UserEntity,
+  ) {
+    const { items, limit, offset } =
+      await this.notificationService.getPriceNotificationList(dto, user.idx);
+
+    return SelectPriceNotificationResDto.of(items, limit, offset);
+  }
 
   /**
    * 최근 발생한 알림 목록 조회

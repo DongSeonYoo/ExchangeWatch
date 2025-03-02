@@ -4,6 +4,8 @@ import { CreatePriceNotificationReqDto } from './dtos/price-notification/create-
 import { NotificationEntity } from './entities/notification.entity';
 import { MaxNotificationCountException } from './exceptions/max-notification-count.exception';
 import { AlreadyRegisterNotificationException } from './exceptions/arleady-notification.exception';
+import { SelectPriceNotificationReqDto } from './dtos/price-notification/select-price-notification.dto';
+import { off } from 'process';
 
 @Injectable()
 export class NotificationService {
@@ -46,5 +48,29 @@ export class NotificationService {
       });
 
     return createdNotification;
+  }
+
+  async getPriceNotificationList(
+    input: SelectPriceNotificationReqDto,
+    userIdx: number,
+  ): Promise<{
+    items: NotificationEntity[];
+    limit: number;
+    offset: number;
+  }> {
+    const offset = (input.page - 1) * input.limit;
+    const result =
+      await this.priceNotificationRepository.getNotificationsWithOffset({
+        userIdx: userIdx,
+        limit: input.limit,
+        offset: offset,
+        notificationType: 'TARGET_PRICE',
+      });
+
+    return {
+      items: result,
+      limit: input.limit,
+      offset: offset,
+    };
   }
 }

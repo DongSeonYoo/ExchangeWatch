@@ -46,4 +46,20 @@ export class NotificationRepository {
 
     return NotificationEntity.from(result);
   }
+
+  async getNotificationsWithOffset<T extends NotificationType>(
+    input: INotification.ISelectWithOffset<T>,
+  ): Promise<NotificationEntity<T>[]> {
+    const result = await this.txHost.tx.notifications.findMany({
+      where: {
+        userIdx: input.userIdx,
+        isActive: true,
+        notificationType: input.notificationType,
+      },
+      take: input.limit,
+      skip: input.offset,
+    });
+
+    return result.map(NotificationEntity.from<T>);
+  }
 }
