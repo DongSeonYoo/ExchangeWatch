@@ -2,7 +2,6 @@ import { IsDate, IsNotEmpty } from 'class-validator';
 import { IsValidCurrencyCode } from '../../../decorators/validations/is-valid-currency.validator';
 import { Transform } from 'class-transformer';
 import { IsBeforeThan } from '../../../decorators/validations/is-before-than.validator';
-import { ApiExtraModels } from '@nestjs/swagger';
 import { IsAfter } from '../../../decorators/validations/is-after.validator';
 import { ExchangeRatesDailyEntity } from '../entitites/exchange-rate-daily.entity';
 
@@ -97,7 +96,6 @@ export class RateHistory {
   rateCount: number;
 }
 
-@ApiExtraModels(RateHistory)
 export class CurrentExchangeHistoryResDto {
   /**
    * 기준 통화
