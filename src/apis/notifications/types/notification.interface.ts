@@ -11,4 +11,11 @@ export namespace INotification {
     notificationType: T;
     notificationData: NotificationDataMap[T];
   }
+
+  export interface ISelectWithOffset<T extends NotificationType> {
+    userIdx: number;
+    limit: number;
+    offset: number;
+    notificationType: T;
+  }
 }
