@@ -28,3 +28,25 @@ export class BaseOffsetDto {
     return (this.page - 1) * this.limit;
   }
 }
+
+export class BaseOffsetResDto {
+  /**
+   * offset 메타데이터
+   */
+  meta: {
+    /**
+     * 데이터 총 합 개수
+     */
+    totalCount: number;
+
+    /**
+     * 페이지당 항목 수
+     */
+    limit: number;
+
+    /**
+     * offset
+     */
+    offset: number;
+  };
+}
