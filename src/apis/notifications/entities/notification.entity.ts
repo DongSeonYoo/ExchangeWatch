@@ -3,6 +3,7 @@ import {
   NotificationDataMap,
   NotificationType,
 } from '../types/notification.type';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class NotificationEntity<T extends NotificationType = NotificationType> {
   /**
@@ -21,6 +22,8 @@ export class NotificationEntity<T extends NotificationType = NotificationType> {
 
   /**
    * 알림 타입
+   *
+   * @example TARGET_PRICE | RAPID_FLUCTUATION | DAILY_REPORT
    */
   notificationType: NotificationType;
 
