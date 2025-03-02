@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { IWatchList } from './interfaces/watch-list.interface';
-import { Prisma } from '@prisma/client';
 import { WatchlistEntity } from './entitites/watch-list.entity';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';

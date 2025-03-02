@@ -4,7 +4,7 @@ import { AddWatchlistItemReqDto } from './dto/add-watchlist-item.dto';
 import { WatchlistEntity } from './entitites/watch-list.entity';
 import { AlreadyRegisterPairException } from './exceptions/already-register-pair.excepetion';
 import { MaximumPairException } from './exceptions/maximum-pair.exception';
-import { SelectWatchListReqDto } from './dto/select-watchlis.dto';
+import { SelectWatchListReqDto } from './dto/select-watchlist.dto';
 import { CurrencyPairNotFoundException } from './exceptions/currency-pair-not-found.exception';
 import { Transactional } from '@nestjs-cls/transactional';
 

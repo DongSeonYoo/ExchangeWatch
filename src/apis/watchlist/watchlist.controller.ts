@@ -27,7 +27,7 @@ import { InvalidCurrencyCodeException } from '../../decorators/validations/is-va
 import {
   SelectWatchListReqDto,
   SelectWatchListResDto,
-} from './dto/select-watchlis.dto';
+} from './dto/select-watchlist.dto';
 import { CurrencyPairNotFoundException } from './exceptions/currency-pair-not-found.exception';
 import { UpdateWatchListItemOrderReqDto } from './dto/update-watchlist-order.dto';
 
@@ -49,7 +49,7 @@ export class WatchlistController {
       schema: AlreadyRegisterPairException,
     },
     {
-      exampleTitle: '통화쌍이 최대개수일때',
+      exampleTitle: '사용자의 통화쌍이 최대개수일때',
       schema: MaximumPairException,
     },
     {
