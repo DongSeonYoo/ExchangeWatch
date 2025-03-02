@@ -5,10 +5,11 @@ import { MaxNotificationCountException } from '../../exceptions/max-notification
 import { NotificationService } from '../../notification.service';
 import { NotificationEntity } from '../../entities/notification.entity';
 import { AlreadyRegisterNotificationException } from '../../exceptions/arleady-notification.exception';
+import { SelectPriceNotificationReqDto } from '../../dtos/price-notification/select-price-notification.dto';
 
 describe('PriceNotificationService (unit)', () => {
   let notificationService: NotificationService;
-  let priceNotificationRepository: MockProxy<NotificationRepository>;
+  let notificationRepository: MockProxy<NotificationRepository>;
 
   beforeEach(async () => {
     const app = await Test.createTestingModule({
@@ -22,7 +23,7 @@ describe('PriceNotificationService (unit)', () => {
     }).compile();
 
     notificationService = app.get(NotificationService);
-    priceNotificationRepository = app.get(NotificationRepository);
+    notificationRepository = app.get(NotificationRepository);
   });
 
   it('should be definded', () => {
@@ -39,10 +40,8 @@ describe('PriceNotificationService (unit)', () => {
       };
       const userIdx = 1;
 
-      priceNotificationRepository.getUserNotificationsCount.mockResolvedValue(
-        10,
-      );
-      priceNotificationRepository.getUserNotifications.mockResolvedValue([]);
+      notificationRepository.getUserNotificationsCount.mockResolvedValue(10);
+      notificationRepository.getUserNotifications.mockResolvedValue([]);
 
       // Act
       const act = async () =>
@@ -61,10 +60,8 @@ describe('PriceNotificationService (unit)', () => {
       };
       const userIdx = 1;
 
-      priceNotificationRepository.getUserNotificationsCount.mockResolvedValue(
-        9,
-      );
-      priceNotificationRepository.getUserNotifications.mockResolvedValue([
+      notificationRepository.getUserNotificationsCount.mockResolvedValue(9);
+      notificationRepository.getUserNotifications.mockResolvedValue([
         {
           notificationData: {
             baseCurrency: 'USD',
@@ -91,10 +88,8 @@ describe('PriceNotificationService (unit)', () => {
       };
       const userIdx = 1;
 
-      priceNotificationRepository.getUserNotificationsCount.mockResolvedValue(
-        0,
-      );
-      priceNotificationRepository.getUserNotifications.mockResolvedValue([
+      notificationRepository.getUserNotificationsCount.mockResolvedValue(0);
+      notificationRepository.getUserNotifications.mockResolvedValue([
         {
           notificationData: {
             baseCurrency: 'USD',
@@ -105,15 +100,15 @@ describe('PriceNotificationService (unit)', () => {
       ] as NotificationEntity<'TARGET_PRICE'>[]);
 
       const getUserNotiSpy = jest.spyOn(
-        priceNotificationRepository,
+        notificationRepository,
         'getUserNotifications',
       );
       const getNotiCountSpy = jest.spyOn(
-        priceNotificationRepository,
+        notificationRepository,
         'getUserNotificationsCount',
       );
       const createNotispy = jest.spyOn(
-        priceNotificationRepository,
+        notificationRepository,
         'createNotification',
       );
 
@@ -135,6 +130,66 @@ describe('PriceNotificationService (unit)', () => {
         notificationType: 'TARGET_PRICE',
         userIdx: 1,
       });
+    });
+  });
+
+  describe('getPriceNotificationList', () => {
+    it('should return notification list based on offset', async () => {
+      // Arragne
+      const input = new SelectPriceNotificationReqDto();
+      input.page = 3;
+      input.limit = 10;
+      const userIdx = 1;
+
+      notificationRepository.getNotificationsWithOffset.mockResolvedValue([
+        { idx: 'abc123', createdAt: new Date() },
+        { idx: 'abc123', createdAt: new Date() },
+      ] as NotificationEntity[]);
+
+      // Act
+      const repospy = jest.spyOn(
+        notificationRepository,
+        'getNotificationsWithOffset',
+      );
+      const result = await notificationService.getPriceNotificationList(
+        input,
+        userIdx,
+      );
+
+      // Assert
+      expect(repospy).toHaveBeenCalledWith({
+        userIdx: 1,
+        limit: 10,
+        offset: 20,
+        notificationType: 'TARGET_PRICE',
+      });
+
+      expect(result.items).toHaveLength(2);
+      expect(result.limit).toBe(10);
+      expect(result.offset).toBe(20);
+    });
+
+    it('should return empty array when db has no data ', async () => {
+      // Arrange
+      const input = new SelectPriceNotificationReqDto();
+      input.page = 4;
+      input.limit = 10;
+      const userIdx = 1;
+
+      notificationRepository.getNotificationsWithOffset.mockResolvedValue(
+        [] as NotificationEntity[],
+      );
+
+      // Act
+      const result = await notificationService.getPriceNotificationList(
+        input,
+        userIdx,
+      );
+
+      // Assert
+      expect(result.items).toHaveLength(0);
+      expect(result.limit).toBe(10);
+      expect(result.offset).toBe(30);
     });
   });
 });
