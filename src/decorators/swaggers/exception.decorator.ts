@@ -1,5 +1,5 @@
 import { HttpException, Type, applyDecorators } from '@nestjs/common';
-import { ApiResponse, getSchemaPath } from '@nestjs/swagger';
+import { ApiExtraModels, ApiResponse, getSchemaPath } from '@nestjs/swagger';
 import { ExamplesObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { IExceptionResponse } from 'src/interfaces/response.interface';
 
@@ -73,6 +73,7 @@ export const ApiExceptions = <T extends HttpException>(
   });
 
   return applyDecorators(
+    ApiExtraModels(ExceptionResponse),
     ...Array.from(examplesMap.entries()).map(([statusCode, examples]) =>
       ApiResponse({
         status: statusCode,
