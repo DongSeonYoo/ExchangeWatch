@@ -24,7 +24,7 @@ export class BaseOffsetDto {
   @IsOptional()
   limit: number = 10;
 
-  getSkip(): number {
+  getOffset(): number {
     return (this.page - 1) * this.limit;
   }
 }
