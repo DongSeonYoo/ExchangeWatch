@@ -43,7 +43,7 @@ beforeEach(async () => {
   await testPrismaConn.exchangeRates.deleteMany();
   await testPrismaConn.exchangeRatesDaily.deleteMany();
   await testPrismaConn.news.deleteMany();
-  await testPrismaConn.priceNotifications.deleteMany();
+  await testPrismaConn.notifications.deleteMany();
   await testPrismaConn.notificationsHistories.deleteMany();
   await testPrismaConn.users.deleteMany();
 
@@ -75,7 +75,7 @@ afterEach(async () => {
   await testPrismaConn.exchangeRates.deleteMany();
   await testPrismaConn.exchangeRatesDaily.deleteMany();
   await testPrismaConn.news.deleteMany();
-  await testPrismaConn.priceNotifications.deleteMany();
+  await testPrismaConn.notifications.deleteMany();
   await testPrismaConn.notificationsHistories.deleteMany();
   await testPrismaConn.users.deleteMany();
 });
