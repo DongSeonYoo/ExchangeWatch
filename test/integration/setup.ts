@@ -2,8 +2,12 @@ import 'reflect-metadata';
 import { PrismaClient } from '@prisma/client';
 import { testConfiguration } from './config/test.config';
 import Redis from 'ioredis';
+import { UserEntity } from '../../src/apis/users/entities/user.entity';
 
 // Create database(postgres) connection for test
+
+export let testUser1: UserEntity;
+export let testUser2: UserEntity;
 
 export const testPrismaConn = new PrismaClient({
   datasources: {
@@ -65,6 +69,13 @@ beforeEach(async () => {
       ],
     })
     .then(() => {
+      testUser1 = {
+        idx: 1,
+      } as any;
+      testUser2 = {
+        idx: 2,
+      } as any;
+
       console.log('created test user!!');
     });
 });

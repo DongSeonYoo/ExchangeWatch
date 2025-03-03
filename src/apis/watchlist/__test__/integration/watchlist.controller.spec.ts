@@ -7,12 +7,11 @@ import {
   AddWatchlistItemReqDto,
   AddWatchlistItemResDto,
 } from '../../dto/add-watchlist-item.dto';
-import { UserEntity } from '../../../users/entities/user.entity';
 import { TEST_PRISMA_TOKEN } from '../../../../../test/integration/modules/test-prisma.module';
 import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 import { AlreadyRegisterPairException } from '../../exceptions/already-register-pair.excepetion';
 import { MaximumPairException } from '../../exceptions/maximum-pair.exception';
-import { mockUserForInt } from '../../../../../test/integration/setup';
+import { testUser1 } from '../../../../../test/integration/setup';
 
 describe('WatchListController Integration', () => {
   let watchListController: WatchlistController;
@@ -42,18 +41,18 @@ describe('WatchListController Integration', () => {
       // Act
       const result = await watchListController.registerInterestCurrency(
         reqDto,
-        mockUserForInt,
+        testUser1,
       );
 
       // Assert
       const addedItem = await prisma.watchlist.findFirst({
         where: {
-          userIdx: mockUserForInt.idx,
+          userIdx: testUser1.idx,
           ...reqDto,
         },
       });
       expect(result).toBeInstanceOf(AddWatchlistItemResDto);
-      expect(addedItem?.userIdx).toBe(mockUserForInt.idx);
+      expect(addedItem?.userIdx).toBe(testUser1.idx);
       expect(addedItem?.baseCurrency).toBe(reqDto.baseCurrency);
       expect(addedItem?.currencyCode).toBe(reqDto.currencyCode);
     });
@@ -68,17 +67,14 @@ describe('WatchListController Integration', () => {
         data: {
           baseCurrency: 'EUR',
           currencyCode: 'KRW',
-          userIdx: mockUserForInt.idx,
+          userIdx: testUser1.idx,
           displayOrder: 0,
         },
       });
 
       // Act
       const result = async () =>
-        await watchListController.registerInterestCurrency(
-          reqDto,
-          mockUserForInt,
-        );
+        await watchListController.registerInterestCurrency(reqDto, testUser1);
 
       // Assert
       await expect(result).rejects.toThrow(AlreadyRegisterPairException);
@@ -95,61 +91,61 @@ describe('WatchListController Integration', () => {
           {
             baseCurrency: 'JPY',
             currencyCode: 'USD',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 0,
           },
           {
             baseCurrency: 'USD',
             currencyCode: 'JPY',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 1,
           },
           {
             baseCurrency: 'KRW',
             currencyCode: 'EUR',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 2,
           },
           {
             baseCurrency: 'JPY',
             currencyCode: 'KRW',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 3,
           },
           {
             baseCurrency: 'KRW',
             currencyCode: 'JPY',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 4,
           },
           {
             baseCurrency: 'USD',
             currencyCode: 'KRW',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 5,
           },
           {
             baseCurrency: 'KRW',
             currencyCode: 'USD',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 6,
           },
           {
             baseCurrency: 'EUR',
             currencyCode: 'USD',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 7,
           },
           {
             baseCurrency: 'USD',
             currencyCode: 'EUR',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 8,
           },
           {
             baseCurrency: 'AUD',
             currencyCode: 'KRW',
-            userIdx: mockUserForInt.idx,
+            userIdx: testUser1.idx,
             displayOrder: 9,
           },
         ],
@@ -157,10 +153,7 @@ describe('WatchListController Integration', () => {
 
       // Act
       const act = async () =>
-        await watchListController.registerInterestCurrency(
-          reqDto,
-          mockUserForInt,
-        );
+        await watchListController.registerInterestCurrency(reqDto, testUser1);
 
       // Assert
       await expect(act).rejects.toThrow(MaximumPairException);
