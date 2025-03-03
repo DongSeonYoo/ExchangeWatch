@@ -5,7 +5,6 @@ import { NotificationEntity } from './entities/notification.entity';
 import { MaxNotificationCountException } from './exceptions/max-notification-count.exception';
 import { AlreadyRegisterNotificationException } from './exceptions/arleady-notification.exception';
 import { SelectPriceNotificationReqDto } from './dtos/price-notification/select-price-notification.dto';
-import { off } from 'process';
 
 @Injectable()
 export class NotificationService {
@@ -26,7 +25,7 @@ export class NotificationService {
 
     const result = await this.priceNotificationRepository.getUserNotifications({
       notificationType: 'TARGET_PRICE',
-      notificationData: input,
+      userIdx: userIdx,
     });
     const check = result.some((notification) => {
       const data = notification.notificationData;

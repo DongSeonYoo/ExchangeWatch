@@ -23,10 +23,11 @@ export class NotificationRepository {
 
   async getUserNotifications<T extends NotificationType>(
     input: INotification.ISelect<T>,
-  ) {
+  ): Promise<NotificationEntity<T>[]> {
     const targetPrice = await this.txHost.tx.notifications.findMany({
       where: {
         notificationType: input.notificationType,
+        userIdx: input.userIdx,
       },
     });
 
