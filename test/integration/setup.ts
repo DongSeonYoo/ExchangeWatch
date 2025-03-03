@@ -2,10 +2,8 @@ import 'reflect-metadata';
 import { PrismaClient } from '@prisma/client';
 import { testConfiguration } from './config/test.config';
 import Redis from 'ioredis';
-import { UserEntity } from '../../src/apis/users/entities/user.entity';
 
 // Create database(postgres) connection for test
-export let mockUserForInt: UserEntity;
 
 export const testPrismaConn = new PrismaClient({
   datasources: {
@@ -48,20 +46,23 @@ beforeEach(async () => {
   await testPrismaConn.users.deleteMany();
 
   await testPrismaConn.users
-    .create({
-      data: {
-        idx: 1,
-        email: 'test@email.com',
-        name: 'testuser',
-        socialId: '',
-        socialProvider: 'TEST',
-      },
-    })
-    .then((createUser) => {
-      mockUserForInt = {
-        ...createUser,
-        socialProvider: 'TEST' as any,
-      };
+    .createMany({
+      data: [
+        {
+          idx: 1,
+          email: 'test@email.com',
+          name: 'testuser',
+          socialId: '',
+          socialProvider: 'TEST',
+        },
+        {
+          idx: 2,
+          email: 'test2@email.com',
+          name: 'test2user',
+          socialId: '',
+          socialProvider: 'TEST2',
+        },
+      ],
     })
     .then(() => {
       console.log('created test user!!');
