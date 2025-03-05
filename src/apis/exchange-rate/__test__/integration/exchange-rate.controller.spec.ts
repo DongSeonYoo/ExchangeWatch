@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExchangeRateController } from '../../exchange-rate.controller';
 import { ExchangeRateService } from '../../exchange-rate.service';
 import { ExternalAPIModule } from '../../../../externals/external.module';
-import { ExchangeRateRepository } from '../../repositores/exchange-rate.repository';
 import { ExchangeRateDailyRepository } from '../../repositores/exchange-rate-daily.repository';
 import { DateUtilService } from '../../../../utils/date-util/date-util.service';
 import { RedisService } from '../../../../redis/redis.service';
@@ -18,7 +17,6 @@ describe('ExchangeRateController', () => {
       controllers: [ExchangeRateController],
       providers: [
         ExchangeRateService,
-        ExchangeRateRepository,
         ExchangeRateDailyRepository,
         DateUtilService,
         RedisService,
