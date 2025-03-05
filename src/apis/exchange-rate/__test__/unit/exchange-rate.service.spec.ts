@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExchangeRateService } from '../../exchange-rate.service';
-import { ExchangeRateRepository } from '../../repositores/exchange-rate.repository';
 import { ExchangeRateDailyRepository } from '../../repositores/exchange-rate-daily.repository';
 import { DateUtilService } from '../../../../utils/date-util/date-util.service';
-import { IExchangeRateAPIService } from '../../../../externals/exchange-rates/interfaces/exchange-rate-api-service';
+import {
+  IFluctuationExchangeRateApi,
+  ILatestExchangeRateApi,
+} from '../../../../externals/exchange-rates/interfaces/exchange-rate-rest-api.interface';
 import { MockProxy, mock } from 'jest-mock-extended';
 import { supportCurrencyList } from '../../constants/support-currency.constant';
 import typia from 'typia';
@@ -11,13 +13,14 @@ import { CurrentExchangeRateResDto } from '../../dto/exchange-rates.dto';
 import { CurrentExchangeHistoryReqDto } from '../../dto/exchange-rates-history.dto';
 import { ExchangeRatesDailyEntity } from '../../entitites/exchange-rate-daily.entity';
 import { IExchangeRateDaily } from '../../interface/exchange-rate-daily.interface';
-import { ExchangeRatesEntity } from '../../entitites/exchange-rate.entity';
 import { ExchangeRateFixture } from '../fixture/exchange-rate-fixture';
 
 describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;
-  let exchangeRateExternalService: MockProxy<IExchangeRateAPIService>;
-  let exchangeRateRepository: MockProxy<ExchangeRateRepository>;
+
+  let latestExchangeRateApi: MockProxy<ILatestExchangeRateApi>;
+  let fluctuationExchangeRateApi: MockProxy<IFluctuationExchangeRateApi>;
+
   let exchangeRateDailyRepository: MockProxy<ExchangeRateDailyRepository>;
   let dateUtilService: MockProxy<DateUtilService>;
 
@@ -26,16 +29,16 @@ describe('ExchangeRateService', () => {
       providers: [
         ExchangeRateService,
         {
-          provide: ExchangeRateRepository,
-          useValue: mock<ExchangeRateRepository>(),
+          provide: 'LATEST_EXCHANGE_RATE_API',
+          useValue: mock<ILatestExchangeRateApi>(),
+        },
+        {
+          provide: 'FLUCTUATION_RATE_API',
+          useValue: mock<IFluctuationExchangeRateApi>(),
         },
         {
           provide: ExchangeRateDailyRepository,
           useValue: mock<ExchangeRateDailyRepository>(),
-        },
-        {
-          provide: 'EXCHANGE_RATE_API',
-          useValue: mock<IExchangeRateAPIService>(),
         },
         {
           provide: DateUtilService,
@@ -45,14 +48,17 @@ describe('ExchangeRateService', () => {
     }).compile();
 
     exchangeRateService = module.get(ExchangeRateService);
-    exchangeRateExternalService = module.get('EXCHANGE_RATE_API');
-    exchangeRateRepository = module.get(ExchangeRateRepository);
+
+    latestExchangeRateApi = module.get('LATEST_EXCHANGE_RATE_API');
+    fluctuationExchangeRateApi = module.get('FLUCTUATION_RATE_API');
+
     exchangeRateDailyRepository = module.get(ExchangeRateDailyRepository);
     dateUtilService = module.get(DateUtilService);
   });
 
   it('should definded externalAPIService', () => {
-    expect(exchangeRateExternalService).toBeDefined();
+    expect(latestExchangeRateApi).toBeDefined();
+    expect(fluctuationExchangeRateApi).toBeDefined();
   });
 
   describe('getCurrencyExchangeRates', () => {
@@ -77,21 +83,25 @@ describe('ExchangeRateService', () => {
               endRate: 1,
               change: 1,
               changePct: 1,
+              highRate: 2,
+              lowRate: 1.5,
             },
             KRW: {
               startRate: 1,
               endRate: 1,
               change: 1,
               changePct: 1,
+              highRate: 2,
+              lowRate: 1.5,
             },
           },
         );
 
       dateUtilService.getYesterday.mockReturnValue(yesterday);
-      exchangeRateExternalService.getLatestRates.mockResolvedValue(
+      latestExchangeRateApi.getLatestRates.mockResolvedValue(
         latestRatesResponse,
       );
-      exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+      fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
         fluctuationRatesRepsonse,
       );
 
@@ -136,15 +146,15 @@ describe('ExchangeRateService', () => {
               endRate: 1,
               change: 1,
               changePct: 1,
+              highRate: 2,
+              lowRate: 1.5,
             },
           ]),
         ),
       );
 
-      exchangeRateExternalService.getLatestRates.mockResolvedValue(
-        mockLatestRates,
-      );
-      exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+      latestExchangeRateApi.getLatestRates.mockResolvedValue(mockLatestRates);
+      fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
         mockFluctuation,
       );
 
@@ -206,7 +216,7 @@ describe('ExchangeRateService', () => {
           );
 
         // mocking as many as missDates
-        exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+        fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
           ExchangeRateFixture.createFluctuationRates(
             'EUR',
             new Date('2025-01-01'),
@@ -217,13 +227,15 @@ describe('ExchangeRateService', () => {
                 endRate: 1,
                 change: 1,
                 changePct: 1,
+                highRate: 2,
+                lowRate: 1.5,
               },
             },
           ),
         );
 
-        const externalAPISpy = jest.spyOn(
-          exchangeRateExternalService,
+        const fluctuationAPIspy = jest.spyOn(
+          fluctuationExchangeRateApi,
           'getFluctuationData',
         );
         const dailyRepositorySpy = jest.spyOn(
@@ -235,7 +247,14 @@ describe('ExchangeRateService', () => {
         const act = await exchangeRateService.getHistoricalRates(input);
 
         // Assert
-        expect(externalAPISpy).toHaveBeenCalledTimes(missingDates.length);
+        expect(fluctuationAPIspy).toHaveBeenCalledTimes(1);
+        expect(fluctuationAPIspy).toHaveBeenCalledWith(
+          missingDates[0],
+          missingDates[missingDates.length - 1],
+          'EUR',
+          ['KRW'],
+        );
+
         expect(act).toHaveLength(requestedDates.length);
         expect(() =>
           typia.assert<IExchangeRateDaily.ICreate[]>(
@@ -285,7 +304,7 @@ describe('ExchangeRateService', () => {
           );
 
         // mocking as many as missDates
-        exchangeRateExternalService.getFluctuationData.mockResolvedValue(
+        fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
           ExchangeRateFixture.createFluctuationRates(
             'EUR',
             new Date('2025-01-01'),
@@ -296,6 +315,8 @@ describe('ExchangeRateService', () => {
                 endRate: 1,
                 change: 1,
                 changePct: 1,
+                highRate: 2,
+                lowRate: 1.5,
               },
             },
           ),
@@ -346,7 +367,7 @@ describe('ExchangeRateService', () => {
         );
 
         const externalAPISpy = jest.spyOn(
-          exchangeRateExternalService,
+          fluctuationExchangeRateApi,
           'getFluctuationData',
         );
 
@@ -361,113 +382,14 @@ describe('ExchangeRateService', () => {
   });
 
   describe('calculateDailyRates', () => {
-    describe('should save daily rates into exchangeRateDaily from exchangeRate', () => {
-      it('should save 930 rates when DB has complete data', async () => {
-        // Arragne
-        const startDate = new Date('2025-01-01');
-        const endDate = new Date('2025-01-02');
+    describe('should save daily rates into exchangeRateDaily from external API', () => {
+      it.todo('should call external api 31 times (supportCurrencies count) ');
 
-        exchangeRateRepository.findRatesByDate.mockResolvedValue([
-          {
-            rate: 1,
-            createdAt: startDate,
-          },
-          {
-            rate: 1,
-            createdAt: endDate,
-          },
-        ] as ExchangeRatesEntity[]);
+      it.todo(
+        'should convert the recived data according to the entity structure',
+      );
 
-        const externalAPIspy = jest.spyOn(
-          exchangeRateExternalService,
-          'getFluctuationData',
-        );
-        const saveDailyRateSpy = jest.spyOn(
-          exchangeRateDailyRepository,
-          'saveDailyRates',
-        );
-        const generateOHLCSpy = jest.spyOn(
-          exchangeRateService,
-          'generateOHLCdata',
-        );
-
-        // Act
-        const act = await exchangeRateService.calculateDailyRates(
-          startDate,
-          endDate,
-        );
-
-        // Assert
-        expect(externalAPIspy).not.toHaveBeenCalled();
-        expect(saveDailyRateSpy).toHaveBeenCalledWith(expect.any(Array));
-
-        expect(generateOHLCSpy).toHaveBeenCalledTimes(930);
-        expect(() => {
-          typia.assert<IExchangeRateDaily.ICreate[]>(
-            saveDailyRateSpy.mock.calls[0][0],
-          );
-        }).not.toThrow();
-      });
-
-      it('should call external API when db has no data', async () => {
-        // Arrage
-        const startDate = new Date('2025-01-01');
-        const endDate = new Date('2025-01-02');
-
-        exchangeRateRepository.findRatesByDate.mockResolvedValue(
-          [] as ExchangeRatesEntity[],
-        );
-
-        exchangeRateExternalService.getFluctuationData.mockResolvedValue(
-          ExchangeRateFixture.createFluctuationRates(
-            'EUR',
-            new Date('2025-01-01'),
-            new Date('2025-01-02'),
-            Object.fromEntries(
-              supportCurrencyList.map((currency) => [
-                currency,
-                {
-                  startRate: 1,
-                  endRate: 1,
-                  change: 1,
-                  changePct: 1,
-                },
-              ]),
-            ),
-          ),
-        );
-
-        const externalAPIspy = jest.spyOn(
-          exchangeRateExternalService,
-          'getFluctuationData',
-        );
-        const saveDailyRateSpy = jest.spyOn(
-          exchangeRateDailyRepository,
-          'saveDailyRates',
-        );
-        const generateOHLCSpy = jest.spyOn(
-          exchangeRateService,
-          'generateOHLCdata',
-        );
-
-        // Assert
-        const act = await exchangeRateService.calculateDailyRates(
-          startDate,
-          endDate,
-        );
-
-        // Act
-        expect(externalAPIspy).toHaveBeenCalledTimes(930);
-        expect(generateOHLCSpy).toHaveBeenCalledTimes(930);
-        expect(saveDailyRateSpy.mock.calls[0][0]).toHaveLength(930);
-        expect(() =>
-          typia.assert<IExchangeRateDaily.ICreate[]>(
-            saveDailyRateSpy.mock.calls[0][0],
-          ),
-        ).not.toThrow();
-      });
-
-      it.todo('should call external API when DB data is below the threshold');
+      it.todo('should save recived data into the DB');
     });
   });
 
