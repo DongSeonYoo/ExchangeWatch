@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { SocialProvider } from '../../../constant';
+import { SocialProvider } from '../constant/auth.contant';
 
 export class SocialAuthException extends HttpException {
   constructor(

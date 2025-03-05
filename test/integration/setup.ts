@@ -2,10 +2,13 @@ import 'reflect-metadata';
 import { PrismaClient } from '@prisma/client';
 import { testConfiguration } from './config/test.config';
 import Redis from 'ioredis';
-import Module from 'module';
-import { DynamicModule } from '@nestjs/common';
+import { UserEntity } from '../../src/apis/users/entities/user.entity';
 
 // Create database(postgres) connection for test
+
+export let testUser1: UserEntity;
+export let testUser2: UserEntity;
+
 export const testPrismaConn = new PrismaClient({
   datasources: {
     db: {
@@ -22,6 +25,7 @@ export const testRedisConn = new Redis({
 
 // Connect test-database
 beforeAll(() => {
+  // const testUser
   testPrismaConn.$connect().then(() => {
     console.log('@@Connected postgres for test@@');
   });
@@ -41,19 +45,50 @@ beforeEach(async () => {
   await testPrismaConn.exchangeRates.deleteMany();
   await testPrismaConn.exchangeRatesDaily.deleteMany();
   await testPrismaConn.news.deleteMany();
-  await testPrismaConn.price_notifications.deleteMany();
-  await testPrismaConn.price_notifications.deleteMany();
+  await testPrismaConn.notifications.deleteMany();
+  await testPrismaConn.notificationsHistories.deleteMany();
   await testPrismaConn.users.deleteMany();
+
+  await testPrismaConn.users
+    .createMany({
+      data: [
+        {
+          idx: 1,
+          email: 'test@email.com',
+          name: 'testuser',
+          socialId: '',
+          socialProvider: 'TEST',
+        },
+        {
+          idx: 2,
+          email: 'test2@email.com',
+          name: 'test2user',
+          socialId: '',
+          socialProvider: 'TEST2',
+        },
+      ],
+    })
+    .then(() => {
+      testUser1 = {
+        idx: 1,
+      } as any;
+      testUser2 = {
+        idx: 2,
+      } as any;
+
+      console.log('created test user!!');
+    });
 });
 
 afterEach(async () => {
   jest.clearAllMocks();
+
   await testPrismaConn.watchlist.deleteMany();
   await testPrismaConn.exchangeRates.deleteMany();
   await testPrismaConn.exchangeRatesDaily.deleteMany();
   await testPrismaConn.news.deleteMany();
-  await testPrismaConn.price_notifications.deleteMany();
-  await testPrismaConn.price_notifications.deleteMany();
+  await testPrismaConn.notifications.deleteMany();
+  await testPrismaConn.notificationsHistories.deleteMany();
   await testPrismaConn.users.deleteMany();
 });
 
@@ -65,9 +100,9 @@ afterEach(async () => {
 // Close connection
 afterAll(async () => {
   await testPrismaConn.$disconnect().then(() => {
-    console.log('!disconnected postgres for test!');
+    console.log('!!disconnected postgres for test!!');
   });
   await testRedisConn.quit().then(() => {
-    console.log('!disconnected redis for test');
+    console.log('!!disconnected redis for test!!');
   });
 });

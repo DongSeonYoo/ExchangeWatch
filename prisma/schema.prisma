@@ -26,58 +26,24 @@ model ExchangeRates {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model News {
-  idx          Int       @id @default(autoincrement())
-  title        String    @db.VarChar
-  content      String
-  summary      String
-  currencyCode String    @map("currency_code") @db.Char(3)
-  sourceUrl    String    @map("source_url")
-  publishedAt  DateTime  @map("published_at") @db.Timestamptz(6)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
-
-  @@unique([sourceUrl, deletedAt], map: "news_source_url_unique")
-  @@index([currencyCode], map: "idx_news_currency")
-  @@index([publishedAt(sort: Desc)], map: "idx_news_published")
-  @@map("news")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Users {
-  idx                     Int                       @id @default(autoincrement())
-  email                   String                    @db.VarChar(255)
-  name                    String                    @db.VarChar
-  password                String?                   @db.Char(60)
-  socialProvider          String                    @map("social_provider") @db.VarChar(20)
-  socialId                String                    @map("social_id") @db.VarChar(100)
-  createdAt               DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime                  @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt               DateTime?                 @map("deleted_at") @db.Timestamptz(6)
-  notifications_histories notifications_histories[]
-  price_notifications     price_notifications[]
-  watchlist               Watchlist[]
+  idx                    Int                      @id @default(autoincrement())
+  email                  String                   @db.VarChar(255)
+  name                   String                   @db.VarChar
+  password               String?                  @db.Char(60)
+  socialProvider         String                   @map("social_provider") @db.VarChar(20)
+  socialId               String                   @map("social_id") @db.VarChar(100)
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt              DateTime?                @map("deleted_at") @db.Timestamptz(6)
+  Notifications          Notifications[]
+  NotificationsHistories NotificationsHistories[]
+  UserDevices            UserDevices[]
+  Watchlist              Watchlist[]
 
   @@unique([email, deletedAt], map: "users_email_unique")
   @@unique([socialProvider, socialId, deletedAt], map: "users_social_unique")
   @@map("users")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model Watchlist {
-  idx          Int      @id @default(autoincrement())
-  userIdx      Int      @map("user_idx")
-  currencyCode String   @map("currency_code") @db.Char(3)
-  baseCurrency String   @map("base_currency") @db.Char(3)
-  displayOrder Int      @map("display_order")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
-  users        Users    @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_watchlist")
-
-  @@unique([userIdx, currencyCode, baseCurrency], map: "watchlist_unique_currency")
-  @@index([userIdx, displayOrder], map: "idx_watchlist_user")
-  @@map("watchlist")
 }
 
 model ExchangeRatesDaily {
@@ -98,32 +64,79 @@ model ExchangeRatesDaily {
   @@map("exchange_rates_daily")
 }
 
-model notifications_histories {
-  idx                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_idx            Int
-  notifications_idx   String              @db.Uuid
-  rate                Decimal             @db.Decimal(20, 8)
-  triggered_at        DateTime            @default(now()) @db.Timestamptz(6)
-  price_notifications price_notifications @relation(fields: [notifications_idx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_price_notifications_to_notifications_histories")
-  users               Users               @relation(fields: [user_idx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_notifications_histories")
+model Notifications {
+  idx                    String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userIdx                Int                      @map("user_idx")
+  notificationType       String                   @map("notification_type") @db.VarChar(50)
+  isActive               Boolean                  @default(true) @map("is_active")
+  notificationData       Json                     @map("notification_data")
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt              DateTime?                @map("deleted_at") @db.Timestamptz(6)
+  Users                  Users                    @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction)
+  NotificationsHistories NotificationsHistories[]
 
-  @@index([notifications_idx], map: "idx_notifications_histories_notifications")
+  @@map("notifications")
 }
 
-model price_notifications {
-  idx                     String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_idx                Int
-  base_currency           String                    @db.Char(3)
-  currency_code           String                    @db.Char(3)
-  target_price            Decimal                   @db.Decimal(20, 8)
-  condition               String                    @db.VarChar
-  is_triggered            Boolean                   @default(false)
-  is_repeatable           Boolean                   @default(false)
-  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime                  @default(now()) @db.Timestamptz(6)
-  deleted_at              DateTime?                 @db.Timestamptz(6)
-  notifications_histories notifications_histories[]
-  users                   Users                     @relation(fields: [user_idx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_price_notifications")
+model UserDevices {
+  idx         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userIdx     Int      @map("user_idx")
+  deviceToken String   @map("device_token")
+  deviceType  String   @map("device_type") @db.VarChar(10)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  Users       Users    @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([user_idx, currency_code, base_currency], map: "idx_price_notifications_user")
+  @@unique([userIdx, deviceToken])
+  @@map("user_devices")
+}
+
+model News {
+  idx          Int       @id @default(autoincrement())
+  title        String    @db.VarChar
+  content      String
+  summary      String
+  currencyCode String    @map("currency_code") @db.Char(3)
+  sourceUrl    String    @map("source_url")
+  publishedAt  DateTime  @map("published_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@unique([sourceUrl, deletedAt], map: "news_source_url_unique")
+  @@index([currencyCode], map: "idx_news_currency")
+  @@index([publishedAt(sort: Desc)], map: "idx_news_published")
+  @@map("news")
+}
+
+model NotificationsHistories {
+  notificationIdx String        @map("notification_idx") @db.Uuid
+  userIdx         Int           @map("user_idx")
+  triggeredAt     DateTime      @default(now()) @map("triggered_at") @db.Timestamptz(6)
+  sentToUser      Boolean       @default(false) @map("sent_to_user")
+  sentToFcm       Boolean       @default(false) @map("sent_to_fcm")
+  fcmResponse     String?       @map("fcm_response")
+  details         Json
+  Notifications   Notifications @relation(fields: [notificationIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction)
+  Users           Users         @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([notificationIdx, userIdx, triggeredAt])
+  @@index([notificationIdx], map: "idx_notifications_histories_notifications")
+  @@map("notifications_histories")
+}
+
+model Watchlist {
+  idx          Int      @id @default(autoincrement())
+  userIdx      Int      @map("user_idx")
+  currencyCode String   @map("currency_code") @db.Char(3)
+  baseCurrency String   @map("base_currency") @db.Char(3)
+  displayOrder Int      @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  Users        Users    @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_watchlist")
+
+  @@unique([userIdx, currencyCode, baseCurrency], map: "watchlist_unique_currency")
+  @@index([userIdx, displayOrder], map: "idx_watchlist_user")
+  @@map("watchlist")
 }

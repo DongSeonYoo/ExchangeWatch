@@ -1,10 +1,5 @@
 import { HttpException, Type, applyDecorators } from '@nestjs/common';
-import {
-  ApiExtraModels,
-  ApiProperty,
-  ApiResponse,
-  getSchemaPath,
-} from '@nestjs/swagger';
+import { ApiExtraModels, ApiResponse, getSchemaPath } from '@nestjs/swagger';
 import { ExamplesObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { IExceptionResponse } from 'src/interfaces/response.interface';
 

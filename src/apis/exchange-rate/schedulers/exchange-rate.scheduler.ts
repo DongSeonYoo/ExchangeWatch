@@ -48,8 +48,8 @@ export class ExchageRateScheduler {
   @Cron('5 0 * * *') // UTC 00:05
   async aggregateDailyRates() {
     try {
-      const yesterday = this.dateUtilService.getYesterday(today);
       const today = new Date();
+      const yesterday = this.dateUtilService.getYesterday(today);
 
       await this.exchangeRateService.calculateDailyRates(yesterday, today);
 

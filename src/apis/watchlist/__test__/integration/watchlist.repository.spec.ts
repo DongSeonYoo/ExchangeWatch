@@ -2,18 +2,12 @@ import { Test } from '@nestjs/testing';
 import { WatchListRepository } from '../../watchlist.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { IWatchList } from '../../interfaces/watch-list.interface';
-import { UserEntity } from '../../../users/entities/user.entity';
 import { WatchlistEntity } from '../../entitites/watch-list.entity';
 import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 
 describe('WatchListRepository Integration', () => {
   let watchListRepository: WatchListRepository;
   let prisma: PrismaService;
-  const mockUser = {
-    idx: 1,
-    email: 'dongseon@google.com',
-    name: 'dongseon',
-  } as UserEntity;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -25,21 +19,11 @@ describe('WatchListRepository Integration', () => {
     prisma = module.get(PrismaService);
   });
 
-  beforeEach(async () => {
-    await prisma.users.create({
-      data: {
-        ...mockUser,
-        socialProvider: '',
-        socialId: '',
-      },
-    });
-  });
-
   describe('createInterestPair', () => {
     it('create pair', async () => {
       // Arrange
       const input: IWatchList.ICreate = {
-        userIdx: mockUser.idx,
+        userIdx: 1,
         baseCurrency: 'EUR',
         currencyCode: 'KRW',
         displayOrder: 0,
@@ -50,7 +34,7 @@ describe('WatchListRepository Integration', () => {
       const result = await watchListRepository.createInterestPair(input);
       const saved = await prisma.watchlist.findFirst({
         where: {
-          userIdx: mockUser.idx,
+          userIdx: 1,
           baseCurrency: input.baseCurrency,
           currencyCode: input.currencyCode,
         },
