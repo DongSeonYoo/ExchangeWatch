@@ -5,7 +5,6 @@ import { RedisModule } from '../../redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ExchageRateScheduler } from './schedulers/exchange-rate.scheduler';
 import { IsAfterConstraint } from '../../decorators/validations/is-after.validator';
-import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 import { ExternalAPIModule } from '../../externals/external.module';
 import { IsBeforeThanConstraint } from '../../decorators/validations/is-before-than.validator';
@@ -17,7 +16,6 @@ import { ExchangeRateGateWay } from './exchange-rate.gateway';
   providers: [
     ExchangeRateService,
     ExchageRateScheduler,
-    ExchangeRateRepository,
     ExchangeRateDailyRepository,
     IsAfterConstraint,
     IsBeforeThanConstraint,

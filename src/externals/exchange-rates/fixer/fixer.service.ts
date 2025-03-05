@@ -4,11 +4,11 @@ import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { AppConfig } from '../../../configs/config.type';
 import { IExchangeRateExternalAPI } from '../interfaces/exchange-rate-api.interface';
-import { IExchangeRateAPIService } from '../interfaces/exchange-rate-api-service';
+import { IExchangeRateRestAPIService } from '../interfaces/exchange-rate-rest-api.interface';
 import { IFixerAPIResponse } from './interfaces/fixer-response.interface';
 
 @Injectable()
-export class FixerService implements IExchangeRateAPIService {
+export class FixerService implements IExchangeRateRestAPIService {
   private readonly fixerApiKey: string;
   private readonly fixerApiUrl: string;
   private readonly logger = new Logger(FixerService.name);

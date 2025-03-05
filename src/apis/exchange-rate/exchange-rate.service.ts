@@ -1,6 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ExchangeRateRepository } from './repositores/exchange-rate.repository';
-import { IExchangeRate } from './interface/exchange-rate.interface';
 import {
   CurrentExchangeRateReqDto,
   CurrentExchangeRateResDto,
@@ -10,7 +8,10 @@ import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.r
 import { CurrentExchangeHistoryReqDto } from './dto/exchange-rates-history.dto';
 import { DateUtilService } from '../../utils/date-util/date-util.service';
 import { getCurrencyNameInKorean } from './mapper/symbol-kr.mapper';
-import { IExchangeRateAPIService } from '../../externals/exchange-rates/interfaces/exchange-rate-api-service';
+import {
+  IFluctuationExchangeRateApi,
+  ILatestExchangeRateApi,
+} from '../../externals/exchange-rates/interfaces/exchange-rate-rest-api.interface';
 import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
 import { IExchangeRateExternalAPI } from '../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { supportCurrencyList } from './constants/support-currency.constant';
@@ -23,9 +24,10 @@ export class ExchangeRateService {
   private readonly supportCurrencyList = supportCurrencyList;
 
   constructor(
-    @Inject('EXCHANGE_RATE_API')
-    private readonly exchangeRateExternalAPI: IExchangeRateAPIService,
-    private readonly exchangeRateRepository: ExchangeRateRepository,
+    @Inject('LATEST_EXCHANGE_RATE_API')
+    private readonly latestExchangeRateAPI: ILatestExchangeRateApi,
+    @Inject('FLUCTUATION_RATE_API')
+    private readonly fluctuationRateAPI: IFluctuationExchangeRateApi,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
     private readonly dateUtilService: DateUtilService,
   ) {}
@@ -38,11 +40,11 @@ export class ExchangeRateService {
       : this.supportCurrencyList;
     const today = new Date();
     const [latestRates, fluctuationRates] = await Promise.all([
-      this.exchangeRateExternalAPI.getLatestRates(
+      this.latestExchangeRateAPI.getLatestRates(
         input.baseCurrency,
         targetCodes,
       ),
-      this.exchangeRateExternalAPI.getFluctuationData(
+      this.fluctuationRateAPI.getFluctuationData(
         this.dateUtilService.getYesterday(today),
         today,
         input.baseCurrency,
@@ -90,43 +92,34 @@ export class ExchangeRateService {
 
     // if DB has complete data, return directly
     if (!missingDates.length) return historicalData;
-
     // call external API
-    const apiResponse = await Promise.all(
-      missingDates.map((date) =>
-        this.exchangeRateExternalAPI.getFluctuationData(
-          this.dateUtilService.getYesterday(date),
-          date,
-          input.baseCurrency,
-          [input.currencyCode],
-        ),
-      ),
+    const startDate = missingDates[0];
+    const endDate = missingDates[missingDates.length - 1];
+
+    const apiResponse = await this.fluctuationRateAPI.getFluctuationData(
+      startDate,
+      endDate,
+      input.baseCurrency,
+      [input.currencyCode],
     );
 
-    // convert missingdata for insertable to database
-    const dailyRecord: IExchangeRateDaily.ICreate[] = apiResponse.map(
-      (res, i) => {
-        const fluctuation = res.rates[input.currencyCode];
-        const ohlc = this.generateOHLCdata(
-          fluctuation.startRate,
-          fluctuation.endRate,
-          fluctuation.changePct,
-        );
+    const dailyRecord: IExchangeRateDaily.ICreate[] = missingDates.map(
+      (date) => {
+        const fluctuations = apiResponse.rates[input.currencyCode];
 
         return {
           baseCurrency: input.baseCurrency,
           currencyCode: input.currencyCode,
-          ohlcDate: missingDates[i],
-          openRate: ohlc.openRate,
-          highRate: ohlc.highRate,
-          lowRate: ohlc.lowRate,
-          closeRate: ohlc.closeRate,
-          avgRate: (ohlc.openRate + ohlc.closeRate) / 2,
+          ohlcDate: date,
+          openRate: fluctuations.startRate,
+          highRate: fluctuations.highRate,
+          lowRate: fluctuations.lowRate,
+          closeRate: fluctuations.endRate,
+          avgRate: (fluctuations.startRate + fluctuations.endRate) / 2,
           rateCount: 1,
         };
       },
     );
-
     await this.exchangeRateDailyRepository.saveDailyRates(dailyRecord);
 
     return await this.exchangeRateDailyRepository.findDailyRates(input);
@@ -137,77 +130,43 @@ export class ExchangeRateService {
    *
    * - find previous day's data from exchange_rates
    * - generate OHLC data and insert into exchange_rates_daily
-   * - if data are missing, sppply data by calling an external API
    */
   async calculateDailyRates(startDate: Date, endDate: Date) {
-    const currencyPairs = this.generateCurrencyPairs(this.supportCurrencyList);
+    const ohlcRecords = (
+      await Promise.all(
+        supportCurrencyList.map(async (baseCurrency) => {
+          const apiResponse = await this.fluctuationRateAPI.getFluctuationData(
+            startDate,
+            endDate,
+            baseCurrency,
+            this.supportCurrencyList.filter(
+              (targetCode) => targetCode !== baseCurrency,
+            ),
+          );
 
-    const ohlcRecords = await Promise.all(
-      currencyPairs.map(
-        async ({
-          baseCurrency,
-          currencyCode,
-        }): Promise<IExchangeRateDaily.ICreate> => {
-          const exchangeRates =
-            await this.exchangeRateRepository.findRatesByDate({
+          return Object.entries(apiResponse.rates).map(
+            ([currencyCode, data]) => ({
               baseCurrency,
               currencyCode,
-              startDate: startDate,
-              endDate: endDate,
-            });
-
-          let ohlcData: {
-            openRate: number;
-            highRate: number;
-            lowRate: number;
-            closeRate: number;
-          };
-
-          // db에 존재하는 rate 신뢰성 체크 (하루동안 수집된 회수)
-          // 만약 수집량이 기준치 이하이다  -> 외부 api call -> OHLC 생성
-          // 수집량이 기준치 이상이다 -> db의 값 사용 -> OHLC 생성
-          if (exchangeRates.length > 0) {
-            ohlcData = this.generateOHLCdata(
-              exchangeRates[0].rate,
-              exchangeRates[exchangeRates.length - 1].rate,
-            );
-          } else {
-            const apiResponse =
-              await this.exchangeRateExternalAPI.getFluctuationData(
-                startDate,
-                endDate,
-                baseCurrency,
-                [currencyCode],
-              );
-
-            const fluctuation = apiResponse.rates[currencyCode];
-            ohlcData = this.generateOHLCdata(
-              fluctuation.startRate,
-              fluctuation.endRate,
-              fluctuation.changePct,
-            );
-          }
-
-          return {
-            baseCurrency,
-            currencyCode,
-            ohlcDate: startDate,
-            openRate: ohlcData.openRate,
-            closeRate: ohlcData.closeRate,
-            highRate: ohlcData.highRate,
-            lowRate: ohlcData.lowRate,
-            avgRate: (ohlcData.openRate + ohlcData.closeRate) / 2,
-            rateCount: exchangeRates.length || 1,
-          };
-        },
-      ),
-    );
+              ohlcDate: startDate,
+              openRate: data.startRate,
+              highRate: data.highRate,
+              lowRate: data.lowRate,
+              closeRate: data.endRate,
+              avgRate: (data.startRate + data.endRate) / 2,
+              rateCount: 1, // COINAPI에서 OHLC 데이터를 제공하므로 1로 고정
+            }),
+          );
+        }),
+      )
+    ).flat();
 
     await this.exchangeRateDailyRepository.saveDailyRates(ohlcRecords);
+    // additional logging
   }
 
   generateCurrencyPairs(
-    currencyList: string[],
+    currencyList: string[] = this.supportCurrencyList,
   ): { baseCurrency: string; currencyCode: string }[] {
     return currencyList.flatMap((baseCurrency) =>
       currencyList
@@ -243,39 +202,6 @@ export class ExchangeRateService {
       },
       {},
     );
-  }
-
-  /**
-   * Generate OHLC data by fluctuation data from the external API
-   *
-   * @param ohlcDate (Date)
-   */
-  generateOHLCdata(
-    startRate: number,
-    endRate: number,
-    changePct?: number,
-  ): {
-    openRate: number;
-    highRate: number;
-    lowRate: number;
-    closeRate: number;
-  } {
-    const highRate =
-      changePct !== undefined
-        ? startRate * (1 + changePct / 100)
-        : Math.max(startRate, endRate);
-
-    const lowRate =
-      changePct !== undefined
-        ? startRate * (1 - changePct / 100)
-        : Math.min(startRate, endRate);
-
-    return {
-      openRate: startRate,
-      highRate,
-      lowRate,
-      closeRate: endRate,
-    };
   }
 
   /**

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IExchangeRateAPIService } from '../interfaces/exchange-rate-api-service';
+import { IExchangeRateRestAPIService } from '../interfaces/exchange-rate-rest-api.interface';
 import { IExchangeRateExternalAPI } from '../interfaces/exchange-rate-api.interface';
 import {
   mockFluctuationRatesFn,
@@ -8,7 +8,7 @@ import {
 } from '../fixer/mock/fixer-mock.constant';
 
 @Injectable()
-export class MockFixerService implements IExchangeRateAPIService {
+export class MockFixerService implements IExchangeRateRestAPIService {
   async getLatestRates(
     baseCurrency?: string,
     currencyCodes?: string[],

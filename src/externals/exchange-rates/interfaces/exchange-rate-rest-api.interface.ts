@@ -1,6 +1,6 @@
 import { IExchangeRateExternalAPI } from './exchange-rate-api.interface';
 
-export interface IExchangeRateAPIService {
+export interface IExchangeRateRestAPIService {
   // Latest Exchange Rate Data
   getLatestRates(
     baseCurrency?: string,
@@ -30,3 +30,18 @@ export interface IExchangeRateAPIService {
     currencyCodes?: string[],
   ): Promise<IExchangeRateExternalAPI.ITimeSeriesResponse>;
 }
+
+export type ILatestExchangeRateApi = Pick<
+  IExchangeRateRestAPIService,
+  'getLatestRates'
+>;
+
+export type IHistoricalExchangeRateApi = Pick<
+  IExchangeRateRestAPIService,
+  'getHistoricalRates'
+>;
+
+export type IFluctuationExchangeRateApi = Pick<
+  IExchangeRateRestAPIService,
+  'getFluctuationData'
+>;
