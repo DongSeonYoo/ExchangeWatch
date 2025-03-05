@@ -42,7 +42,6 @@ beforeAll(() => {
 // Remove tables test independency
 beforeEach(async () => {
   await testPrismaConn.watchlist.deleteMany();
-  await testPrismaConn.exchangeRates.deleteMany();
   await testPrismaConn.exchangeRatesDaily.deleteMany();
   await testPrismaConn.news.deleteMany();
   await testPrismaConn.notifications.deleteMany();
@@ -84,7 +83,6 @@ afterEach(async () => {
   jest.clearAllMocks();
 
   await testPrismaConn.watchlist.deleteMany();
-  await testPrismaConn.exchangeRates.deleteMany();
   await testPrismaConn.exchangeRatesDaily.deleteMany();
   await testPrismaConn.news.deleteMany();
   await testPrismaConn.notifications.deleteMany();

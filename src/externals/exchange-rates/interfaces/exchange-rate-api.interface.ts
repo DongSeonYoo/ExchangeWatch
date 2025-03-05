@@ -32,6 +32,8 @@ export namespace IExchangeRateExternalAPI {
   export type TFluctuation = {
     startRate: number;
     endRate: number;
+    highRate: number;
+    lowRate: number;
     change: number;
     changePct: number;
   };

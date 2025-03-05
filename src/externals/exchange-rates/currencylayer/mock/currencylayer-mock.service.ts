@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IExchangeRateAPIService } from '../../interfaces/exchange-rate-api-service';
+import { IExchangeRateRestAPIService } from '../../interfaces/exchange-rate-rest-api.interface';
 import { IExchangeRateExternalAPI } from '../../interfaces/exchange-rate-api.interface';
 import * as mockCurrencyLayer from '../constant/currencylayer.constant';
 import { CurrencyLayerService } from '../currencylayer.service';
@@ -7,7 +7,7 @@ import { CurrencyLayerService } from '../currencylayer.service';
 @Injectable()
 export class MockCurrencyLayerService
   extends CurrencyLayerService
-  implements IExchangeRateAPIService
+  implements IExchangeRateRestAPIService
 {
   async getLatestRates(
     baseCurrency: string,
