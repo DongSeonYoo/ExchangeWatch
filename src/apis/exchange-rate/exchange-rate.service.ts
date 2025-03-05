@@ -217,33 +217,6 @@ export class ExchangeRateService {
   }
 
   /**
-   * Performing tasks following caching strategies
-   *
-   * 1. get latest-rate from external API
-   * 2. convert recived data to record for RDB
-   * 3. update cache
-   */
-  async saveLatestRates(): Promise<void> {
-    const rates = await this.exchangeRateExternalAPI.getLatestRates();
-
-    this.supportCurrencyList.map(async (majorBaseCurrency) => {
-      const res: IExchangeRate.ICreate[] = Object.entries(rates.rates).map(
-        ([currencyCode, rate]) => ({
-          baseCurrency: majorBaseCurrency,
-          currencyCode,
-          rate,
-        }),
-      );
-
-      // TODO: distribute transaction & analize excution time
-      await Promise.all([
-        this.exchangeRateRepository.saveLatestRates(res),
-        // this.cacheService.setLatestRateCache(res),
-      ]);
-    });
-  }
-
-  /**
    * Gernerate daily data by combining recent currency-rate and fluctuation rate
    * @param latestRates (Record<string, number>)
    * @param fluctuationRates (Record<string, TFluctuation>)
