@@ -14,18 +14,6 @@ datasource db {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model ExchangeRates {
-  idx          Int      @id @default(autoincrement())
-  baseCurrency String   @map("base_currency") @db.Char(3)
-  currencyCode String   @map("currency_code") @db.Char(3)
-  rate         Decimal  @db.Decimal(20, 8)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  @@index([currencyCode, baseCurrency, createdAt(sort: Desc)], map: "idx_exchange_rates_latest")
-  @@map("exchange_rates")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Users {
   idx                    Int                      @id @default(autoincrement())
   email                  String                   @db.VarChar(255)
