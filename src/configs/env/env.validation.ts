@@ -29,6 +29,10 @@ export const envValidationSchema = Joi.object({
   CURRENCY_LAYER_API_KEY: Joi.string().required(),
   CURRENCY_LAYER_BASE_URL: Joi.string().uri().required(),
 
+  // CoinAPI API,
+  COIN_API_API_KEY: Joi.string().required(),
+  COIN_API_BASE_URL: Joi.string().required(),
+
   // AWS (Optional)
   AWS_BUCKET_NAME: Joi.string().allow('').optional(),
   AWS_ACCESS_KEY_ID: Joi.string().allow('').optional(),
