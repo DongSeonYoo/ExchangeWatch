@@ -75,6 +75,7 @@ export class CurrentExchangeRateResDto {
     additionalProperties: { $ref: getSchemaPath(RateDetail) },
     example: {
       KRW: {
+        name: '대한민국 원',
         rate: 1529.4,
         dayChange: 15.3,
         dayChangePercent: 1.2,
@@ -82,6 +83,7 @@ export class CurrentExchangeRateResDto {
         low24h: 1529.4,
       },
       JPY: {
+        name: '일본 엔',
         rate: 163.07,
         dayChange: 15.3,
         dayChangePercent: 1.2,
@@ -89,6 +91,7 @@ export class CurrentExchangeRateResDto {
         low24h: 163.07,
       },
       USD: {
+        name: '미국 달러',
         rate: 1.04,
         dayChange: 15.3,
         dayChangePercent: 1.2,
