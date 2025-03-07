@@ -34,6 +34,7 @@ export const appConfig = registerAs('', () => ({
   coinApi: {
     apiKey: process.env.COIN_API_API_KEY,
     baseUrl: process.env.COIN_API_BASE_URL,
+    websocketUrl: process.env.COIN_API_WEBSOCKET_URL,
   },
 
   aws: {
