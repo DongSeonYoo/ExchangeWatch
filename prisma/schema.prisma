@@ -128,3 +128,14 @@ model Watchlist {
   @@index([userIdx, displayOrder], map: "idx_watchlist_user")
   @@map("watchlist")
 }
+
+model ExchangeRatesRaw {
+  idx           Int      @id @default(autoincrement())
+  baseCurrency String   @db.Char(3) @map("base_currency")
+  currencyCode String   @db.Char(3) @map("currency_code")
+  rate          Decimal  @db.Decimal(20, 8)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  @@index([currencyCode, baseCurrency, createdAt(sort: Desc)], map: "idx_exchange_rates_latest")
+	@@map("exchange_rates_raw")
+}
