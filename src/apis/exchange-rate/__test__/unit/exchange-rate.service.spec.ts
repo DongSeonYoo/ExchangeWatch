@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ExchangeRateService } from '../../exchange-rate.service';
 import { ExchangeRateDailyRepository } from '../../repositores/exchange-rate-daily.repository';
 import { DateUtilService } from '../../../../utils/date-util/date-util.service';
 import {
@@ -14,6 +13,9 @@ import { CurrentExchangeHistoryReqDto } from '../../dto/exchange-rates-history.d
 import { ExchangeRatesDailyEntity } from '../../entitites/exchange-rate-daily.entity';
 import { IExchangeRateDaily } from '../../interface/exchange-rate-daily.interface';
 import { ExchangeRateFixture } from '../fixture/exchange-rate-fixture';
+import { ExchangeRateService } from '../../exchange-rate.service';
+import { ExchangeRateRawRepository } from '../../repositores/exchange-rate-raw.repository';
+import { ExchangeRateRedisService } from '../../../../redis/services/exchange-rate-redis.service';
 
 describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;
@@ -23,6 +25,8 @@ describe('ExchangeRateService', () => {
 
   let exchangeRateDailyRepository: MockProxy<ExchangeRateDailyRepository>;
   let dateUtilService: MockProxy<DateUtilService>;
+  let exchangeRateRawRepository: MockProxy<ExchangeRateRawRepository>;
+  let exchangeRateRedisService: MockProxy<ExchangeRateRedisService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -44,6 +48,14 @@ describe('ExchangeRateService', () => {
           provide: DateUtilService,
           useValue: mock<DateUtilService>(),
         },
+        {
+          provide: ExchangeRateRawRepository,
+          useValue: mock<ExchangeRateRawRepository>(),
+        },
+        {
+          provide: ExchangeRateRedisService,
+          useValue: mock<ExchangeRateRedisService>(),
+        },
       ],
     }).compile();
 
@@ -53,6 +65,8 @@ describe('ExchangeRateService', () => {
     fluctuationExchangeRateApi = module.get('FLUCTUATION_RATE_API');
 
     exchangeRateDailyRepository = module.get(ExchangeRateDailyRepository);
+    exchangeRateRawRepository = module.get(ExchangeRateRawRepository);
+    exchangeRateRedisService = module.get(ExchangeRateRedisService);
     dateUtilService = module.get(DateUtilService);
   });
 
@@ -432,6 +446,215 @@ describe('ExchangeRateService', () => {
 
       // Assert
       expect(act).toEqual([]);
+    });
+  });
+
+  describe('processLatestRate', () => {
+    // recived latest data from socket
+    const baseCurrency = 'EUR';
+    const currencyCode = 'KRW';
+    const latestRate = 1580;
+    const latestTimestamp = new Date().getTime();
+
+    it('기본적으로는 소켓으로 받은 데이터를 모두 rdb에 삽입한다', async () => {
+      // Arrange
+      exchangeRateRedisService.getLatestRate.mockResolvedValue([] as any);
+
+      // Act
+      const createRateInRawSpy = jest.spyOn(
+        exchangeRateRawRepository,
+        'createExchangeRate',
+      );
+      await exchangeRateService.processLatestRateFromWS(
+        baseCurrency,
+        currencyCode,
+        latestRate,
+        latestTimestamp,
+      );
+
+      // Assert
+      expect(createRateInRawSpy).toHaveBeenCalledWith({
+        baseCurrency,
+        currencyCode,
+        rate: latestRate,
+      });
+    });
+
+    describe('해당 통화쌍에 대한 hash데이터가 존재할 경우', () => {
+      describe('날짜가 바뀌지 않은 경우 (같은 일(day)의 소켓 데이터인 경우)', () => {
+        beforeEach(() => {
+          dateUtilService.isBefore.mockReturnValue(false);
+        });
+
+        it('변동률이 일정 치 이상이라면 변동된 값으로 redis에 업데이트한다', async () => {
+          // Arrange
+          const lastStoredRateData = 1579;
+          const lastStoredTimeStamp = latestTimestamp - 5000;
+
+          exchangeRateRedisService.getLatestRate.mockResolvedValue([
+            `${lastStoredRateData}`,
+            `${lastStoredTimeStamp}`,
+          ]);
+          const setRateInRedisSpy = jest.spyOn(
+            exchangeRateRedisService,
+            'setLatestRate',
+          );
+
+          // Act
+          await exchangeRateService.processLatestRateFromWS(
+            baseCurrency,
+            currencyCode,
+            latestRate,
+            latestTimestamp,
+          );
+
+          // Assert
+          expect(setRateInRedisSpy).toHaveBeenCalledWith(
+            baseCurrency,
+            currencyCode,
+            {
+              change: expect.any(Number),
+              changePct: expect.any(Number),
+              rate: latestRate,
+              timestamp: latestTimestamp,
+            },
+          );
+        });
+
+        it('변동률이 존재하지 않는다면 업데이트 하지 않는다', async () => {
+          // Arrange
+          const lastStoredRateData = 1580; // 이전 가격과 동일
+          const lastStoredTimeStamp = latestTimestamp - 5000;
+
+          exchangeRateRedisService.getLatestRate.mockResolvedValue([
+            `${lastStoredRateData}`,
+            `${lastStoredTimeStamp}`,
+          ]);
+          const setRateInRedisSpy = jest.spyOn(
+            exchangeRateRedisService,
+            'setLatestRate',
+          );
+
+          // Act
+          await exchangeRateService.processLatestRateFromWS(
+            baseCurrency,
+            currencyCode,
+            latestRate,
+            latestTimestamp,
+          );
+
+          // Assert
+          expect(setRateInRedisSpy).not.toHaveBeenCalled();
+        });
+
+        it('변동률이 아주 미비할 시 업데이트 하지 않는다', async () => {
+          // Arrange
+          const lastStoredRateData = 1579.99873; // 변동률 미비
+          const lastStoredTimeStamp = latestTimestamp - 5000;
+
+          exchangeRateRedisService.getLatestRate.mockResolvedValue([
+            `${lastStoredRateData}`,
+            `${lastStoredTimeStamp}`,
+          ]);
+          const setRateInRedisSpy = jest.spyOn(
+            exchangeRateRedisService,
+            'setLatestRate',
+          );
+
+          // Act
+          await exchangeRateService.processLatestRateFromWS(
+            baseCurrency,
+            currencyCode,
+            latestRate,
+            latestTimestamp,
+          );
+
+          // Assert
+          expect(setRateInRedisSpy).not.toHaveBeenCalled();
+        });
+
+        it.todo('로그 잘 찍히는지');
+      });
+
+      describe('날짜가 바뀐 경우 (다음 날짜(day)의 latestRate인 경우)', () => {
+        beforeEach(() => {
+          dateUtilService.isBefore.mockReturnValue(true);
+        });
+
+        it('변동률을 0으로 초기화하고, 이전 데이터를 그대로 업데이트한다', async () => {
+          // Arrange
+          const setRateInRedisSpy = jest.spyOn(
+            exchangeRateRedisService,
+            'setLatestRate',
+          );
+          const lastStoredRateData = 1580;
+          const lastStoredTimeStamp = latestTimestamp - 5000;
+
+          exchangeRateRedisService.getLatestRate.mockResolvedValue([
+            `${lastStoredRateData}`,
+            `${lastStoredTimeStamp}`,
+          ]);
+
+          // Act
+          await exchangeRateService.processLatestRateFromWS(
+            baseCurrency,
+            currencyCode,
+            latestRate,
+            latestTimestamp,
+          );
+
+          // Assert
+          expect(setRateInRedisSpy).toHaveBeenCalledWith(
+            baseCurrency,
+            currencyCode,
+            {
+              change: 0,
+              changePct: 0,
+              rate: lastStoredRateData,
+              timestamp: latestTimestamp,
+            },
+          );
+        });
+
+        it.todo('로그 잘 찍히는지');
+      });
+    });
+
+    describe('해당 통화쌍에 대한 hash데이터가 존재하지 않을 경우', () => {
+      it('redis에 해당 통화쌍에 대한 초기 레코드(hash)를 삽입한다', async () => {
+        // Arrange
+        const lastStoredRateData = null;
+        const lastStoredTimeStamp = null;
+
+        exchangeRateRedisService.getLatestRate.mockResolvedValue([
+          lastStoredRateData,
+          lastStoredTimeStamp,
+        ]);
+        const setRateInRedisSpy = jest.spyOn(
+          exchangeRateRedisService,
+          'setLatestRate',
+        );
+
+        // Act
+        await exchangeRateService.processLatestRateFromWS(
+          baseCurrency,
+          currencyCode,
+          latestRate,
+          latestTimestamp,
+        );
+
+        // Assert
+        expect(setRateInRedisSpy).toHaveBeenCalledWith(
+          baseCurrency,
+          currencyCode,
+          {
+            change: 0,
+            changePct: 0,
+            rate: latestRate,
+            timestamp: latestTimestamp,
+          },
+        );
+      });
     });
   });
 });
