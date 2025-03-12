@@ -232,8 +232,10 @@ export class ExchangeRateService {
       await this.exchangeRateRedisService.getLatestRate(
         baseCurrency,
         currencyCode,
-        'rate',
-        'timestamp',
+        {
+          rate: true,
+          timestamp: true,
+        },
       );
 
     // 기존 데이터가 없을 시 초기 레코드 삽입 (redis-hash)
