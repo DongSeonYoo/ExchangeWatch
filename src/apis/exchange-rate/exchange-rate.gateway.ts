@@ -56,31 +56,5 @@ export class ExchangeRateGateWay
     @MessageBody() dto: ExchangeRateSubscribeDto,
     @ConnectedSocket() client: Socket,
     @LoggedInUser() user: UserEntity,
-  ) {
-    this.exchangeRateService.subscribe(client.id, dto);
-
-    client.emit('subscribed', {
-      success: true,
-      pair: `${dto.baseCurrency}/${dto.currencyCode}`,
-    });
-  }
-
-  /**
-   * @event unsubscribe
-   */
-  @SubscribeMessage('unsubscribe')
-  handleUnubscribe(
-    @MessageBody() dto: ExchangeRateSubscribeDto,
-    @ConnectedSocket() client: Socket,
-  ) {
-    this.exchangeRateService.unsubscribe(client.id, dto);
-  }
-
-  /**
-   * @event unsubscribeAll
-   */
-  @SubscribeMessage('unsubscribeAll')
-  handleUnsubscribeAll(@ConnectedSocket() client: Socket) {
-    this.exchangeRateService.unsubscribeAll(client.id);
-  }
+  ) {}
 }
