@@ -12,14 +12,14 @@ import {
   IFluctuationExchangeRateApi,
   ILatestExchangeRateApi,
 } from '../../externals/exchange-rates/interfaces/exchange-rate-rest-api.interface';
-import { ExchangeRateSubscribeDto } from './dto/exchange-rates-subscribe.dto';
 import { IExchangeRateExternalAPI } from '../../externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { supportCurrencyList } from './constants/support-currency.constant';
 import { IExchangeRateDaily } from './interface/exchange-rate-daily.interface';
+import { ExchangeRateRedisService } from '../../redis/services/exchange-rate-redis.service';
+import { ExchangeRateRawRepository } from './repositores/exchange-rate-raw.repository';
 
 @Injectable()
 export class ExchangeRateService {
-  private subscriptions = new Map<string, Set<string>>();
   private readonly logger = new Logger(ExchangeRateService.name);
   private readonly supportCurrencyList = supportCurrencyList;
 
@@ -30,6 +30,8 @@ export class ExchangeRateService {
     private readonly fluctuationRateAPI: IFluctuationExchangeRateApi,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
     private readonly dateUtilService: DateUtilService,
+    private readonly exchangeRateRawRepository: ExchangeRateRawRepository,
+    private readonly exchangeRateRedisService: ExchangeRateRedisService,
   ) {}
 
   async getCurrencyExchangeRates(
@@ -205,45 +207,96 @@ export class ExchangeRateService {
   }
 
   /**
-   * create subscribe about currency pair
-   * if subscribe is empty, create new subscribe and insert new client(subscriber)
+   * 기본적으로 소켓에서 받은 데이터는 exchnage_rate_raw에 저장.
+   *
+   * 1. 날짜가 바뀌었는지 체크 (dateUtilService.isBefore)
+   *  1-1. 날짜가 안바뀌었다면
+   *  - 소켓으로 받은 rate와 가장 최신에 저장된 rate와 비교
+   *  - 변동률이 일정 치 이상이다 -> latest-rates(redis) 업데이트
+   *  - 변동률이 그대로다 -> skip
+   *
+   *  1-2. 날짜가 바뀌었다면
+   *  - 해당 key의 가장 최신 데이터를 가져옴 (이전 날짜의 종가)
+   *  - 해당 종가를 기준으로 change, chang_pct 초기화하고 latest-rates(redis) 업데이트.
+   *
+   * 2. exchange_rate_raw에 삽입
    */
-  subscribe(clientId: string, dto: ExchangeRateSubscribeDto) {
-    const pair = `${dto.baseCurrency}/${dto.currencyCode}`;
-    if (!this.subscriptions.has(pair)) {
-      this.subscriptions.set(pair, new Set());
-    }
-    this.subscriptions.get(pair)?.add(clientId);
+  async processLatestRateFromWS(
+    baseCurrency: string,
+    currencyCode: string,
+    latestRate: number,
+    latestTimestamp: number,
+  ): Promise<void> {
+    // redis에서 latest-rate의 hash(rate, timestamp) 조회
+    const [storedRate, storedTimestamp] =
+      await this.exchangeRateRedisService.getLatestRate(
+        baseCurrency,
+        currencyCode,
+        {
+          rate: true,
+          timestamp: true,
+        },
+      );
 
-    this.logger.verbose(`${clientId} has subscribe to ${pair}`);
-  }
+    // 기존 데이터가 없을 시 초기 레코드 삽입 (redis-hash)
+    if (!storedRate || !storedTimestamp) {
+      await this.exchangeRateRedisService.setLatestRate(
+        baseCurrency,
+        currencyCode,
+        {
+          change: 0,
+          changePct: 0,
+          rate: latestRate,
+          timestamp: latestTimestamp,
+        },
+      );
+    } else {
+      const prevRate = parseFloat(storedRate);
+      const storedDate = new Date(storedTimestamp);
+      const latestDate = new Date(latestTimestamp);
+      const isNewDay = this.dateUtilService.isBefore(latestDate, storedDate);
 
-  /**
-   * remove subscription if dosen't have any client(subscriber)
-   */
-  unsubscribe(clientId: string, dto: ExchangeRateSubscribeDto) {
-    const pair = `${dto.baseCurrency}/${dto.currencyCode}`;
-    if (this.subscriptions.has(pair)) {
-      this.subscriptions.get(pair)?.delete(clientId);
-      if (this.subscriptions.get(pair)?.size === 0) {
-        this.subscriptions.delete(pair);
+      // 날짜가 바뀐 경우 변동률 0으로 초기화
+      if (isNewDay) {
+        await this.exchangeRateRedisService.setLatestRate(
+          baseCurrency,
+          currencyCode,
+          {
+            change: 0,
+            changePct: 0,
+            rate: latestRate,
+            timestamp: latestTimestamp,
+          },
+        );
+        this.logger.debug('날짜가 바뀌어서 변동률을 초기화했습니다');
+      } else {
+        // 같은 거래일인 경우, 변동률 계산
+        const change = latestRate - prevRate;
+        const changePct = (change / prevRate) * 100;
+
+        // 변동률이 일정치 이상이면 업데이트
+        // @TODO 변화감지량 상수화
+        if (Math.abs(changePct) > 0.01) {
+          await this.exchangeRateRedisService.setLatestRate(
+            baseCurrency,
+            currencyCode,
+            {
+              change: change,
+              changePct: changePct,
+              rate: latestRate,
+              timestamp: latestTimestamp,
+            },
+          );
+          this.logger.debug('가격이 변동되었으니 업데이트칩니다');
+        }
       }
     }
 
-    this.logger.verbose(`${clientId} has unsubscribed from ${pair}`);
-  }
-
-  /**
-   * remove all subscription of client
-   */
-  unsubscribeAll(clientId: string) {
-    this.subscriptions.forEach((clients, pair) => {
-      clients.delete(clientId);
-      if (clients.size === 0) {
-        this.subscriptions.delete(pair);
-      }
+    // 레코드 삽입 (default-postgres)
+    return await this.exchangeRateRawRepository.createExchangeRate({
+      baseCurrency: baseCurrency,
+      currencyCode: currencyCode,
+      rate: latestRate,
     });
-
-    this.logger.verbose(`All subscriptions removed for client ${clientId}`);
   }
 }

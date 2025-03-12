@@ -52,4 +52,8 @@ export class DateUtilService {
 
     return dates;
   }
+
+  isBefore(targetDate1: Date, targetDate2: Date): boolean {
+    return dayjs(targetDate1).isBefore(targetDate2);
+  }
 }

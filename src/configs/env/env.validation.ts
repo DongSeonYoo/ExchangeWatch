@@ -32,6 +32,7 @@ export const envValidationSchema = Joi.object({
   // CoinAPI API,
   COIN_API_API_KEY: Joi.string().required(),
   COIN_API_BASE_URL: Joi.string().required(),
+  COIN_API_WEBSOCKET_URL: Joi.string().required(),
 
   // AWS (Optional)
   AWS_BUCKET_NAME: Joi.string().allow('').optional(),

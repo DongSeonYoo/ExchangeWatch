@@ -1,9 +1,12 @@
-import { Injectable, Inject, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Inject, OnModuleDestroy, Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
-  constructor(@Inject('REDIS_CLIENT') private readonly redisClient: Redis) {}
+  private readonly logger = new Logger(RedisService.name);
+  protected subscriber: Redis;
+
+  constructor(@Inject('REDIS_CLIENT') protected readonly redisClient: Redis) {}
 
   onModuleDestroy() {
     this.redisClient.quit();
@@ -15,7 +18,6 @@ export class RedisService implements OnModuleDestroy {
    * @returns
    */
   async get<T>(key: string): Promise<T | null> {
-    this.redisClient.get;
     const rawData = await this.redisClient.get(key);
     return rawData ? (JSON.parse(rawData) as T) : null;
   }
@@ -42,23 +44,27 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
-   * Redis batch set 'pipeline'
-   * @param commands
+   * subscribe redis channel
+   * @param channel name of channel
    */
-  async batchSet(commands: [string, string, 'EX', number][]) {
-    const pipeline = this.redisClient.pipeline();
-    commands.forEach((cmd) => pipeline.set(...cmd));
-    await pipeline.exec();
+  async subscribe(channel: string): Promise<void> {
+    await this.subscriber.subscribe(channel);
   }
 
   /**
-   * Redis batch set 'pipeline'
-   * @param keys
+   * unsubscribe redis channel
+   * @param channel name of channel
    */
-  async batchGet<T>(keys: string[]): Promise<T[]> {
-    const rawData = await this.redisClient.mget(keys);
-    return rawData
-      .map((data) => (data ? JSON.parse(data) : null))
-      .filter((item) => item !== null) as T[];
+  async unsubscribe(channel: string): Promise<void> {
+    await this.subscriber.unsubscribe(channel);
+  }
+
+  /**
+   * publish channel message
+   * @param channel
+   * @param message
+   */
+  async publish(channel: string, message: string): Promise<number> {
+    return await this.redisClient.publish(channel, message);
   }
 }
