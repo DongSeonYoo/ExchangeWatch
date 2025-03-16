@@ -135,4 +135,89 @@ describe('ExchangeRateRedisService (Integration)', () => {
       expect(timestamp).toEqual(String(new Date('2001-06-12').getTime()));
     });
   });
+
+  describe('updateLatestRate', () => {
+    it('should update only the specified hash fields', async () => {
+      // Arrange
+      const baseCurrency = 'EUR';
+      const currencyCode = 'KRW';
+
+      await exchangeRateRedisService.setLatestRate(baseCurrency, currencyCode, {
+        change: -300,
+        changePct: -20,
+        rate: 1200,
+        timestamp: new Date('2001-06-12').getTime(),
+      });
+
+      // Act
+      await exchangeRateRedisService.updateLatestRate(
+        baseCurrency,
+        currencyCode,
+        // partial updates
+        {
+          change: -100,
+          changePct: -10,
+        },
+      );
+
+      const [change, changePct, rate, timestamp] =
+        await exchangeRateRedisService.getLatestRate(
+          baseCurrency,
+          currencyCode,
+          {
+            change: true,
+            changePct: true,
+            rate: true,
+            timestamp: true,
+          },
+        );
+
+      // Assert
+      expect(change).toBe('-100');
+      expect(changePct).toBe('-10');
+      expect(rate).toEqual('1200');
+      expect(timestamp).toEqual(String(new Date('2001-06-12').getTime()));
+    });
+
+    it('should not update when the field is not specified', async () => {
+      // Arrange
+      const baseCurrency = 'EUR';
+      const currencyCode = 'KRW';
+
+      await exchangeRateRedisService.setLatestRate(baseCurrency, currencyCode, {
+        change: -300,
+        changePct: -20,
+        rate: 1200,
+        timestamp: new Date('2001-06-12').getTime(),
+      });
+
+      // Act
+      await exchangeRateRedisService.updateLatestRate(
+        baseCurrency,
+        currencyCode,
+        // partial updates
+        {
+          change: -100,
+        },
+      );
+
+      const [change, changePct, rate, timestamp] =
+        await exchangeRateRedisService.getLatestRate(
+          baseCurrency,
+          currencyCode,
+          {
+            change: true,
+            changePct: true,
+            rate: true,
+            timestamp: true,
+          },
+        );
+
+      // Assert
+      expect(change).toBe('-100');
+      expect(changePct).toBe('-20');
+      expect(rate).toEqual('1200');
+      expect(timestamp).toEqual(String(new Date('2001-06-12').getTime()));
+    });
+  });
 });
