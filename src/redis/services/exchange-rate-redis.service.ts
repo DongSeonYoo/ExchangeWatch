@@ -25,4 +25,14 @@ export class ExchangeRateRedisService extends RedisService {
 
     await this.redisClient.hset(key, fields);
   }
+
+  async updateLatestRate(
+    baseCurrency: string,
+    currencyCode: string,
+    fields: Partial<IRedisSchema.ILatestRateHash>,
+  ): Promise<void> {
+    const key = `${this.latestRateKey}:${baseCurrency}/${currencyCode}`;
+
+    await this.redisClient.hset(key, fields);
+  }
 }
