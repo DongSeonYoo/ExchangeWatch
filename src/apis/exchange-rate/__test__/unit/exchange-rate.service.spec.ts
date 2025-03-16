@@ -212,7 +212,7 @@ describe('ExchangeRateService', () => {
         const existingDates = [new Date('2025-01-01'), new Date('2025-01-02')];
         const missingDates = [new Date('2025-01-03'), new Date('2025-01-04')];
 
-        dateUtilService.getDatesBeetween.mockReturnValue(requestedDates);
+        dateUtilService.getDatesBetween.mockReturnValue(requestedDates);
         missingDates.forEach((date) => {
           dateUtilService.getYesterday.mockReturnValueOnce(date);
         });
@@ -299,7 +299,7 @@ describe('ExchangeRateService', () => {
           new Date('2025-01-04'),
         ];
 
-        dateUtilService.getDatesBeetween.mockReturnValue(requestedDates);
+        dateUtilService.getDatesBetween.mockReturnValue(requestedDates);
 
         missingDates.forEach((date) => {
           dateUtilService.getYesterday.mockReturnValueOnce(date);
@@ -372,7 +372,7 @@ describe('ExchangeRateService', () => {
         const existingDates = requestedDates;
         const missingDates: Date[] = [];
 
-        dateUtilService.getDatesBeetween.mockReturnValue(requestedDates);
+        dateUtilService.getDatesBetween.mockReturnValue(requestedDates);
 
         exchangeRateDailyRepository.findDailyRates.mockResolvedValueOnce(
           existingDates.map((ohlcDate) => ({

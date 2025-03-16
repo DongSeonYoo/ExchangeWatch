@@ -84,7 +84,7 @@ export class ExchangeRateService {
 
     const existingDates = historicalData.map((date) => date.ohlcDate);
     const missingDates = this.dateUtilService
-      .getDatesBeetween(input.startedAt, input.endedAt)
+      .getDatesBetween(input.startedAt, input.endedAt)
       .filter(
         (date) =>
           !existingDates.some(
@@ -227,6 +227,10 @@ export class ExchangeRateService {
     latestRate: number,
     latestTimestamp: number,
   ): Promise<void> {
+    // data from external api
+    const latestRateRound = parseFloat(latestRate.toFixed(6));
+    const latestDate = new Date(latestTimestamp);
+
     // redis에서 latest-rate의 hash(rate, timestamp) 조회
     const [storedRate, storedTimestamp] =
       await this.exchangeRateRedisService.getLatestRate(
@@ -237,7 +241,6 @@ export class ExchangeRateService {
           timestamp: true,
         },
       );
-
     // 기존 데이터가 없을 시 초기 레코드 삽입 (redis-hash)
     if (!storedRate || !storedTimestamp) {
       await this.exchangeRateRedisService.setLatestRate(
@@ -246,49 +249,73 @@ export class ExchangeRateService {
         {
           change: 0,
           changePct: 0,
-          rate: latestRate,
+          rate: latestRateRound,
           timestamp: latestTimestamp,
         },
       );
-    } else {
-      const prevRate = parseFloat(storedRate);
-      const storedDate = new Date(storedTimestamp);
-      const latestDate = new Date(latestTimestamp);
-      const isNewDay = this.dateUtilService.isBefore(latestDate, storedDate);
+      this.logger.debug(
+        `저장된 데이터가 존재하지 않아 새로운 통화쌍을 만들었습니다: ${baseCurrency}/${currencyCode}`,
+      );
+      return;
+    }
 
-      // 날짜가 바뀐 경우 변동률 0으로 초기화
-      if (isNewDay) {
+    // data from redis (hashtable)
+    const prevRate = parseFloat(storedRate);
+    const prevRateRounded = parseFloat(prevRate.toFixed(6));
+    const storedDate = new Date(storedTimestamp);
+    const isNewDay = this.dateUtilService.isBefore(latestDate, storedDate);
+
+    // 날짜가 바뀐 경우 변동률 0으로 초기화
+    if (isNewDay) {
+      await this.exchangeRateRedisService.setLatestRate(
+        baseCurrency,
+        currencyCode,
+        {
+          change: 0,
+          changePct: 0,
+          rate: latestRateRound,
+          timestamp: latestTimestamp,
+        },
+      );
+      this.logger.debug('날짜가 바뀌어서 변동률을 초기화했습니다');
+    } else {
+      // 같은 거래일인 경우, 변동률 계산
+      const change = latestRateRound - prevRateRounded;
+      const changePct = (change / prevRateRounded) * 100;
+
+      // 변동률이 일정치 이상이면 업데이트
+      // @TODO 변화감지량 상수화
+      if (Math.abs(changePct) > 0.01) {
         await this.exchangeRateRedisService.setLatestRate(
           baseCurrency,
           currencyCode,
           {
-            change: 0,
-            changePct: 0,
-            rate: latestRate,
+            change: change,
+            changePct: changePct,
+            rate: latestRateRound,
             timestamp: latestTimestamp,
           },
         );
-        this.logger.debug('날짜가 바뀌어서 변동률을 초기화했습니다');
+        this.logger.debug('');
+        this.logger.debug('=============================================');
+        this.logger.debug(`${prevRateRounded} ====>>>> ${latestRateRound}`);
+        this.logger.debug(
+          `변동량(${baseCurrency}/${currencyCode}): ${changePct}`,
+        );
+        this.logger.debug('=============================================');
+        this.logger.debug('');
       } else {
-        // 같은 거래일인 경우, 변동률 계산
-        const change = latestRate - prevRate;
-        const changePct = (change / prevRate) * 100;
-
-        // 변동률이 일정치 이상이면 업데이트
-        // @TODO 변화감지량 상수화
-        if (Math.abs(changePct) > 0.01) {
-          await this.exchangeRateRedisService.setLatestRate(
-            baseCurrency,
-            currencyCode,
-            {
-              change: change,
-              changePct: changePct,
-              rate: latestRate,
-              timestamp: latestTimestamp,
-            },
-          );
-          this.logger.debug('가격이 변동되었으니 업데이트칩니다');
-        }
+        // 변동률이 일정하다면, timestamp만 부분 업데이트
+        await this.exchangeRateRedisService.updateLatestRate(
+          baseCurrency,
+          currencyCode,
+          {
+            timestamp: latestTimestamp,
+          },
+        );
+        this.logger.debug(
+          `변동률이 일정해서(${baseCurrency}/${currencyCode}) timestmp만 업데이트쳤습니다`,
+        );
       }
     }
 
@@ -296,7 +323,7 @@ export class ExchangeRateService {
     return await this.exchangeRateRawRepository.createExchangeRate({
       baseCurrency: baseCurrency,
       currencyCode: currencyCode,
-      rate: latestRate,
+      rate: latestRateRound,
     });
   }
 }

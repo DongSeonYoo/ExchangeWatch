@@ -9,13 +9,6 @@ import dayjs, { ManipulateType } from 'dayjs';
 @Injectable()
 export class DateUtilService {
   /**
-   * Add a specified amount of time from the current date
-   */
-  addDate(amount: number, dateType: ManipulateType): Date {
-    return this.subDate(-amount, dateType);
-  }
-
-  /**
    * Subtracts a specified amount of time from the current date
    */
   subDate(
@@ -40,7 +33,7 @@ export class DateUtilService {
    * @param startedAt start date
    * @param endedAt end date
    */
-  getDatesBeetween(startedAt: Date, endedAt: Date): Date[] {
+  getDatesBetween(startedAt: Date, endedAt: Date): Date[] {
     const dates: Date[] = [];
     let currentDate = dayjs(startedAt);
     const lastDate = dayjs(endedAt);
