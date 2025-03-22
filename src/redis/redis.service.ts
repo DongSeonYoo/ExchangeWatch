@@ -58,13 +58,4 @@ export class RedisService implements OnModuleDestroy {
   async unsubscribe(channel: string): Promise<void> {
     await this.subscriber.unsubscribe(channel);
   }
-
-  /**
-   * publish channel message
-   * @param channel
-   * @param message
-   */
-  async publish(channel: string, message: string): Promise<number> {
-    return await this.redisClient.publish(channel, message);
-  }
 }
