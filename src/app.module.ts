@@ -27,6 +27,7 @@ import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { PrismaService } from './prisma/prisma.service';
 import { NotificationModule } from './apis/notifications/notification.module';
+import { SseModule } from './sse/sse.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { NotificationModule } from './apis/notifications/notification.module';
     WatchlistModule,
     ExternalAPIModule,
     NotificationModule,
+    SseModule,
   ],
   providers: [
     LoggerMiddleware,
