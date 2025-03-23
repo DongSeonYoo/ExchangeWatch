@@ -5,4 +5,9 @@ export namespace IRedisSchema {
     changePct: number;
     timestamp: number;
   }
+
+  export interface IUpdateRate extends ILatestRateHash {
+    baseCurrency: string;
+    currencyCode: string;
+  }
 }

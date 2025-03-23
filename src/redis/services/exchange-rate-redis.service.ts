@@ -5,6 +5,7 @@ import { IRedisSchema } from '../interfaces/redis-schema.interface';
 @Injectable()
 export class ExchangeRateRedisService extends RedisService {
   private readonly latestRateKey = 'latest-rate';
+  private readonly rateUpdateChannelKey = 'rate-update';
 
   async getLatestRate(
     baseCurrency: string,
@@ -34,5 +35,15 @@ export class ExchangeRateRedisService extends RedisService {
     const key = `${this.latestRateKey}:${baseCurrency}/${currencyCode}`;
 
     await this.redisClient.hset(key, fields);
+  }
+
+  async publishRateUpdate(
+    baseCurrency: string,
+    currencyCode: string,
+    fields: IRedisSchema.IUpdateRate,
+  ): Promise<void> {
+    const key = `${this.rateUpdateChannelKey}:${baseCurrency}/${currencyCode}`;
+
+    await this.redisClient.publish(key, JSON.stringify(fields));
   }
 }

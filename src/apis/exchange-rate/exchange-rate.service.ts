@@ -282,20 +282,33 @@ export class ExchangeRateService {
       // 같은 거래일인 경우, 변동률 계산
       const change = latestRateRound - prevRateRounded;
       const changePct = (change / prevRateRounded) * 100;
+      const updateRecord = {
+        change: change,
+        changePct: changePct,
+        rate: latestRateRound,
+        timestamp: latestTimestamp,
+      };
 
-      // 변동률이 일정치 이상이면 업데이트
       // @TODO 변화감지량 상수화
+      // 변동률이 일정치 이상이면
       if (Math.abs(changePct) > 0.01) {
+        // 업데이트 (latest-rate (hash table))
         await this.exchangeRateRedisService.setLatestRate(
           baseCurrency,
           currencyCode,
+          updateRecord,
+        );
+        // publish (rate-update)
+        await this.exchangeRateRedisService.publishRateUpdate(
+          baseCurrency,
+          currencyCode,
           {
-            change: change,
-            changePct: changePct,
-            rate: latestRateRound,
-            timestamp: latestTimestamp,
+            ...updateRecord,
+            baseCurrency: baseCurrency,
+            currencyCode: currencyCode,
           },
         );
+
         this.logger.debug('');
         this.logger.debug('=============================================');
         this.logger.debug(`${prevRateRounded} ====>>>> ${latestRateRound}`);

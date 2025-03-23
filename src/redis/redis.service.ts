@@ -3,7 +3,7 @@ import { Redis } from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
-  private readonly logger = new Logger(RedisService.name);
+  protected readonly logger = new Logger(RedisService.name);
   protected subscriber: Redis;
 
   constructor(@Inject('REDIS_CLIENT') protected readonly redisClient: Redis) {}
@@ -57,5 +57,9 @@ export class RedisService implements OnModuleDestroy {
    */
   async unsubscribe(channel: string): Promise<void> {
     await this.subscriber.unsubscribe(channel);
+  }
+
+  get duplicate(): Redis {
+    return this.redisClient.duplicate();
   }
 }
