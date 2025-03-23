@@ -7,13 +7,19 @@ import { ExchageRateScheduler } from './schedulers/exchange-rate.scheduler';
 import { IsAfterConstraint } from '../../decorators/validations/is-after.validator';
 import { ExchangeRateDailyRepository } from './repositores/exchange-rate-daily.repository';
 import { IsBeforeThanConstraint } from '../../decorators/validations/is-before-than.validator';
-import { ExchangeRateGateWay } from './exchange-rate.gateway';
 import { ExternalAPIModule } from '../../externals/external.module';
 import { LatestRateListener } from './listeners/latest-rate.listener';
 import { ExchangeRateRawRepository } from './repositores/exchange-rate-raw.repository';
+import { UpdateRateListener } from './listeners/update-rate.listener';
+import { SseModule } from '../../sse/sse.module';
 
 @Module({
-  imports: [RedisModule, ExternalAPIModule, ScheduleModule.forRoot()],
+  imports: [
+    RedisModule,
+    ExternalAPIModule,
+    ScheduleModule.forRoot(),
+    SseModule,
+  ],
   controllers: [ExchangeRateController],
   providers: [
     ExchangeRateService,
@@ -22,8 +28,8 @@ import { ExchangeRateRawRepository } from './repositores/exchange-rate-raw.repos
     ExchangeRateRawRepository,
     IsAfterConstraint,
     IsBeforeThanConstraint,
-    ExchangeRateGateWay,
     LatestRateListener,
+    UpdateRateListener,
   ],
   exports: [ExchangeRateService],
 })

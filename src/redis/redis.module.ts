@@ -4,6 +4,7 @@ import { RedisService } from './redis.service';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../configs/config.type';
 import { ExchangeRateRedisService } from './services/exchange-rate-redis.service';
+import { RateUpdateSubscriber } from './subscribers/rate-update.subscriber';
 
 @Module({
   providers: [
@@ -19,6 +20,7 @@ import { ExchangeRateRedisService } from './services/exchange-rate-redis.service
     },
     RedisService,
     ExchangeRateRedisService,
+    RateUpdateSubscriber,
     Logger,
   ],
   exports: ['REDIS_CLIENT', ExchangeRateRedisService],
