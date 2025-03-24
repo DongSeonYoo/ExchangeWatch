@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { testPrismaConn } from '../setup';
-import { PrismaService } from '../../../src/prisma/prisma.service';
+import { PrismaService } from '../../../src/infrastructure/database/prisma/prisma.service';
 
 export const TEST_PRISMA_TOKEN = 'TEST_PRISMA_CLIENT';
 

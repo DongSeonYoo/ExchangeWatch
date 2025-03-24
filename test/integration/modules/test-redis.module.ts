@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { testRedisConn } from '../setup';
-import { RedisService } from '../../../src/redis/redis.service';
+import { RedisService } from '../../../src/infrastructure/redis/redis.service';
 
 export const TEST_REDIS_TOKEN = 'TEST_REDIS_TOKEN';
 
