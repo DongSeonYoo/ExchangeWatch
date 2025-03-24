@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { PrismaClient } from '@prisma/client';
 import { testConfiguration } from './config/test.config';
 import Redis from 'ioredis';
-import { UserEntity } from '../../src/apis/users/entities/user.entity';
+import { UserEntity } from '../../src/modules/users/entities/user.entity';
 
 // Create database(postgres) connection for test
 

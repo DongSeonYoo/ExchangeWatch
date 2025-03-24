@@ -7,23 +7,23 @@ import {
 } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import supertest from 'supertest';
-import { PrismaService } from '../../../src/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { TestConfig } from '../../integration/config/test.config';
 import { TestIntegrateModules } from '../../integration/utils/integrate-module.util';
-import { AuthController } from '../../../src/apis/auth/auth.controller';
-import { AuthService } from '../../../src/apis/auth/auth.service';
-import { UsersService } from '../../../src/apis/users/users.service';
+import { UsersService } from '../../../src/modules/users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { RedisService } from '../../../src/redis/redis.service';
-import { UsersRepository } from '../../../src/apis/users/users.repository';
-import { TokenService } from '../../../src/token/token.service';
-import { GoogleStrategy } from '../../../src/apis/auth/strategy/google.strategy';
-import { JwtAccessStrategy } from '../../../src/apis/auth/strategy/jwt-access.strategy';
-import { JwtRefreshStrategy } from '../../../src/apis/auth/strategy/jwt-refresh.strategy';
+import { RedisService } from '../../../src/infrastructure/redis/redis.service';
+import { UsersRepository } from '../../../src/modules/users/users.repository';
+import { GoogleStrategy } from '../../../src/modules/auth/strategy/google.strategy';
+import { JwtAccessStrategy } from '../../../src/modules/auth/strategy/jwt-access.strategy';
+import { JwtRefreshStrategy } from '../../../src/modules/auth/strategy/jwt-refresh.strategy';
 import { TEST_PRISMA_TOKEN } from '../../integration/modules/test-prisma.module';
-import { UserEntity } from '../../../src/apis/users/entities/user.entity';
-import { GoogleOAuthGuard } from '../../../src/apis/auth/guards/google.guard';
+import { UserEntity } from '../../../src/modules/users/entities/user.entity';
+import { GoogleOAuthGuard } from '../../../src/modules/auth/guards/google.guard';
+import { PrismaService } from '../../../src/infrastructure/database/prisma/prisma.service';
+import { TokenService } from '../../../src/modules/token/token.service';
+import { AuthController } from '../../../src/modules/auth/controllers/auth.controller';
+import { AuthService } from '../../../src/modules/auth/services/auth.service';
 
 describe('/api/auth (e2e)', () => {
   let app: INestApplication;

@@ -6,28 +6,28 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { UsersModule } from './apis/users/users.module';
-import { AuthModule } from './apis/auth/auth.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { LoggerMiddleware } from './middlewares/logger.middleware';
-import { UnhandledExceptionFilter } from './filters/unhandled-exception.filter';
-import { HttpExceptionFilter } from './filters/http-exception.filter';
-import { SuccessResponseInterceptor } from './interceptors/response.interceptor';
+import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
-import { TokenModule } from './token/token.module';
-import { DateUtilModule } from './utils/date-util/date-util.module';
-import { ExchangeRateModule } from './apis/exchange-rate/exchange-rate.module';
-import { NewsModule } from './apis/news/news.module';
-import { WatchlistModule } from './apis/watchlist/watchlist.module';
-import { appConfig } from './configs/env/env.config';
-import { envValidationSchema } from './configs/env/env.validation';
-import { ExternalAPIModule } from './externals/external.module';
+import { DateUtilModule } from './common/utils/date-util/date-util.module';
+import { ExchangeRateModule } from './modules/exchange-rate/exchange-rate.module';
+import { NewsModule } from './modules/news/news.module';
+import { WatchlistModule } from './modules/watchlist/watchlist.module';
+import { appConfig } from './infrastructure/config/env/env.config';
+import { envValidationSchema } from './infrastructure/config/env/env.validation';
+import { ExternalAPIModule } from './infrastructure/externals/external.module';
 import { ClsModule } from 'nestjs-cls';
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
-import { PrismaService } from './prisma/prisma.service';
-import { NotificationModule } from './apis/notifications/notification.module';
-import { SseModule } from './sse/sse.module';
+import { NotificationModule } from './modules/notifications/notification.module';
+import { PrismaModule } from './infrastructure/database/prisma/prisma.module';
+import { PrismaService } from './infrastructure/database/prisma/prisma.service';
+import { TokenModule } from './modules/token/token.module';
+import { SseModule } from './modules/sse/sse.module';
+import { UnhandledExceptionFilter } from './common/filter/unhandled-exception.filter';
+import { HttpExceptionFilter } from './common/filter/http-exception.filter';
+import { SuccessResponseInterceptor } from './common/interceptor/response.interceptor';
 
 @Module({
   imports: [

@@ -2,9 +2,9 @@ import cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { setSwagger } from './configs/swagger.config';
+import { setSwagger } from './infrastructure/config/swagger.config';
 import { useContainer } from 'class-validator';
-import { AppConfig } from './configs/config.type';
+import { AppConfig } from './infrastructure/config/config.type';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
