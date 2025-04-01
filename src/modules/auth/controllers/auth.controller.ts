@@ -31,32 +31,21 @@ export class AuthController {
   /**
    * 구글 소셜로그인
    *
-   * @remarks 해당 엔드포인트 호출 시, 구글 로그인 페이지로 리다이렉트 됩니다. 로그인이 성공하면 특정 페이지로 리다이렉트합니다.(메인페이지)
-   * cookie에 refreshtoken을 http-only로 전달합니다.
+   * @remarks 해당 엔드포인트 호출 시, 구글 로그인 페이지로 리다이렉트 된 후, 로그인이 성공하면 특정 페이지로 리다이렉트합니다.(메인페이지)
+   * redirect시 다음과같이 쿼리 정보에 로그인 된 유저 정보를 포함합니다. (accessToken, refreshToken, userIdx, email, name)
    */
   @Get('google/callback')
   @UseGuards(GoogleOAuthGuard)
-  @ApiSuccess({
-    accessToken:
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJpbmtvNTEzNjY2QGdtYWlsLmNvbSIsImlhdCI6MTczODEwMjI1NywiZXhwIjoxNzM4MTA1ODU3fQ.yCX9PpJBOSdAj7wfAn2scsLrSEz34nu9zw2NXOtT5sQ',
-  })
   async googleAuthCallback(
     @LoggedInUser() user: UserEntity,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+    @Res({ passthrough: false }) res: Response,
+  ): Promise<void> {
     const { accessToken, refreshToken } =
       await this.authService.issueAccessAndRefreshToken(user);
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 14 * 24 * 60 * 60 * 1000, // 14d
-    });
+    const redirectUrl = `dongseon://accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}&userIdx=${user.idx}&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.name)}`;
 
-    return {
-      accessToken,
-    };
+    res.redirect(redirectUrl);
   }
 
   /**
