@@ -43,7 +43,7 @@ export class AuthController {
     const { accessToken, refreshToken } =
       await this.authService.issueAccessAndRefreshToken(user);
 
-    const redirectUrl = `dongseon://accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}&userIdx=${user.idx}&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.name)}`;
+    const redirectUrl = `dongseon://exchange-watch-app?accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}&userIdx=${user.idx}&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.name)}`;
 
     res.redirect(redirectUrl);
   }
