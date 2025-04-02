@@ -1,8 +1,6 @@
-// 테스트 시 환경변수를 사용하려면 아래 주석을 해제하고 .env.test 임포트
 require('dotenv').config({ path: '.env.test' });
 
 module.exports = {
-  roots: ['<rootDir>'],
   projects: [
     {
       displayName: 'unit',
@@ -21,6 +19,9 @@ module.exports = {
       },
     },
     {
+      globalSetup: '<rootDir>/test/integration/utils/global-setup.util.ts',
+      globalTeardown:
+        '<rootDir>/test/integration/utils/global-teardown.util.ts',
       displayName: 'integration',
       testMatch: ['**/__test__/integration/**/*.spec.ts'],
       setupFilesAfterEnv: ['<rootDir>/test/integration/setup.ts'],
