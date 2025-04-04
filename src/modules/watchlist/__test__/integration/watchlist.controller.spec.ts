@@ -10,13 +10,20 @@ import { TEST_PRISMA_TOKEN } from '../../../../../test/integration/modules/test-
 import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 import { AlreadyRegisterPairException } from '../../exceptions/already-register-pair.excepetion';
 import { MaximumPairException } from '../../exceptions/maximum-pair.exception';
-import { testUser1 } from '../../../../../test/integration/setup';
 import { PrismaService } from '../../../../infrastructure/database/prisma/prisma.service';
+import { UserEntity } from '../../../users/entities/user.entity';
 
 describe('WatchListController Integration', () => {
   let watchListController: WatchlistController;
   let watchListRepository: WatchListRepository;
   let prisma: PrismaService;
+  const testUser1: UserEntity = {
+    idx: 1,
+    email: 'test@email.com',
+    name: 'testuser',
+    socialId: '',
+    socialProvider: 'TEST1' as any,
+  } as UserEntity;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -30,7 +37,15 @@ describe('WatchListController Integration', () => {
     prisma = module.get(TEST_PRISMA_TOKEN);
   });
 
+  afterEach(async () => {
+    await prisma.watchlist.deleteMany();
+  });
+
   describe('registerInterestCurrency', () => {
+    beforeEach(async () => {
+      await prisma.watchlist.deleteMany();
+    });
+
     it('should create new watchlist item', async () => {
       // Arrange
       const reqDto: AddWatchlistItemReqDto = {

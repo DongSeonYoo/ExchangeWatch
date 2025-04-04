@@ -71,6 +71,14 @@ describe('PriceNotificationRepotisory (integrate)', () => {
     });
   });
 
+  afterEach(async () => {
+    await prisma.notifications.deleteMany();
+  });
+
+  afterAll(async () => {
+    await prisma.notifications.deleteMany();
+  });
+
   describe('getUserNotificationCount', () => {
     it("should return user's notification count", async () => {
       // Arrange
