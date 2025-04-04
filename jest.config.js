@@ -1,6 +1,7 @@
 require('dotenv').config({ path: '.env.test' });
 
 module.exports = {
+  roots: ['<rootDir>'],
   projects: [
     {
       displayName: 'unit',
@@ -10,29 +11,20 @@ module.exports = {
       ],
       setupFilesAfterEnv: ['<rootDir>/test/unit/setup.ts'],
       testEnvironment: 'node',
-      transform: {
-        '^.+\\.(t|j)s$': 'ts-jest',
-      },
+      transform: { '^.+\\.(t|j)s$': 'ts-jest' },
       moduleFileExtensions: ['js', 'json', 'ts'],
-      moduleNameMapper: {
-        '^src/(.*)$': '<rootDir>/src/$1',
-      },
+      moduleNameMapper: { '^src/(.*)$': '<rootDir>/src/$1' },
     },
     {
-      globalSetup: '<rootDir>/test/integration/utils/global-setup.util.ts',
-      globalTeardown:
-        '<rootDir>/test/integration/utils/global-teardown.util.ts',
       displayName: 'integration',
       testMatch: ['**/__test__/integration/**/*.spec.ts'],
       setupFilesAfterEnv: ['<rootDir>/test/integration/setup.ts'],
       testEnvironment: 'node',
-      transform: {
-        '^.+\\.(t|j)s$': 'ts-jest',
-      },
+      globalSetup: '<rootDir>/test/integration/global-setup.ts',
+      globalTeardown: '<rootDir>/test/integration/global-teardown.ts',
+      transform: { '^.+\\.(t|j)s$': 'ts-jest' },
       moduleFileExtensions: ['js', 'json', 'ts'],
-      moduleNameMapper: {
-        '^src/(.*)$': '<rootDir>/src/$1',
-      },
+      moduleNameMapper: { '^src/(.*)$': '<rootDir>/src/$1' },
     },
   ],
 };
