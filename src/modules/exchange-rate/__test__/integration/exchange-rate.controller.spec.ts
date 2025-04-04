@@ -7,6 +7,8 @@ import { RedisService } from '../../../../infrastructure/redis/redis.service';
 import { Logger } from '@nestjs/common';
 import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
+import { ExchangeRateRedisService } from '../../../../infrastructure/redis/services/exchange-rate-redis.service';
+import { ExchangeRateRawRepository } from '../../repositories/exchange-rate-raw.repository';
 
 describe('ExchangeRateController', () => {
   let controller: ExchangeRateController;
@@ -18,6 +20,8 @@ describe('ExchangeRateController', () => {
       providers: [
         ExchangeRateService,
         ExchangeRateDailyRepository,
+        ExchangeRateRedisService,
+        ExchangeRateRawRepository,
         DateUtilService,
         RedisService,
         Logger,
