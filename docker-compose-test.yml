@@ -4,6 +4,7 @@ services:
   # Test Database
   postgres_test:
     image: postgres:latest
+
     ports:
       - '5433:5432'
     environment:
@@ -12,9 +13,12 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}_test
     volumes:
       - ./erd.sql:/docker-entrypoint-initdb.d/init.sql
-      # - postgres_test_data:/var/lib/postgresql/data
+      - postgres_test_data:/var/lib/postgresql/data
 
   redis_test:
     image: redis:latest
     ports:
       - '6666:6379'
+
+volumes:
+  postgres_test_data:
