@@ -2,7 +2,7 @@ import { ConfigType } from '@nestjs/config';
 
 export const testConfiguration = () => ({
   database: {
-    url: process.env.TEST_DATABASE_URL,
+    url: process.env.DATABASE_URL,
   },
   redis: {
     host: process.env.REDIS_HOST,

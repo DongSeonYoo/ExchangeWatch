@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { TestFixtureUtil } from '../utils/integrate-test-fixture.util';
+import { redisConnection } from '../setup';
 
 export const TEST_REDIS_TOKEN = 'TEST_REDIS_TOKEN';
 
@@ -7,7 +7,7 @@ export const TEST_REDIS_TOKEN = 'TEST_REDIS_TOKEN';
   providers: [
     {
       provide: TEST_REDIS_TOKEN,
-      useValue: TestFixtureUtil.getInstance().redis,
+      useValue: redisConnection,
     },
     {
       provide: 'REDIS_CLIENT',

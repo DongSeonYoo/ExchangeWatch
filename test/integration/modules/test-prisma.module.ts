@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../../../src/infrastructure/database/prisma/prisma.service';
-import { TestFixtureUtil } from '../utils/integrate-test-fixture.util';
+import { prismaConnection } from '../setup';
 
 export const TEST_PRISMA_TOKEN = 'TEST_PRISMA_CLIENT';
 
@@ -8,7 +8,7 @@ export const TEST_PRISMA_TOKEN = 'TEST_PRISMA_CLIENT';
   providers: [
     {
       provide: TEST_PRISMA_TOKEN,
-      useValue: TestFixtureUtil.getInstance().prisma,
+      useValue: prismaConnection,
     },
     {
       provide: PrismaService,
