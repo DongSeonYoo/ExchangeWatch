@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import { CoinApiService } from '../coin-api.service';
+import { CoinApiService } from '../../coin-api.service';
 import { HttpService } from '@nestjs/axios';
 import { mock, MockProxy } from 'jest-mock-extended';
 
