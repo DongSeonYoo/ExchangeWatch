@@ -1,12 +1,12 @@
 import { UseGuards, applyDecorators } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ApiExceptions } from './exception.decorator';
+import { JwtAccessGuard } from 'src/modules/auth/guards/jwt-access.guard';
+import { JwtRefreshGuard } from 'src/modules/auth/guards/jwt-refresh.guard';
 import {
   JwtAuthException,
   JwtErrorType,
-} from 'src/modules/auth/exceptions/jwt-auth-exception';
-import { JwtAccessGuard } from '../../../modules/auth/guards/jwt-access.guard';
-import { JwtRefreshGuard } from '../../../modules/auth/guards/jwt-refresh.guard';
+} from '../../../modules/auth/exceptions/jwt-auth-exception';
 
 export const AccessAuth = () => {
   return applyDecorators(
