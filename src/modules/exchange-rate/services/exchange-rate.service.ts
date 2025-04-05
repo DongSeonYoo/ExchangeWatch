@@ -196,8 +196,6 @@ export class ExchangeRateService {
           rate,
           dayChange: fluctuation.change,
           dayChangePercent: fluctuation.changePct,
-          high24h: Math.max(fluctuation.startRate, fluctuation.endRate),
-          low24h: Math.min(fluctuation.startRate, fluctuation.endRate),
         };
 
         return acc;
