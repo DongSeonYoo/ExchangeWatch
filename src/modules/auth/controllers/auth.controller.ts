@@ -91,7 +91,7 @@ export class AuthController {
   /**
    * Access-token 갱신 엔드포인트
    *
-   * @remarks 헤더에 http-only 속성으로 적용되어있는 refresh token을 통해 새로운 access token을 발급받습니다.
+   * @remakrs body로부터 refresh-token을 받아 access-token을 재발급합니다
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
