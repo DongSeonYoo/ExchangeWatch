@@ -2,8 +2,9 @@ import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty } from 'class-validator';
 import { IsValidCurrencyCode } from '../../../common/decorators/validations/is-valid-currency.validator';
+import { BaseOffsetDto } from '../../../common/dto/pagination/base-offset.dto';
 
-export class CurrentExchangeRateReqDto {
+export class CurrentExchangeRateReqDto extends BaseOffsetDto {
   /**
    * 기준 통화
    *
@@ -49,16 +50,6 @@ export class RateDetail {
    * 전일대비 등락율
    */
   dayChangePercent: number;
-
-  /**
-   * 24시 전고가
-   */
-  high24h: number;
-
-  /**
-   * 24시 전저가
-   */
-  low24h: number;
 }
 
 @ApiExtraModels(RateDetail)
@@ -79,24 +70,18 @@ export class CurrentExchangeRateResDto {
         rate: 1529.4,
         dayChange: 15.3,
         dayChangePercent: 1.2,
-        high24h: 1529.4,
-        low24h: 1529.4,
       },
       JPY: {
         name: '일본 엔',
         rate: 163.07,
         dayChange: 15.3,
         dayChangePercent: 1.2,
-        high24h: 163.07,
-        low24h: 163.07,
       },
       USD: {
         name: '미국 달러',
         rate: 1.04,
         dayChange: 15.3,
         dayChangePercent: 1.2,
-        high24h: 1.04,
-        low24h: 1.04,
       },
     },
   })
