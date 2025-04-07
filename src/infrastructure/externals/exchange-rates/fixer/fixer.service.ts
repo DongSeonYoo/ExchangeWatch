@@ -4,11 +4,17 @@ import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { AppConfig } from '../../../config/config.type';
 import { IExchangeRateExternalAPI } from '../interfaces/exchange-rate-api.interface';
-import { IExchangeRateRestAPIService } from '../interfaces/exchange-rate-rest-api.interface';
+import {
+  IExchangeRateRestAPIService,
+  IFluctuationExchangeRateApi,
+  ILatestExchangeRateApi,
+} from '../interfaces/exchange-rate-rest-api.interface';
 import { IFixerAPIResponse } from './interfaces/fixer-response.interface';
 
 @Injectable()
-export class FixerService implements IExchangeRateRestAPIService {
+export class FixerService
+  implements ILatestExchangeRateApi, IFluctuationExchangeRateApi
+{
   private readonly fixerApiKey: string;
   private readonly fixerApiUrl: string;
   private readonly logger = new Logger(FixerService.name);
@@ -21,7 +27,7 @@ export class FixerService implements IExchangeRateRestAPIService {
     this.fixerApiUrl = configService.get('fixer.apiUrl', { infer: true });
   }
 
-  getLatestRates(
+  async getLatestRates(
     baseCurrency?: string,
     currencyCodes: string[] = [],
   ): Promise<IExchangeRateExternalAPI.ILatestRatesResponse> {
@@ -50,10 +56,11 @@ export class FixerService implements IExchangeRateRestAPIService {
         `${this.fixerApiUrl}/fluctuation?access_key=${this.fixerApiKey}&start_date=${convertStartDate}&end_date=${convertEndDate}&base=${baseCurrency}&symbols=${currencyCodes.join(',')}`,
       ),
     ).then(({ data }) => {
-      // if (!data.success) {
-      //   const { error } = data as unknown as  IFixerAPIResponse.IErrorResponse;
-      //   throw new Error(error);
-      // }
+      if (!data.success) {
+        const { error } = data as unknown as IFixerAPIResponse.IErrorResponse;
+        console.log(error);
+        throw new Error('');
+      }
 
       return {
         baseCurrency: data.base,
@@ -70,22 +77,5 @@ export class FixerService implements IExchangeRateRestAPIService {
         }, {}),
       };
     });
-  }
-
-  getHistoricalRates(
-    date: Date,
-    baseCurrency?: string,
-    currencyCodes?: string[],
-  ): Promise<IExchangeRateExternalAPI.IHistoricalResponse> {
-    throw new Error('Method not implemented.');
-  }
-
-  getTimeSeriesData(
-    startDate: Date,
-    endDate: Date,
-    baseCurrency?: string,
-    currencyCodes?: string[],
-  ): Promise<IExchangeRateExternalAPI.ITimeSeriesResponse> {
-    throw new Error('Method not implemented.');
   }
 }

@@ -45,3 +45,8 @@ export type IFluctuationExchangeRateApi = Pick<
   IExchangeRateRestAPIService,
   'getFluctuationData'
 >;
+
+export type ITimeSeriesData = Pick<
+  IExchangeRateRestAPIService,
+  'getTimeSeriesData'
+>;
