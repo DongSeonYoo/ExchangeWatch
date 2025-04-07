@@ -32,6 +32,9 @@ export class CoinApiService
     baseCurrency: string,
     currencyCodes: string[] = supportCurrencyList,
   ): Promise<IExchangeRateExternalAPI.ILatestRatesResponse> {
+    if (currencyCodes.length === 0) {
+      currencyCodes = supportCurrencyList;
+    }
     const currencies = currencyCodes?.join(';');
     const url = `${this.apiUrl}/exchangerate/${baseCurrency}?filter_asset_id=${currencies};`;
     const { data, status, statusText } =
@@ -62,21 +65,22 @@ export class CoinApiService
     baseCurrency: string,
     currencyCodes: string[],
   ): Promise<IExchangeRateExternalAPI.IFluctuationResponse> {
+    if (currencyCodes.length === 0) {
+      currencyCodes = supportCurrencyList;
+    }
+
     const [startDateString, endDateString] = this.formatDateToString(
       startDate,
       endDate,
     );
     const fluctuationResponses = await Promise.all(
       currencyCodes.map(async (currency) => {
-        const url = `https://api-historical.exrates.coinapi.io/v1/exchangerate/${baseCurrency}/${currency}/history?period_id=1DAY&time_start=${startDateString}&time_end=${endDateString}`;
-        // https://api-realtime.exrates.coinapi.io/v1/exchangerate/EUR/USD/history?period_id=1DAY&time_start=2025-03-04&time_end=2025-03-05
-        // https://api-historical.exrates.coinapi.io/v1/exchangerate/EUR/KRW/history?period_id=1DAY&time_start=2025-03-04&time_end=2025-03-05
+        const url = `https://api-historical.exrates.coinapi.io/v1/exchangerate/${baseCurrency}/${currency}/history?period_id=1DAY&time_start=${endDateString}`;
 
         const { data } =
           await this.httpService.axiosRef.get<
             ICoinApiResponse.IFluctuationResponse[]
           >(url);
-        data[0];
 
         return {
           currency,
