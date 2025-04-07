@@ -14,7 +14,7 @@ export class CoinApiModule {
           useFactory: async (
             configService: ConfigService<AppConfig, true>,
           ) => ({
-            timeout: 5000,
+            timeout: 10000,
             maxRedirects: 5,
             headers: {
               Authorization: `${configService.get('coinApi.apiKey', { infer: true })}`,
