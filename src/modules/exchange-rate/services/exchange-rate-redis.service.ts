@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { RedisService } from '../redis.service';
-import { IRedisSchema } from '../interfaces/redis-schema.interface';
+import { RedisService } from '../../../infrastructure/redis/redis.service';
+import { IRedisSchema } from '../../../infrastructure/redis/interfaces/redis-schema.interface';
 
 @Injectable()
-export class ExchangeRateRedisService extends RedisService {
+export class ExchangeRateRedisService {
   private readonly latestRateKey = 'latest-rate';
   private readonly rateUpdateChannelKey = 'rate-update';
+
+  constructor(private readonly redisService: RedisService) {}
 
   async getLatestRate(
     baseCurrency: string,
@@ -14,7 +16,7 @@ export class ExchangeRateRedisService extends RedisService {
   ) {
     const key = `${this.latestRateKey}:${baseCurrency}/${currencyCode}`;
 
-    return await this.redisClient.hmget(key, ...Object.keys(fields));
+    return await this.redisService.hmget(key, Object.keys(fields));
   }
 
   async setLatestRate(
@@ -24,7 +26,11 @@ export class ExchangeRateRedisService extends RedisService {
   ): Promise<void> {
     const key = `${this.latestRateKey}:${baseCurrency}/${currencyCode}`;
 
-    await this.redisClient.hset(key, fields);
+    await this.redisService.hset(
+      key,
+      // @TODO type assertions to ILatestRateHash
+      fields as any,
+    );
   }
 
   async updateLatestRate(
@@ -34,16 +40,16 @@ export class ExchangeRateRedisService extends RedisService {
   ): Promise<void> {
     const key = `${this.latestRateKey}:${baseCurrency}/${currencyCode}`;
 
-    await this.redisClient.hset(key, fields);
+    await this.redisService.hset(key, fields);
   }
 
   async publishRateUpdate(
     baseCurrency: string,
     currencyCode: string,
     fields: IRedisSchema.IUpdateRate,
-  ): Promise<void> {
+  ): Promise<number> {
     const key = `${this.rateUpdateChannelKey}:${baseCurrency}/${currencyCode}`;
 
-    await this.redisClient.publish(key, JSON.stringify(fields));
+    return await this.redisService.publish(key, fields);
   }
 }

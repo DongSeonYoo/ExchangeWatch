@@ -12,6 +12,8 @@ import { UpdateRateListener } from './listeners/update-rate.listener';
 import { IsAfterConstraint } from '../../common/decorators/validations/is-after.validator';
 import { IsBeforeThanConstraint } from '../../common/decorators/validations/is-before-than.validator';
 import { SseModule } from '../sse/sse.module';
+import { ExchangeRateRedisService } from './services/exchange-rate-redis.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 
 @Module({
   imports: [
@@ -22,7 +24,9 @@ import { SseModule } from '../sse/sse.module';
   ],
   controllers: [ExchangeRateController],
   providers: [
+    RedisService,
     ExchangeRateService,
+    ExchangeRateRedisService,
     ExchageRateScheduler,
     ExchangeRateDailyRepository,
     ExchangeRateRawRepository,
