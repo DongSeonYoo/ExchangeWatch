@@ -13,10 +13,10 @@ import {
 } from '../../../infrastructure/externals/exchange-rates/interfaces/exchange-rate-rest-api.interface';
 import { DateUtilService } from '../../../common/utils/date-util/date-util.service';
 import { ExchangeRateRawRepository } from '../repositories/exchange-rate-raw.repository';
-import { ExchangeRateRedisService } from '../../../infrastructure/redis/services/exchange-rate-redis.service';
 import { IExchangeRateDaily } from '../interfaces/exchange-rate-daily.interface';
 import { IExchangeRateExternalAPI } from '../../../infrastructure/externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { getCurrencyNameInKorean } from '../constants/symbol-kr.mapper';
+import { ExchangeRateRedisService } from './exchange-rate-redis.service';
 
 @Injectable()
 export class ExchangeRateService {

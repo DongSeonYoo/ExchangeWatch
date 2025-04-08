@@ -1,19 +1,28 @@
 import { Test } from '@nestjs/testing';
-import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
 import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 import typia from 'typia';
+import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
+import { RedisService } from '../../../../infrastructure/redis/redis.service';
 
 describe('ExchangeRateRedisService (Integration)', () => {
+  let redisService: RedisService;
   let exchangeRateRedisService: ExchangeRateRedisService;
-  let latestRateKey = 'latest-rate';
+  let baseCurrency: string = 'EUR';
+  let currencyCode: string = 'KRW';
+  const latestRateKey = `latest-rate:`;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [...TestIntegrateModules.create()],
-      providers: [ExchangeRateRedisService],
+      providers: [RedisService, ExchangeRateRedisService],
     }).compile();
 
+    redisService = module.get(RedisService);
     exchangeRateRedisService = module.get(ExchangeRateRedisService);
+  });
+
+  afterEach(async () => {
+    await redisService.del(`latest-rate:${baseCurrency}/${currencyCode}`);
   });
 
   it('should definded ExchangeRateRedisService', () => {
@@ -22,9 +31,6 @@ describe('ExchangeRateRedisService (Integration)', () => {
 
   describe('getLatestRate', () => {
     // Arrange
-    let baseCurrency: string;
-    let currencyCode: string;
-
     beforeEach(async () => {
       baseCurrency = 'EUR';
       currencyCode = 'KRW';
@@ -39,7 +45,6 @@ describe('ExchangeRateRedisService (Integration)', () => {
 
     it('should return hash fields (string) of currency pair', async () => {
       // Arrange
-
       // Act
       const result = await exchangeRateRedisService.getLatestRate(
         baseCurrency,
@@ -104,9 +109,6 @@ describe('ExchangeRateRedisService (Integration)', () => {
   describe('setLatestRate', () => {
     it('should save currency pairs as hash', async () => {
       // Arrange
-      const baseCurrency = 'EUR';
-      const currencyCode = 'KRW';
-
       // Act
       await exchangeRateRedisService.setLatestRate(baseCurrency, currencyCode, {
         change: -300,
@@ -138,9 +140,6 @@ describe('ExchangeRateRedisService (Integration)', () => {
   describe('updateLatestRate', () => {
     it('should update only the specified hash fields', async () => {
       // Arrange
-      const baseCurrency = 'EUR';
-      const currencyCode = 'KRW';
-
       await exchangeRateRedisService.setLatestRate(baseCurrency, currencyCode, {
         change: -300,
         changePct: -20,
@@ -217,6 +216,27 @@ describe('ExchangeRateRedisService (Integration)', () => {
       expect(changePct).toBe('-20');
       expect(rate).toEqual('1200');
       expect(timestamp).toEqual(String(new Date('2001-06-12').getTime()));
+    });
+  });
+
+  describe('publishRateUpdate', () => {
+    it('should publish updated rate to channel', async () => {
+      // Arrange
+      const rateUpdate = {
+        rate: 1234.56,
+        timestamp: new Date(),
+      };
+
+      // Act
+      const result = await exchangeRateRedisService.publishRateUpdate(
+        baseCurrency,
+        currencyCode,
+        rateUpdate as any,
+      );
+
+      // Assert
+      // 구독자가 없으니 당연히 0이겠
+      expect(result).toBe(0);
     });
   });
 });

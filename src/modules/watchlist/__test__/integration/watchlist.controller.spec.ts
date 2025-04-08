@@ -41,6 +41,10 @@ describe('WatchListController Integration', () => {
     await prisma.watchlist.deleteMany();
   });
 
+  afterEach(async () => {
+    await prisma.watchlist.deleteMany();
+  });
+
   describe('registerInterestCurrency', () => {
     beforeEach(async () => {
       await prisma.watchlist.deleteMany();

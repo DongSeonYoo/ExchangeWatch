@@ -14,8 +14,8 @@ import { ExchangeRatesDailyEntity } from '../../entities/exchange-rate-daily.ent
 import { IExchangeRateDaily } from '../../interfaces/exchange-rate-daily.interface';
 import { ExchangeRateFixture } from '../fixture/exchange-rate-fixture';
 import { ExchangeRateRawRepository } from '../../repositories/exchange-rate-raw.repository';
-import { ExchangeRateRedisService } from '../../../../infrastructure/redis/services/exchange-rate-redis.service';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
+import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
 
 describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;

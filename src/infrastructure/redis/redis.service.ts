@@ -44,19 +44,30 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
-   * subscribe redis channel
-   * @param channel name of channel
+   * Redis default hset
+   * @param key
+   * @param value
    */
-  async subscribe(channel: string): Promise<void> {
-    await this.subscriber.subscribe(channel);
+  hset(key: string, value: Record<string, string | number>) {
+    return this.redisClient.hset(key, value);
   }
 
   /**
-   * unsubscribe redis channel
-   * @param channel name of channel
+   * Redis default hmget
+   * @param key
+   * @param fields
    */
-  async unsubscribe(channel: string): Promise<void> {
-    await this.subscriber.unsubscribe(channel);
+  hmget(key: string, fields: string[]) {
+    return this.redisClient.hmget(key, ...fields);
+  }
+
+  /**
+   * Redis default publish
+   * @param channel
+   * @param data
+   */
+  publish<T extends object>(channel: string, data: T): Promise<number> {
+    return this.redisClient.publish(channel, JSON.stringify(data));
   }
 
   get duplicate(): Redis {

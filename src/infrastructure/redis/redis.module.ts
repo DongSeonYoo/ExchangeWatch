@@ -3,7 +3,6 @@ import { Logger, Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../config/config.type';
-import { ExchangeRateRedisService } from './services/exchange-rate-redis.service';
 import { RateUpdateSubscriber } from './subscribers/rate-update.subscriber';
 
 @Module({
@@ -19,10 +18,9 @@ import { RateUpdateSubscriber } from './subscribers/rate-update.subscriber';
       inject: [ConfigService],
     },
     RedisService,
-    ExchangeRateRedisService,
     RateUpdateSubscriber,
     Logger,
   ],
-  exports: ['REDIS_CLIENT', ExchangeRateRedisService],
+  exports: ['REDIS_CLIENT'],
 })
 export class RedisModule {}
