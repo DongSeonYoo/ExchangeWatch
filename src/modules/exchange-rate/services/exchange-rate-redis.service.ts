@@ -1,18 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../../infrastructure/redis/redis.service';
 import { IRedisSchema } from '../../../infrastructure/redis/interfaces/redis-schema.interface';
 
 @Injectable()
 export class ExchangeRateRedisService {
-  private readonly latestRateKey = 'latest-rate';
-  private readonly rateUpdateChannelKey = 'rate-update';
+  private readonly logger = new Logger(ExchangeRateRedisService.name);
+  private readonly latestRateKey = 'exchange-rate:latest-rate';
+  private readonly healthCheckey = 'exchnage-rate:health-check';
+  private readonly rateUpdateChannelKey = 'exchnage-rate:rate-update';
 
   constructor(private readonly redisService: RedisService) {}
 
   async getLatestRate(
     baseCurrency: string,
     currencyCode: string,
-    fields: Partial<Record<keyof IRedisSchema.ILatestRateHash, boolean>>,
+    fields: Partial<Record<keyof IRedisSchema.ILatestRateHash, boolean>> = {
+      change: true,
+      changePct: true,
+      rate: true,
+      timestamp: true,
+    },
   ) {
     const key = `${this.latestRateKey}:${baseCurrency}/${currencyCode}`;
 
@@ -51,5 +58,20 @@ export class ExchangeRateRedisService {
     const key = `${this.rateUpdateChannelKey}:${baseCurrency}/${currencyCode}`;
 
     return await this.redisService.publish(key, fields);
+  }
+
+  async updateHealthCheck(baseCurrency: string): Promise<void> {
+    const key = `${this.healthCheckey}${baseCurrency}`;
+
+    await this.redisService.set(key, new Date().toISOString());
+
+    this.logger.debug(`update latest-rate healthcheck!!: ${baseCurrency}`);
+  }
+
+  async latestRateHealthCheck(baseCurrency: string): Promise<Date | null> {
+    const key = `${this.healthCheckey}${baseCurrency}`;
+    const result = await this.redisService.get<Date>(key);
+
+    return result ? new Date(result) : null;
   }
 }

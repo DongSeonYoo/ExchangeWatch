@@ -317,11 +317,14 @@ export class ExchangeRateService {
       }
     }
 
+    await this.exchangeRateRedisService.updateHealthCheck(baseCurrency);
     // 레코드 삽입 (default-postgres)
-    return await this.exchangeRateRawRepository.createExchangeRate({
+    await this.exchangeRateRawRepository.createExchangeRate({
       baseCurrency: baseCurrency,
       currencyCode: currencyCode,
       rate: latestRateRound,
     });
+
+    return;
   }
 }
