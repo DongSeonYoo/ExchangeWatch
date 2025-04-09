@@ -3,13 +3,11 @@ import { TestIntegrateModules } from '../../../../../test/integration/utils/inte
 import typia from 'typia';
 import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
 import { RedisService } from '../../../../infrastructure/redis/redis.service';
+import Redis from 'ioredis';
 
 describe('ExchangeRateRedisService (Integration)', () => {
-  let redisService: RedisService;
+  let redis: Redis;
   let exchangeRateRedisService: ExchangeRateRedisService;
-  let baseCurrency: string = 'EUR';
-  let currencyCode: string = 'KRW';
-  const latestRateKey = `latest-rate:`;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -17,12 +15,12 @@ describe('ExchangeRateRedisService (Integration)', () => {
       providers: [RedisService, ExchangeRateRedisService],
     }).compile();
 
-    redisService = module.get(RedisService);
+    redis = module.get('REDIS_CLIENT');
     exchangeRateRedisService = module.get(ExchangeRateRedisService);
   });
 
   afterEach(async () => {
-    await redisService.del(`latest-rate:${baseCurrency}/${currencyCode}`);
+    await redis.flushall();
   });
 
   it('should definded ExchangeRateRedisService', () => {
@@ -30,7 +28,8 @@ describe('ExchangeRateRedisService (Integration)', () => {
   });
 
   describe('getLatestRate', () => {
-    // Arrange
+    let baseCurrency: string;
+    let currencyCode: string;
     beforeEach(async () => {
       baseCurrency = 'EUR';
       currencyCode = 'KRW';
@@ -45,6 +44,9 @@ describe('ExchangeRateRedisService (Integration)', () => {
 
     it('should return hash fields (string) of currency pair', async () => {
       // Arrange
+      const baseCurrency = 'EUR';
+      const currencyCode = 'KRW';
+
       // Act
       const result = await exchangeRateRedisService.getLatestRate(
         baseCurrency,
@@ -109,6 +111,9 @@ describe('ExchangeRateRedisService (Integration)', () => {
   describe('setLatestRate', () => {
     it('should save currency pairs as hash', async () => {
       // Arrange
+      const baseCurrency = 'EUR';
+      const currencyCode = 'KRW';
+
       // Act
       await exchangeRateRedisService.setLatestRate(baseCurrency, currencyCode, {
         change: -300,
@@ -116,7 +121,6 @@ describe('ExchangeRateRedisService (Integration)', () => {
         rate: 1200,
         timestamp: new Date('2001-06-12').getTime(),
       });
-
       const [change, changePct, rate, timestamp] =
         await exchangeRateRedisService.getLatestRate(
           baseCurrency,
@@ -140,6 +144,8 @@ describe('ExchangeRateRedisService (Integration)', () => {
   describe('updateLatestRate', () => {
     it('should update only the specified hash fields', async () => {
       // Arrange
+      let baseCurrency = 'EUR';
+      let currencyCode = 'KRW';
       await exchangeRateRedisService.setLatestRate(baseCurrency, currencyCode, {
         change: -300,
         changePct: -20,
@@ -171,8 +177,8 @@ describe('ExchangeRateRedisService (Integration)', () => {
         );
 
       // Assert
-      expect(change).toBe('-100');
-      expect(changePct).toBe('-10');
+      expect(change).toBe('-100'); // 부분 업데이트된 값
+      expect(changePct).toBe('-10'); // 부분 업데이트된 값
       expect(rate).toEqual('1200');
       expect(timestamp).toEqual(String(new Date('2001-06-12').getTime()));
     });
@@ -222,16 +228,18 @@ describe('ExchangeRateRedisService (Integration)', () => {
   describe('publishRateUpdate', () => {
     it('should publish updated rate to channel', async () => {
       // Arrange
+      const baseCurrency = 'EUR';
+      const currencyCode = 'KRW';
       const rateUpdate = {
         rate: 1234.56,
         timestamp: new Date(),
-      };
+      } as any;
 
       // Act
       const result = await exchangeRateRedisService.publishRateUpdate(
         baseCurrency,
         currencyCode,
-        rateUpdate as any,
+        rateUpdate,
       );
 
       // Assert
