@@ -54,14 +54,28 @@ export class ExchangeRateService {
       ),
     ]);
 
-    const dailyCurrencyAggregate = this.generateDailyData(
-      latestRates.rates,
-      fluctuationRates.rates,
-    );
+    const rateResponse = Object.keys(latestRates.rates).reduce<
+      Record<string, RateDetail>
+    >((acc, currency) => {
+      const rate = latestRates[currency];
+      const inverseRate = parseFloat((1 / rate).toFixed(6));
+      const fluctuation = fluctuationRates.rates[currency];
+
+      acc[currency] = {
+        name: getCurrencyNameInKorean(currency),
+        rate,
+        inverseRate,
+        dayChange: fluctuation.change,
+        dayChangePercent: fluctuation.changePct,
+        timestamp: new Date(),
+      };
+
+      return acc;
+    }, {});
 
     return {
       baseCurrency: latestRates.baseCurrency,
-      rates: dailyCurrencyAggregate,
+      rates: rateResponse,
     };
   }
 
@@ -174,33 +188,6 @@ export class ExchangeRateService {
       currencyList
         .filter((targetCurrency) => baseCurrency !== targetCurrency)
         .map((currencyCode) => ({ baseCurrency, currencyCode })),
-    );
-  }
-
-  /**
-   * Gernerate daily data by combining recent currency-rate and fluctuation rate
-   * @param latestRates (Record<string, number>)
-   * @param fluctuationRates (Record<string, TFluctuation>)
-   */
-  private generateDailyData(
-    latestRates: IExchangeRateExternalAPI.ILatestRatesResponse['rates'],
-    fluctuationRates: IExchangeRateExternalAPI.IFluctuationResponse['rates'],
-  ): Record<string, RateDetail> {
-    return Object.keys(latestRates).reduce<Record<string, RateDetail>>(
-      (acc, currency) => {
-        const rate = latestRates[currency];
-        const fluctuation = fluctuationRates[currency];
-
-        acc[currency] = {
-          name: getCurrencyNameInKorean(currency),
-          rate,
-          dayChange: fluctuation.change,
-          dayChangePercent: fluctuation.changePct,
-        };
-
-        return acc;
-      },
-      {},
     );
   }
 

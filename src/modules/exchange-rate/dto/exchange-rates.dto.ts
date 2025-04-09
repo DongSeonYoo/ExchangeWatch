@@ -4,7 +4,7 @@ import { IsNotEmpty } from 'class-validator';
 import { IsValidCurrencyCode } from '../../../common/decorators/validations/is-valid-currency.validator';
 import { BaseOffsetDto } from '../../../common/dto/pagination/base-offset.dto';
 
-export class CurrentExchangeRateReqDto extends BaseOffsetDto {
+export class CurrentExchangeRateReqDto {
   /**
    * 기준 통화
    *
@@ -16,8 +16,6 @@ export class CurrentExchangeRateReqDto extends BaseOffsetDto {
 
   /**
    * 조회 할 통화
-   *
-   * @example USD, JPY
    */
   @ApiProperty({ type: String })
   @Transform(
@@ -33,23 +31,43 @@ export class CurrentExchangeRateReqDto extends BaseOffsetDto {
 export class RateDetail {
   /**
    * 통화명 이름
+   *
+   * @example KRW
    */
   name: string;
 
   /**
    * 현재 환율
+   *
+   * @example 1624
    */
   rate: number;
 
   /**
    * 전일대비 등락
+   *
+   * @example -12.5
    */
   dayChange: number;
 
   /**
    * 전일대비 등락율
+   *
+   * @example -1.2
    */
   dayChangePercent: number;
+
+  /**
+   * 변환 환율
+   *
+   * @example 0.00061
+   */
+  inverseRate: number;
+
+  /**
+   * 타임스탬프
+   */
+  timestamp: Date;
 }
 
 @ApiExtraModels(RateDetail)
@@ -64,26 +82,6 @@ export class CurrentExchangeRateResDto {
   @ApiProperty({
     type: 'object',
     additionalProperties: { $ref: getSchemaPath(RateDetail) },
-    example: {
-      KRW: {
-        name: '대한민국 원',
-        rate: 1529.4,
-        dayChange: 15.3,
-        dayChangePercent: 1.2,
-      },
-      JPY: {
-        name: '일본 엔',
-        rate: 163.07,
-        dayChange: 15.3,
-        dayChangePercent: 1.2,
-      },
-      USD: {
-        name: '미국 달러',
-        rate: 1.04,
-        dayChange: 15.3,
-        dayChangePercent: 1.2,
-      },
-    },
   })
   rates: Record<string, RateDetail>;
 
