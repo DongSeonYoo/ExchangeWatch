@@ -63,7 +63,7 @@ export class CoinApiService
     startDate: Date,
     endDate: Date,
     baseCurrency: string,
-    currencyCodes: string[],
+    currencyCodes: string[] = [],
   ): Promise<IExchangeRateExternalAPI.IFluctuationResponse> {
     if (currencyCodes.length === 0) {
       currencyCodes = supportCurrencyList;
