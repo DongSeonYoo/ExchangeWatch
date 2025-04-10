@@ -6,8 +6,8 @@ import { IRedisSchema } from '../../../infrastructure/redis/interfaces/redis-sch
 export class ExchangeRateRedisService {
   private readonly logger = new Logger(ExchangeRateRedisService.name);
   private readonly latestRateKey = 'exchange-rate:latest-rate';
-  private readonly healthCheckey = 'exchnage-rate:health-check';
-  private readonly rateUpdateChannelKey = 'exchnage-rate:rate-update';
+  private readonly healthCheckey = 'exchange-rate:health-check';
+  private readonly rateUpdateChannelKey = 'exchange-rate:rate-update';
 
   constructor(private readonly redisService: RedisService) {}
 
@@ -70,7 +70,7 @@ export class ExchangeRateRedisService {
 
   async getLatestRateHealthCheck(baseCurrency: string): Promise<Date | null> {
     const key = `${this.healthCheckey}:${baseCurrency}`;
-    const result = await this.redisService.get<Date>(key);
+    const result = await this.redisService.get(key);
 
     return result ? new Date(result) : null;
   }
