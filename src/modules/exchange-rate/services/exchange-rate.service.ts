@@ -41,6 +41,7 @@ export class ExchangeRateService {
    *  - Redis에 저장되어있는 최신 latestRate 확인 (ExternalGateway로부터 정기적으로 수집된)
    *  - 해당 latestRate의 수집 시간이 임계치를 만족한다면 (캐시조건 부합)
    *    - 해당 데이터들을 이용해서 응답을 조합하고 반환
+   *
    *  - 해당 latestRate의 수집 시간이 임계치를 만족하지 않는다면 (캐시조건 미부합)
    *    - 외부API 각각 호출(latest-rate, fluctuation-rate)
    *    - 해당 데이터들을 이용해서 응답을 조합하고 반환
@@ -68,49 +69,95 @@ export class ExchangeRateService {
       ? input.currencyCodes
       : this.supportCurrencyList;
     const today = new Date();
-    const fallbackRates: Record<
+    // 응답 객체 준비
+    const preparedResponse: Record<
       string,
       Pick<RateDetail, 'rate' | 'dayChange' | 'dayChangePercent' | 'timestamp'>
     > = {};
 
-    // 여기에 latestRate, fluctuationRates 캐시 조회
-    const isCacheHit =
-      await this.exchangeRateRedisService.getLatestRateHealthCheck(
-        input.baseCurrency,
-      );
+    if (input.baseCurrency === 'KRW') {
+      const isAliveLatestRateCache =
+        await this.exchangeRateRedisService.getLatestRateHealthCheck(
+          input.baseCurrency,
+        );
+      const isCacheHitted =
+        isAliveLatestRateCache &&
+        isAliveLatestRateCache.getTime() >
+          Date.now() - this.latestRatethreshold;
 
-    if (
-      isCacheHit &&
-      isCacheHit.getTime() > Date.now() - this.latestRatethreshold
-    ) {
-      this.logger.debug('latest-rate cache hit!!');
-      const cachedRates: Record<
-        string,
-        Pick<
-          RateDetail,
-          'rate' | 'dayChange' | 'dayChangePercent' | 'timestamp'
-        >
-      > = {};
+      if (isCacheHitted) {
+        this.logger.debug('latest-rate cache hit!!');
+        for (const code of targetCodes) {
+          const [change, changePct, rate, timestamp] =
+            await this.exchangeRateRedisService.getLatestRate(
+              input.baseCurrency,
+              code,
+            );
 
-      for (const code of targetCodes) {
-        const [change, changePct, rate, timestamp] =
-          await this.exchangeRateRedisService.getLatestRate(
-            input.baseCurrency,
-            code,
-          );
+          // 캐시 히트 시 무조건 4개 캐시데이터 보장
+          preparedResponse[code] = {
+            rate: Number(rate),
+            dayChange: Number(change),
+            dayChangePercent: Number(changePct),
+            timestamp: new Date(Number(timestamp)),
+          };
+        }
 
-        // 캐시 히트 시 무조건 4개 캐시데이터 보장
-        cachedRates[code] = {
-          rate: Number(rate),
-          dayChange: Number(change),
-          dayChangePercent: Number(changePct),
-          timestamp: new Date(Number(timestamp)),
+        return {
+          baseCurrency: input.baseCurrency,
+          rates: this.combinateLatestRates(preparedResponse),
         };
       }
+    }
+
+    if (input.baseCurrency !== 'KRW') {
+      const [_, __, baseRateStr] =
+        await this.exchangeRateRedisService.getLatestRate(
+          'KRW',
+          input.baseCurrency,
+        );
+
+      // external API(fluctuation) + Redis rates 병렬 실행
+      const [fluctuationResult, redisResults] = await Promise.all([
+        // fetch fluctuation data from external API
+        this.fluctuationRateAPI.getFluctuationData(
+          this.dateUtilService.getYesterday(),
+          today,
+          'KRW',
+          targetCodes,
+        ),
+        // 역산을 위해 필요한 latest-save-rate 데이터 조합
+        await Promise.all(
+          targetCodes.map(async (code) => {
+            const [_, __, rate, timestamp] =
+              await this.exchangeRateRedisService.getLatestRate('KRW', code);
+
+            return {
+              code,
+              rate: Number(rate),
+              timestamp: new Date(Number(timestamp)),
+            };
+          }),
+        ),
+      ]);
+
+      // 역산 후 데이터 조합
+      redisResults.map((item) => {
+        const rate = item.rate / Number(baseRateStr);
+        const code = item.code;
+
+        preparedResponse[code] = {
+          rate,
+          dayChange: fluctuationResult.rates[code].change,
+          dayChangePercent: fluctuationResult.rates[code].changePct,
+          timestamp: item.timestamp,
+        };
+      });
+      this.logger.log('basecurrency가 달라서 latestRate만 역산하였습니다');
 
       return {
         baseCurrency: input.baseCurrency,
-        rates: this.combinateLatestRates(cachedRates),
+        rates: this.combinateLatestRates(preparedResponse),
       };
     }
 
@@ -128,7 +175,7 @@ export class ExchangeRateService {
       ),
     ]);
     targetCodes.forEach((code) => {
-      fallbackRates[code] = {
+      preparedResponse[code] = {
         rate: latestRates.rates[code],
         dayChange: fluctuationRates.rates[code].change,
         dayChangePercent: fluctuationRates.rates[code].changePct,
@@ -138,7 +185,7 @@ export class ExchangeRateService {
 
     return {
       baseCurrency: latestRates.baseCurrency,
-      rates: this.combinateLatestRates(fallbackRates),
+      rates: this.combinateLatestRates(preparedResponse),
     };
   }
 
