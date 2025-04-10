@@ -48,7 +48,7 @@ export class ExchangeRateService {
 
     // 여기에 latestRate, fluctuationRates 캐시 조회
     const isCacheHit =
-      await this.exchangeRateRedisService.latestRateHealthCheck(
+      await this.exchangeRateRedisService.getLatestRateHealthCheck(
         input.baseCurrency,
       );
 

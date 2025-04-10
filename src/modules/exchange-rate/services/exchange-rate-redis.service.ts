@@ -68,7 +68,7 @@ export class ExchangeRateRedisService {
     this.logger.debug(`update latest-rate healthcheck!!: ${baseCurrency}`);
   }
 
-  async latestRateHealthCheck(baseCurrency: string): Promise<Date | null> {
+  async getLatestRateHealthCheck(baseCurrency: string): Promise<Date | null> {
     const key = `${this.healthCheckey}${baseCurrency}`;
     const result = await this.redisService.get<Date>(key);
 
