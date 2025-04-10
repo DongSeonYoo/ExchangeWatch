@@ -14,7 +14,6 @@ import {
 import { DateUtilService } from '../../../common/utils/date-util/date-util.service';
 import { ExchangeRateRawRepository } from '../repositories/exchange-rate-raw.repository';
 import { IExchangeRateDaily } from '../interfaces/exchange-rate-daily.interface';
-import { IExchangeRateExternalAPI } from '../../../infrastructure/externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { getCurrencyNameInKorean } from '../constants/symbol-kr.mapper';
 import { ExchangeRateRedisService } from './exchange-rate-redis.service';
 
@@ -22,6 +21,7 @@ import { ExchangeRateRedisService } from './exchange-rate-redis.service';
 export class ExchangeRateService {
   private readonly logger = new Logger(ExchangeRateService.name);
   private readonly supportCurrencyList = supportCurrencyList;
+  private readonly latestRatethreshold = 10000; // 임계값 10s
 
   constructor(
     @Inject('LATEST_EXCHANGE_RATE_API')
@@ -41,6 +41,53 @@ export class ExchangeRateService {
       ? input.currencyCodes
       : this.supportCurrencyList;
     const today = new Date();
+    const fallbackRates: Record<
+      string,
+      Pick<RateDetail, 'rate' | 'dayChange' | 'dayChangePercent' | 'timestamp'>
+    > = {};
+
+    // 여기에 latestRate, fluctuationRates 캐시 조회
+    const isCacheHit =
+      await this.exchangeRateRedisService.getLatestRateHealthCheck(
+        input.baseCurrency,
+      );
+
+    if (
+      isCacheHit &&
+      isCacheHit.getTime() > Date.now() - this.latestRatethreshold
+    ) {
+      this.logger.debug('latest-rate cache hit!!');
+      const cachedRates: Record<
+        string,
+        Pick<
+          RateDetail,
+          'rate' | 'dayChange' | 'dayChangePercent' | 'timestamp'
+        >
+      > = {};
+
+      for (const code of targetCodes) {
+        const [change, changePct, rate, timestamp] =
+          await this.exchangeRateRedisService.getLatestRate(
+            input.baseCurrency,
+            code,
+          );
+
+        // 캐시 히트 시 무조건 4개 캐시데이터 보장
+        cachedRates[code] = {
+          rate: Number(rate),
+          dayChange: Number(change),
+          dayChangePercent: Number(changePct),
+          timestamp: new Date(Number(timestamp)),
+        };
+      }
+
+      return {
+        baseCurrency: input.baseCurrency,
+        rates: this.combinateLatestRates(cachedRates),
+      };
+    }
+
+    this.logger.debug('cache missed!!');
     const [latestRates, fluctuationRates] = await Promise.all([
       this.latestExchangeRateAPI.getLatestRates(
         input.baseCurrency,
@@ -53,30 +100,46 @@ export class ExchangeRateService {
         targetCodes,
       ),
     ]);
-
-    const rateResponse = Object.keys(latestRates.rates).reduce<
-      Record<string, RateDetail>
-    >((acc, currency) => {
-      const rate = latestRates[currency];
-      const inverseRate = parseFloat((1 / rate).toFixed(6));
-      const fluctuation = fluctuationRates.rates[currency];
-
-      acc[currency] = {
-        name: getCurrencyNameInKorean(currency),
-        rate,
-        inverseRate,
-        dayChange: fluctuation.change,
-        dayChangePercent: fluctuation.changePct,
+    targetCodes.forEach((code) => {
+      fallbackRates[code] = {
+        rate: latestRates.rates[code],
+        dayChange: fluctuationRates.rates[code].change,
+        dayChangePercent: fluctuationRates.rates[code].changePct,
         timestamp: new Date(),
       };
-
-      return acc;
-    }, {});
+    });
 
     return {
       baseCurrency: latestRates.baseCurrency,
-      rates: rateResponse,
+      rates: this.combinateLatestRates(fallbackRates),
     };
+  }
+
+  /**
+   * Gernerate daily data by combining recent currency-rate and fluctuation rate
+   */
+  private combinateLatestRates(
+    rates: Record<
+      string,
+      Pick<RateDetail, 'rate' | 'dayChange' | 'dayChangePercent' | 'timestamp'>
+    >,
+  ): Record<string, RateDetail> {
+    return Object.keys(rates).reduce<Record<string, RateDetail>>(
+      (acc, currency) => {
+        const data = rates[currency];
+
+        acc[currency] = {
+          name: getCurrencyNameInKorean(currency),
+          rate: data.rate,
+          dayChange: data.dayChange,
+          dayChangePercent: data.dayChangePercent,
+          inverseRate: parseFloat((1 / data.rate).toFixed(6)),
+          timestamp: data.timestamp,
+        };
+        return acc;
+      },
+      {},
+    );
   }
 
   /**
@@ -317,11 +380,15 @@ export class ExchangeRateService {
       }
     }
 
+    // 헬스체크 업데이트
+    await this.exchangeRateRedisService.updateHealthCheck(baseCurrency);
     // 레코드 삽입 (default-postgres)
-    return await this.exchangeRateRawRepository.createExchangeRate({
+    await this.exchangeRateRawRepository.createExchangeRate({
       baseCurrency: baseCurrency,
       currencyCode: currencyCode,
       rate: latestRateRound,
     });
+
+    return;
   }
 }

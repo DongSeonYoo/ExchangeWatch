@@ -188,6 +188,106 @@ describe('ExchangeRateService', () => {
       ).not.toThrow();
     });
 
+    describe('Redis caching', () => {
+      let externalLatestRateSpy;
+      let externalFluctuationSpy;
+
+      beforeEach(() => {
+        externalFluctuationSpy = jest.spyOn(
+          fluctuationExchangeRateApi,
+          'getFluctuationData',
+        );
+        externalLatestRateSpy = jest.spyOn(
+          latestExchangeRateApi,
+          'getLatestRates',
+        );
+      });
+
+      it('should return exchange-rates from Redis when cache was hitted', async () => {
+        // Arrange
+        const baseCurrency = 'KRW';
+        const recentUpdateCacheDate = new Date(); // 캐시된 최신 데이터
+        exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
+          recentUpdateCacheDate,
+        );
+        exchangeRateRedisService.getLatestRate.mockResolvedValue([
+          '0.000662', // rate
+          '11.788303000000042', // dayChange
+          '0.7870123194679027', // daychangePercent
+          `${recentUpdateCacheDate.getTime()}`, // timestamp
+        ]);
+
+        // Act
+        const result = await exchangeRateService.getCurrencyExchangeRates({
+          baseCurrency,
+        });
+
+        // Assert
+        expect(externalLatestRateSpy).not.toHaveBeenCalled();
+        expect(externalFluctuationSpy).not.toHaveBeenCalled();
+        expect(Object.keys(result.rates)).toHaveLength(31); // 전체 통화쌍 데이터
+        expect(() =>
+          typia.assertEquals<CurrentExchangeRateResDto>(result),
+        ).not.toThrow();
+      });
+
+      it('should fetch from externalAPI when healthcheck is older than threshold', async () => {
+        // Arrange
+        const baseCurrency = 'KRW';
+        const recentUpdateCacheDate = new Date(Date.now() - 15000); // 15초 전 캐시된 데이터
+        exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
+          recentUpdateCacheDate,
+        );
+        exchangeRateRedisService.getLatestRate.mockResolvedValue([
+          '0.000662', // rate
+          '11.788303000000042', // dayChange
+          '0.7870123194679027', // daychangePercent
+          `${recentUpdateCacheDate.getTime()}`, // timestamp
+        ]);
+        const mockLatestRates = ExchangeRateFixture.createLatestRates(
+          baseCurrency,
+          Object.fromEntries(
+            supportCurrencyList.map((currency) => [currency, 1]),
+          ),
+        );
+        const mockFluctuation = ExchangeRateFixture.createFluctuationRates(
+          baseCurrency,
+          new Date(),
+          new Date(),
+          Object.fromEntries(
+            supportCurrencyList.map((currency) => [
+              currency,
+              {
+                startRate: 1,
+                endRate: 1,
+                change: 1,
+                changePct: 1,
+                highRate: 2,
+                lowRate: 1.5,
+              },
+            ]),
+          ),
+        );
+        latestExchangeRateApi.getLatestRates.mockResolvedValue(mockLatestRates);
+        fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
+          mockFluctuation,
+        );
+
+        // Act
+        const result = await exchangeRateService.getCurrencyExchangeRates({
+          baseCurrency,
+        });
+
+        // Assert
+        expect(externalLatestRateSpy).toHaveBeenCalled();
+        expect(externalFluctuationSpy).toHaveBeenCalled();
+        expect(Object.keys(result.rates)).toHaveLength(31); // 전체 통화쌍 데이터
+        expect(() =>
+          typia.assertEquals<CurrentExchangeRateResDto>(result),
+        ).not.toThrow();
+      });
+    });
+
     it.todo('hadnling external API(ratesRate)');
 
     it.todo('handling external API(fluctuationRate)');
@@ -456,19 +556,19 @@ describe('ExchangeRateService', () => {
     const latestRate = 1580;
     const latestTimestamp = new Date().getTime();
 
-    describe('해당 통화쌍에 대한 hash데이터가 존재할 경우', () => {
+    describe('모든 작업이 수행 된 후', () => {
       it('소켓으로 받은 latest-rate 데이터를 모두 rdb에 삽입한다', async () => {
         // Arrange
         exchangeRateRedisService.getLatestRate.mockResolvedValue([
           `${latestRate}`,
           `${latestTimestamp}`,
         ]);
-
-        // Act
         const createRateInRawSpy = jest.spyOn(
           exchangeRateRawRepository,
           'createExchangeRate',
         );
+
+        // Act
         await exchangeRateService.processLatestRateFromWS(
           baseCurrency,
           currencyCode,
@@ -483,6 +583,32 @@ describe('ExchangeRateService', () => {
           rate: latestRate,
         });
       });
+
+      it('healthcheck를 update한다', async () => {
+        // Arrange
+        exchangeRateRedisService.getLatestRate.mockResolvedValue([
+          `${latestRate}`,
+          `${latestTimestamp}`,
+        ]);
+        const helthCheckSpy = jest.spyOn(
+          exchangeRateRedisService,
+          'updateHealthCheck',
+        );
+
+        // Act
+        await exchangeRateService.processLatestRateFromWS(
+          baseCurrency,
+          currencyCode,
+          latestRate,
+          latestTimestamp,
+        );
+
+        // Assert
+        expect(helthCheckSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('해당 통화쌍에 대한 hash-set데이터가 존재할 경우', () => {
       describe('날짜가 바뀌지 않은 경우 (같은 일(day)의 소켓 데이터인 경우)', () => {
         beforeEach(() => {
           dateUtilService.isBefore.mockReturnValue(false);
