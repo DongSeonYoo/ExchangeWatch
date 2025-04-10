@@ -9,8 +9,8 @@ describe('ExchangeRateRedisService (Integration)', () => {
   let redis: Redis;
   let exchangeRateRedisService: ExchangeRateRedisService;
   const latestRateKey = 'exchange-rate:latest-rate';
-  const healthCheckey = 'exchnage-rate:health-check';
-  const rateUpdateChannelKey = 'exchnage-rate:rate-update';
+  const healthCheckey = 'exchange-rate:health-check';
+  const rateUpdateChannelKey = 'exchange-rate:rate-update';
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -272,7 +272,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
       const date = new Date().toISOString();
 
       // Act
-      await redis.set(healthCheckey + ':' + baseCurrency, date);
+      await redis.set(healthCheckey + ':' + baseCurrency, JSON.stringify(date));
       const result =
         await exchangeRateRedisService.getLatestRateHealthCheck(baseCurrency);
 
