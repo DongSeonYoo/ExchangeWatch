@@ -34,6 +34,33 @@ export class ExchangeRateService {
     private readonly exchangeRateRedisService: ExchangeRateRedisService,
   ) {}
 
+  /**
+   * baseCurrency를 기준으로 최신 환율정보를 응답합니다 (30개의 통화쌍에 대해서)
+   *
+   * 1. baseCurrency가 KRW인경우
+   *  - Redis에 저장되어있는 최신 latestRate 확인 (ExternalGateway로부터 정기적으로 수집된)
+   *  - 해당 latestRate의 수집 시간이 임계치를 만족한다면 (캐시조건 부합)
+   *    - 해당 데이터들을 이용해서 응답을 조합하고 반환
+   *  - 해당 latestRate의 수집 시간이 임계치를 만족하지 않는다면 (캐시조건 미부합)
+   *    - 외부API 각각 호출(latest-rate, fluctuation-rate)
+   *    - 해당 데이터들을 이용해서 응답을 조합하고 반환
+   *
+   * 2. baseCurrency가 KRW가 아닌 경우 (KRW 기준으로 환율 역산(캐싱))
+   *  역산 로직:
+   *  - Redis에 저장되어있는 KRW/{baseCurrency}에 대한 latestRate값을 가져옴
+   *  - KRW/{targetCodes} 30개 조회
+   *  - (KRW/{input.baseCurrency}) / (KRW/{targetCodes...})
+   *
+   *  - latest-lates는 외부 API 콜하지 않아도 됌
+   *  - fluctuation정보들은 어쩔수 없이 외부 API 콜해야함 (연산 불가)
+   *
+   * 3. 위 캐시 조건들을 부합하지 못할 경우
+   *  - SocketGateWay오류 혹은 외부 API 장애로 인해 latestRate 수집이 지연되었다고 판단
+   *  - 외부 API로부터 latest-rate, fluctuation-rate 호출
+   *  - 해당 데이터들을 이용해서 응답을 조합하고 반환
+   *
+   * @returns CurrentExchangeRateResDto
+   */
   async getCurrencyExchangeRates(
     input: CurrentExchangeRateReqDto,
   ): Promise<CurrentExchangeRateResDto> {
