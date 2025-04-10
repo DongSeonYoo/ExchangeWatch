@@ -207,7 +207,7 @@ describe('ExchangeRateService', () => {
         // Arrange
         const baseCurrency = 'KRW';
         const recentUpdateCacheDate = new Date(); // 캐시된 최신 데이터
-        exchangeRateRedisService.latestRateHealthCheck.mockResolvedValue(
+        exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
           recentUpdateCacheDate,
         );
         exchangeRateRedisService.getLatestRate.mockResolvedValue([
@@ -235,7 +235,7 @@ describe('ExchangeRateService', () => {
         // Arrange
         const baseCurrency = 'KRW';
         const recentUpdateCacheDate = new Date(Date.now() - 15000); // 15초 전 캐시된 데이터
-        exchangeRateRedisService.latestRateHealthCheck.mockResolvedValue(
+        exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
           recentUpdateCacheDate,
         );
         exchangeRateRedisService.getLatestRate.mockResolvedValue([

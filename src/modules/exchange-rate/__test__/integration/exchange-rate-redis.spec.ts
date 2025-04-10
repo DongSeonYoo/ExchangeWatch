@@ -8,6 +8,9 @@ import Redis from 'ioredis';
 describe('ExchangeRateRedisService (Integration)', () => {
   let redis: Redis;
   let exchangeRateRedisService: ExchangeRateRedisService;
+  const latestRateKey = 'exchange-rate:latest-rate';
+  const healthCheckey = 'exchnage-rate:health-check';
+  const rateUpdateChannelKey = 'exchnage-rate:rate-update';
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -245,6 +248,51 @@ describe('ExchangeRateRedisService (Integration)', () => {
       // Assert
       // 구독자가 없으니 당연히 0이겠
       expect(result).toBe(0);
+    });
+  });
+
+  describe('updateHealthCheck', () => {
+    it('should save/update (overwrite) healthcheck with baseCurrency', async () => {
+      // Arrange
+      const baseCurrency = 'KRW';
+
+      // Act
+      await exchangeRateRedisService.updateHealthCheck(baseCurrency);
+      const result = await redis.get(healthCheckey + ':' + baseCurrency);
+
+      // Assert
+      expect(() => typia.assertEquals<Date>(new Date(result!))).not.toThrow();
+    });
+  });
+
+  describe('getLatestRateHealthCheck', () => {
+    it('should return healthcheck saved as the latestRate', async () => {
+      // Arrange
+      const baseCurrency = 'KRW';
+      const date = new Date().toISOString();
+
+      // Act
+      await redis.set(healthCheckey + ':' + baseCurrency, date);
+      const result =
+        await exchangeRateRedisService.getLatestRateHealthCheck(baseCurrency);
+
+      // Assert
+      expect(() => typia.assertEquals<Date>(new Date(result!))).not.toThrow();
+    });
+
+    it('should return null if not saved', async () => {
+      // Arragne
+      const baseCurrency = 'KRW';
+      const date = new Date().toISOString();
+
+      // Act
+      // if not saved healthcheck
+      // await redis.set(healthCheckey + ':' + baseCurrency, date);
+      const result =
+        await exchangeRateRedisService.getLatestRateHealthCheck(baseCurrency);
+
+      // Assert
+      expect(result).toBeNull();
     });
   });
 });

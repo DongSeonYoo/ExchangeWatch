@@ -61,7 +61,7 @@ export class ExchangeRateRedisService {
   }
 
   async updateHealthCheck(baseCurrency: string): Promise<void> {
-    const key = `${this.healthCheckey}${baseCurrency}`;
+    const key = `${this.healthCheckey}:${baseCurrency}`;
 
     await this.redisService.set(key, new Date().toISOString());
 
