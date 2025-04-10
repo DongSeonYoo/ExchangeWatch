@@ -7,7 +7,7 @@ export class ExchangeRateRedisService {
   private readonly logger = new Logger(ExchangeRateRedisService.name);
   private readonly latestRateKey = 'exchange-rate:latest-rate';
   private readonly healthCheckey = 'exchange-rate:health-check';
-  private readonly rateUpdateChannelKey = 'exchange-rate:rate-update';
+  private readonly rateUpdateChannelKey = 'rate-update';
 
   constructor(private readonly redisService: RedisService) {}
 
