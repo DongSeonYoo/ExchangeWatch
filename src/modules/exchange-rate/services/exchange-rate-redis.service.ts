@@ -69,7 +69,7 @@ export class ExchangeRateRedisService {
   }
 
   async getLatestRateHealthCheck(baseCurrency: string): Promise<Date | null> {
-    const key = `${this.healthCheckey}${baseCurrency}`;
+    const key = `${this.healthCheckey}:${baseCurrency}`;
     const result = await this.redisService.get<Date>(key);
 
     return result ? new Date(result) : null;
