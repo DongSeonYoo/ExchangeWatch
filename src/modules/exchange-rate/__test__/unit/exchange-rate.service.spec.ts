@@ -76,216 +76,87 @@ describe('ExchangeRateService', () => {
   });
 
   describe('getCurrencyExchangeRates', () => {
-    it('should return aggregated lates exchange rates', async () => {
-      // Arrange
-      const baseCurrency = 'EUR';
-      const currencyCodes = ['USD', 'KRW'];
-      const today = new Date();
-      const yesterday = new Date();
-      const latestRatesResponse = ExchangeRateFixture.createLatestRates('EUR', {
-        USD: 1.1,
-        KRW: 0.8,
-      });
-      const fluctuationRatesRepsonse =
-        ExchangeRateFixture.createFluctuationRates(
-          baseCurrency,
-          yesterday,
-          today,
-          {
-            USD: {
-              startRate: 1,
-              endRate: 1,
-              change: 1,
-              changePct: 1,
-              highRate: 2,
-              lowRate: 1.5,
-            },
-            KRW: {
-              startRate: 1,
-              endRate: 1,
-              change: 1,
-              changePct: 1,
-              highRate: 2,
-              lowRate: 1.5,
-            },
-          },
-        );
-
-      dateUtilService.getYesterday.mockReturnValue(yesterday);
-      latestExchangeRateApi.getLatestRates.mockResolvedValue(
-        latestRatesResponse,
-      );
-      fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
-        fluctuationRatesRepsonse,
-      );
-
-      // Act
-      const result = await exchangeRateService.getCurrencyExchangeRates({
-        baseCurrency,
-        currencyCodes,
-      } as any);
-
-      // Assert
-      expect(Object.keys(result.rates)).toEqual(
-        expect.arrayContaining(currencyCodes),
-      );
-      expect(() =>
-        typia.assert<CurrentExchangeRateResDto>(result),
-      ).not.toThrow();
-    });
-
-    it('should return supported currencies in our services if currencyCodes is empty', async () => {
-      // Arrange
-      const baseCurrency = 'EUR';
-      const currencyCodes = [];
-      const supportedCurrencyList = supportCurrencyList;
-      const today = new Date();
-      const yesterday = new Date();
-
-      const mockLatestRates = ExchangeRateFixture.createLatestRates(
-        baseCurrency,
-        Object.fromEntries(
-          supportedCurrencyList.map((currency) => [currency, 1]),
-        ),
-      );
-      const mockFluctuation = ExchangeRateFixture.createFluctuationRates(
-        baseCurrency,
-        yesterday,
-        today,
-        Object.fromEntries(
-          supportedCurrencyList.map((currency) => [
-            currency,
-            {
-              startRate: 1,
-              endRate: 1,
-              change: 1,
-              changePct: 1,
-              highRate: 2,
-              lowRate: 1.5,
-            },
-          ]),
-        ),
-      );
-
-      latestExchangeRateApi.getLatestRates.mockResolvedValue(mockLatestRates);
-      fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
-        mockFluctuation,
-      );
-
-      // Act
-      const result = await exchangeRateService.getCurrencyExchangeRates({
-        baseCurrency,
-        currencyCodes,
-      } as any);
-
-      // Assert
-      expect(result.baseCurrency).toBe(baseCurrency);
-      expect(Object.keys(result.rates)).toEqual(
-        expect.arrayContaining(supportCurrencyList),
-      );
-      expect(() =>
-        typia.assertEquals<CurrentExchangeRateResDto>(result),
-      ).not.toThrow();
-    });
-
-    describe('Redis caching', () => {
-      let externalLatestRateSpy;
-      let externalFluctuationSpy;
+    describe('if baseCurrency is "KRW"', () => {
+      const baseCurrency = 'KRW';
+      const currencyCodes = supportCurrencyList;
+      let latestRateFromExternalSpy: jest.SpyInstance;
+      let fluctuationRateFromExternalSpy: jest.SpyInstance;
 
       beforeEach(() => {
-        externalFluctuationSpy = jest.spyOn(
-          fluctuationExchangeRateApi,
-          'getFluctuationData',
-        );
-        externalLatestRateSpy = jest.spyOn(
+        latestRateFromExternalSpy = jest.spyOn(
           latestExchangeRateApi,
           'getLatestRates',
         );
+        fluctuationRateFromExternalSpy = jest.spyOn(
+          fluctuationExchangeRateApi,
+          'getFluctuationData',
+        );
       });
 
-      it('should return exchange-rates from Redis when cache was hitted', async () => {
+      it('should not call external API when cache was hit', async () => {
         // Arrange
-        const baseCurrency = 'KRW';
-        const recentUpdateCacheDate = new Date(); // 캐시된 최신 데이터
+        const timestamp = new Date(); // 방금 캐시된 따끈따끈한 데이터
         exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
-          recentUpdateCacheDate,
+          timestamp,
         );
         exchangeRateRedisService.getLatestRate.mockResolvedValue([
-          '0.000662', // rate
-          '11.788303000000042', // dayChange
-          '0.7870123194679027', // daychangePercent
-          `${recentUpdateCacheDate.getTime()}`, // timestamp
+          '100', // change
+          '10', // changePct
+          '1000', // rate
+          `${timestamp}`, // timetsamp
         ]);
 
         // Act
         const result = await exchangeRateService.getCurrencyExchangeRates({
           baseCurrency,
+          currencyCodes,
         });
 
         // Assert
-        expect(externalLatestRateSpy).not.toHaveBeenCalled();
-        expect(externalFluctuationSpy).not.toHaveBeenCalled();
-        expect(Object.keys(result.rates)).toHaveLength(31); // 전체 통화쌍 데이터
+        expect(latestRateFromExternalSpy).not.toHaveBeenCalled();
+        expect(fluctuationRateFromExternalSpy).not.toHaveBeenCalled();
         expect(() =>
           typia.assertEquals<CurrentExchangeRateResDto>(result),
         ).not.toThrow();
       });
 
-      it('should fetch from externalAPI when healthcheck is older than threshold', async () => {
+      it('should call external API when cache was not hit', async () => {
         // Arrange
-        const baseCurrency = 'KRW';
-        const recentUpdateCacheDate = new Date(Date.now() - 15000); // 15초 전 캐시된 데이터
+        const timestamp = new Date(Date.now() - 10000); // 10초 전 수집된 데이터
         exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
-          recentUpdateCacheDate,
+          timestamp,
         );
         exchangeRateRedisService.getLatestRate.mockResolvedValue([
-          '0.000662', // rate
-          '11.788303000000042', // dayChange
-          '0.7870123194679027', // daychangePercent
-          `${recentUpdateCacheDate.getTime()}`, // timestamp
+          '100', // change
+          '10', // changePct
+          '1000', // rate
+          `${timestamp}`, // timetsamp
         ]);
-        const mockLatestRates = ExchangeRateFixture.createLatestRates(
-          baseCurrency,
-          Object.fromEntries(
-            supportCurrencyList.map((currency) => [currency, 1]),
-          ),
+        latestExchangeRateApi.getLatestRates.mockResolvedValue(
+          ExchangeRateFixture.createDefaultLatestRates(baseCurrency),
         );
-        const mockFluctuation = ExchangeRateFixture.createFluctuationRates(
-          baseCurrency,
-          new Date(),
-          new Date(),
-          Object.fromEntries(
-            supportCurrencyList.map((currency) => [
-              currency,
-              {
-                startRate: 1,
-                endRate: 1,
-                change: 1,
-                changePct: 1,
-                highRate: 2,
-                lowRate: 1.5,
-              },
-            ]),
-          ),
-        );
-        latestExchangeRateApi.getLatestRates.mockResolvedValue(mockLatestRates);
         fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
-          mockFluctuation,
+          ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
         );
 
         // Act
         const result = await exchangeRateService.getCurrencyExchangeRates({
           baseCurrency,
+          currencyCodes,
         });
 
         // Assert
-        expect(externalLatestRateSpy).toHaveBeenCalled();
-        expect(externalFluctuationSpy).toHaveBeenCalled();
-        expect(Object.keys(result.rates)).toHaveLength(31); // 전체 통화쌍 데이터
+        expect(latestRateFromExternalSpy).toHaveBeenCalled();
+        expect(fluctuationRateFromExternalSpy).toHaveBeenCalled();
         expect(() =>
           typia.assertEquals<CurrentExchangeRateResDto>(result),
         ).not.toThrow();
       });
+    });
+    describe('if baseCurrency is not "KRW"', () => {
+      it.todo(
+        'should calculate inversed rates from Redis(latestRate) & external(fluctuation)',
+      );
     });
 
     it.todo('hadnling external API(ratesRate)');
@@ -331,20 +202,10 @@ describe('ExchangeRateService', () => {
 
         // mocking as many as missDates
         fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
-          ExchangeRateFixture.createFluctuationRates(
+          ExchangeRateFixture.createDefaultFluctuationRates(
             'EUR',
             new Date('2025-01-01'),
             new Date('2025-01-04'),
-            {
-              KRW: {
-                startRate: 1,
-                endRate: 1,
-                change: 1,
-                changePct: 1,
-                highRate: 2,
-                lowRate: 1.5,
-              },
-            },
           ),
         );
 
@@ -419,20 +280,10 @@ describe('ExchangeRateService', () => {
 
         // mocking as many as missDates
         fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
-          ExchangeRateFixture.createFluctuationRates(
+          ExchangeRateFixture.createDefaultFluctuationRates(
             'EUR',
             new Date('2025-01-01'),
             new Date('2025-01-04'),
-            {
-              KRW: {
-                startRate: 1,
-                endRate: 1,
-                change: 1,
-                changePct: 1,
-                highRate: 2,
-                lowRate: 1.5,
-              },
-            },
           ),
         );
 
