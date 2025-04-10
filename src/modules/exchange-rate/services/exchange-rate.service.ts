@@ -14,7 +14,6 @@ import {
 import { DateUtilService } from '../../../common/utils/date-util/date-util.service';
 import { ExchangeRateRawRepository } from '../repositories/exchange-rate-raw.repository';
 import { IExchangeRateDaily } from '../interfaces/exchange-rate-daily.interface';
-import { IExchangeRateExternalAPI } from '../../../infrastructure/externals/exchange-rates/interfaces/exchange-rate-api.interface';
 import { getCurrencyNameInKorean } from '../constants/symbol-kr.mapper';
 import { ExchangeRateRedisService } from './exchange-rate-redis.service';
 
@@ -381,6 +380,7 @@ export class ExchangeRateService {
       }
     }
 
+    // 헬스체크 업데이트
     await this.exchangeRateRedisService.updateHealthCheck(baseCurrency);
     // 레코드 삽입 (default-postgres)
     await this.exchangeRateRawRepository.createExchangeRate({
