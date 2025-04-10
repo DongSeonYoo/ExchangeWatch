@@ -17,12 +17,10 @@ export class RedisService implements OnModuleDestroy {
    * @param key
    * @returns
    */
-  async get<T>(key: string): Promise<T | null> {
+  async get<T = string>(key: string): Promise<T | null> {
     const rawData = await this.redisClient.get(key);
-    if (typeof rawData === 'object') {
-      return rawData ? (JSON.parse(rawData) as T) : null;
-    }
-    return rawData ? (rawData as T) : null;
+
+    return rawData ? (JSON.parse(rawData) as T) : null;
   }
 
   /**
