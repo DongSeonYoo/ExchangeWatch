@@ -1,9 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -12,13 +14,14 @@ import { ApiTags } from '@nestjs/swagger';
 import { GoogleOAuthGuard } from '../guards/google.guard';
 import { LoggedInUser } from '../../users/decorator/logged-in-user.decorator';
 import { UserEntity } from '../../users/entities/user.entity';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { UsersService } from '../../users/users.service';
 import { ApiSuccess } from '../../../common/decorators/swaggers/success.decorator';
 import {
   AccessAuth,
   RefreshAuth,
 } from '../../../common/decorators/swaggers/login-auth.decorator';
+import { RefreshAcessTokenReqDto } from '../dto/refresh.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -38,6 +41,7 @@ export class AuthController {
   @UseGuards(GoogleOAuthGuard)
   async googleAuthCallback(
     @LoggedInUser() user: UserEntity,
+    @Req() req: Request,
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
     const { accessToken, refreshToken } =
@@ -99,7 +103,10 @@ export class AuthController {
   @ApiSuccess({
     accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
-  async refreshToken(@LoggedInUser() user: UserEntity) {
+  async refreshToken(
+    @Body() refreshToken: RefreshAcessTokenReqDto,
+    @LoggedInUser() user: UserEntity,
+  ) {
     const accessToken = await this.authService.refreshAccessToken(user);
 
     return {
