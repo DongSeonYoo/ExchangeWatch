@@ -39,7 +39,7 @@ export class ExternalWebSocketGateWay implements OnModuleInit {
     this.logger.debug('테스트 웹소켓 시뮬레이션 시작 (KRW/EUR)');
 
     // 기준 환율 (KRW/EUR)
-    const baseRate = 1500;
+    const baseRate = 0.0666;
 
     // 5초마다 데이터 생성 및 이벤트 발생
     this.intervalSubscription = interval(5000).subscribe(() => {
