@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "prisma": {
-  "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts"
   },
   "scripts": {
     "build": "nest build",
@@ -54,6 +54,7 @@
     "class-validator": "^0.14.1",
     "currency-codes": "^2.2.0",
     "dayjs": "^1.11.13",
+    "firebase-admin": "^13.2.0",
     "glob": "^11.0.0",
     "install": "^0.13.0",
     "ioredis": "^5.4.1",
