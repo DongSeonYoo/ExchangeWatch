@@ -63,4 +63,32 @@ export class NotificationRepository {
 
     return result.map(NotificationEntity.from<T>);
   }
+
+  async getTargetPriceNotificationByPair(
+    baseCurrency: string,
+    currencyCode: string,
+  ) {
+    const result = await this.txHost.tx.notifications.findMany({
+      where: {
+        AND: [
+          {
+            notificationData: {
+              path: ['baseCurrency'],
+              equals: baseCurrency,
+            },
+          },
+          {
+            notificationData: {
+              path: ['currencyCode'],
+              equals: currencyCode,
+            },
+          },
+        ],
+      },
+    });
+
+    return result.map((e) => {
+      return e ? NotificationEntity.from<'TARGET_PRICE'>(e) : null;
+    });
+  }
 }
