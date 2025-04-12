@@ -56,4 +56,9 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_SECRET: Joi.string().required(),
   REFRESH_TOKEN_EXPIRES_IN: Joi.string().required(),
   REFRESH_TOKEN_TTL: Joi.number().required(),
+
+  // FCM
+  FCM_PROJECT_ID: Joi.string().required(),
+  FCM_CLIENT_EMAIL: Joi.string().required(),
+  FCM_PRIVATE_KEY: Joi.string().required(),
 });
