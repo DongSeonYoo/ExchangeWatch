@@ -28,6 +28,7 @@ import { SseModule } from './modules/sse/sse.module';
 import { UnhandledExceptionFilter } from './common/filter/unhandled-exception.filter';
 import { HttpExceptionFilter } from './common/filter/http-exception.filter';
 import { SuccessResponseInterceptor } from './common/interceptor/response.interceptor';
+import { FcmModule } from './modules/fcm/fcm.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { SuccessResponseInterceptor } from './common/interceptor/response.interc
     ExternalAPIModule,
     NotificationModule,
     SseModule,
+    FcmModule,
   ],
   providers: [
     LoggerMiddleware,
