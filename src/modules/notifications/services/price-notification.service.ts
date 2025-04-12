@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { NotificationRepository } from './notification.repository';
-import { CreatePriceNotificationReqDto } from './dtos/price-notification/create-price-notification.dto';
-import { NotificationEntity } from './entities/notification.entity';
-import { MaxNotificationCountException } from './exceptions/max-notification-count.exception';
-import { AlreadyRegisterNotificationException } from './exceptions/arleady-notification.exception';
-import { SelectPriceNotificationReqDto } from './dtos/price-notification/select-price-notification.dto';
+import { NotificationRepository } from '../notification.repository';
+import { CreatePriceNotificationReqDto } from '../dtos/price-notification/create-price-notification.dto';
+import { NotificationEntity } from '../entities/notification.entity';
+import { MaxNotificationCountException } from '../exceptions/max-notification-count.exception';
+import { AlreadyRegisterNotificationException } from '../exceptions/arleady-notification.exception';
+import { SelectPriceNotificationReqDto } from '../dtos/price-notification/select-price-notification.dto';
 
 @Injectable()
-export class NotificationService {
+export class PriceNotificationService {
   private readonly MAX_NOTIFICATION_COUNT = 10;
   constructor(
-    private readonly priceNotificationRepository: NotificationRepository,
+    private readonly notificationRepository: NotificationRepository,
   ) {}
 
   async createPriceNotification(
@@ -18,12 +18,12 @@ export class NotificationService {
     userIdx: number,
   ): Promise<NotificationEntity<'TARGET_PRICE'>> {
     const notiCount =
-      await this.priceNotificationRepository.getUserNotificationsCount(userIdx);
+      await this.notificationRepository.getUserNotificationsCount(userIdx);
     if (notiCount >= this.MAX_NOTIFICATION_COUNT) {
       throw new MaxNotificationCountException();
     }
 
-    const result = await this.priceNotificationRepository.getUserNotifications({
+    const result = await this.notificationRepository.getUserNotifications({
       notificationType: 'TARGET_PRICE',
       userIdx: userIdx,
     });
@@ -40,7 +40,7 @@ export class NotificationService {
     }
 
     const createdNotification =
-      await this.priceNotificationRepository.createNotification({
+      await this.notificationRepository.createNotification({
         notificationType: 'TARGET_PRICE',
         notificationData: input,
         userIdx: userIdx,
@@ -57,13 +57,14 @@ export class NotificationService {
     limit: number;
     offset: number;
   }> {
-    const result =
-      await this.priceNotificationRepository.getNotificationsWithOffset({
+    const result = await this.notificationRepository.getNotificationsWithOffset(
+      {
         userIdx: userIdx,
         limit: input.limit,
         offset: input.getOffset(),
         notificationType: 'TARGET_PRICE',
-      });
+      },
+    );
 
     return {
       items: result,

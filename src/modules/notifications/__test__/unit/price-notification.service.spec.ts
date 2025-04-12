@@ -2,19 +2,19 @@ import { Test } from '@nestjs/testing';
 import { NotificationRepository } from '../../notification.repository';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { MaxNotificationCountException } from '../../exceptions/max-notification-count.exception';
-import { NotificationService } from '../../notification.service';
+import { PriceNotificationService } from '../../services/price-notification.service';
 import { NotificationEntity } from '../../entities/notification.entity';
 import { AlreadyRegisterNotificationException } from '../../exceptions/arleady-notification.exception';
 import { SelectPriceNotificationReqDto } from '../../dtos/price-notification/select-price-notification.dto';
 
 describe('PriceNotificationService (unit)', () => {
-  let notificationService: NotificationService;
+  let notificationService: PriceNotificationService;
   let notificationRepository: MockProxy<NotificationRepository>;
 
   beforeEach(async () => {
     const app = await Test.createTestingModule({
       providers: [
-        NotificationService,
+        PriceNotificationService,
         {
           provide: NotificationRepository,
           useFactory: () => mock<NotificationRepository>(),
@@ -22,7 +22,7 @@ describe('PriceNotificationService (unit)', () => {
       ],
     }).compile();
 
-    notificationService = app.get(NotificationService);
+    notificationService = app.get(PriceNotificationService);
     notificationRepository = app.get(NotificationRepository);
   });
 

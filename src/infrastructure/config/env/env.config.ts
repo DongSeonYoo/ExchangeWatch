@@ -64,4 +64,10 @@ export const appConfig = registerAs('', () => ({
     REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN,
     REFRESH_TOKEN_TTL: process.env.REFRESH_TOKEN_TTL,
   },
+
+  fcm: {
+    FCM_PROJECT_ID: process.env.FCM_PROJECT_ID,
+    FCM_CLIENT_EMAIL: process.env.FCM_CLIENT_EMAIL,
+    FCM_PRIVATE_KEY: Buffer.from(process.env.FCM_PRIVATE_KEY!).toString(),
+  },
 }));

@@ -14,7 +14,7 @@ import { AlreadyRegisterNotificationException } from './exceptions/arleady-notif
 import { LoggedInUser } from '../users/decorator/logged-in-user.decorator';
 import { UserEntity } from '../users/entities/user.entity';
 import { ApiTags } from '@nestjs/swagger';
-import { NotificationService } from './notification.service';
+import { PriceNotificationService } from './services/price-notification.service';
 import {
   CreatePriceNotificationReqDto,
   CreatePriceNotificationResDto,
@@ -31,7 +31,7 @@ import { ApiSuccess } from '../../common/decorators/swaggers/success.decorator';
 @Controller('notifications')
 @AccessAuth()
 export class NotificationController {
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(private readonly notificationService: PriceNotificationService) {}
 
   /**
    * 가격 알림 생성
