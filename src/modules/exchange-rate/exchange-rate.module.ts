@@ -14,6 +14,7 @@ import { IsBeforeThanConstraint } from '../../common/decorators/validations/is-b
 import { SseModule } from '../sse/sse.module';
 import { ExchangeRateRedisService } from './services/exchange-rate-redis.service';
 import { RedisService } from '../../infrastructure/redis/redis.service';
+import { NotificationModule } from '../notifications/notification.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { RedisService } from '../../infrastructure/redis/redis.service';
     ExternalAPIModule,
     ScheduleModule.forRoot(),
     SseModule,
+    NotificationModule,
   ],
   controllers: [ExchangeRateController],
   providers: [
@@ -35,6 +37,6 @@ import { RedisService } from '../../infrastructure/redis/redis.service';
     LatestRateListener,
     UpdateRateListener,
   ],
-  exports: [ExchangeRateService],
+  exports: [],
 })
 export class ExchangeRateModule {}
