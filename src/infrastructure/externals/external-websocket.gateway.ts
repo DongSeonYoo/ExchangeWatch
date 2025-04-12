@@ -1,5 +1,10 @@
 import WebSocket from 'ws';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../config/config.type';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -7,6 +12,7 @@ import { supportCurrencyList } from '../../modules/exchange-rate/constants/suppo
 import { CoinApiWebSocket } from './exchange-rates/coin-api/interfaces/coin-api-websocket.interface';
 import { interval, Subscription } from 'rxjs';
 import { LatestRateEvent } from '../events/exchange-rate/latest-rate.event';
+import { DateUtilService } from '../../common/utils/date-util/date-util.service';
 
 @Injectable()
 export class ExternalWebSocketGateWay implements OnModuleInit {
@@ -17,25 +23,29 @@ export class ExternalWebSocketGateWay implements OnModuleInit {
   private readonly logger: Logger = new Logger(ExternalWebSocketGateWay.name);
   private intervalSubscription: Subscription;
 
-  onModuleInit() {
-    // this.connectSocket();
-    this.testConnectSocket();
-  }
-
   constructor(
     private readonly configService: ConfigService<AppConfig, true>,
     private readonly eventEmitter: EventEmitter2,
+    private readonly dateUtilService: DateUtilService,
   ) {
     this.websocketUrl = this.configService.get('coinApi.baseUrl', {
       infer: true,
     });
   }
 
+  onModuleInit() {
+    if (this.dateUtilService.isMarketOpen()) {
+      this.testConnectLatestRateSocket();
+    } else {
+      this.disconnectLatestRateSocket();
+    }
+  }
+
   /**
    * 테스트용 환율 데이터 생성 및 이벤트 발생 메서드
    * 실제 웹소켓 연결 없이 랜덤 환율 데이터를 생성하여 이벤트를 발생시킴
    */
-  testConnectSocket() {
+  testConnectLatestRateSocket() {
     this.logger.debug('테스트 웹소켓 시뮬레이션 시작 (KRW/EUR)');
 
     // 기준 환율 (KRW/EUR)
@@ -62,7 +72,7 @@ export class ExternalWebSocketGateWay implements OnModuleInit {
     });
   }
 
-  private connectSocket() {
+  connectLatestRateSocket() {
     this.ws = new WebSocket(this.websocketUrl, {
       headers: {
         authorization: this.configService.get('coinApi.apiKey', {
@@ -107,11 +117,16 @@ export class ExternalWebSocketGateWay implements OnModuleInit {
 
     this.ws.on('close', () => {
       this.logger.debug('WebSocket release');
-      setTimeout(() => this.connectSocket(), 5000);
+      setTimeout(() => this.connectLatestRateSocket(), 5000);
     });
 
     this.ws.on('error', (error) => {
       this.logger.error('WebSocket error', error);
     });
+  }
+
+  disconnectLatestRateSocket() {
+    this.ws?.close();
+    this.logger.log('Websocket connection closed');
   }
 }

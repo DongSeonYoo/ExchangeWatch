@@ -41,6 +41,7 @@ export class ExchangeRateService {
    *  - Redis에 저장되어있는 최신 latestRate 확인 (ExternalGateway로부터 정기적으로 수집된)
    *  - 해당 latestRate의 수집 시간이 임계치를 만족한다면 (캐시조건 부합)
    *    - 해당 데이터들을 이용해서 응답을 조합하고 반환
+   *  - 만약 마켓이 닫은 상태일 경우 (캐시 히트 조건 부합)
    *
    *  - 해당 latestRate의 수집 시간이 임계치를 만족하지 않는다면 (캐시조건 미부합)
    *    - 외부API 각각 호출(latest-rate, fluctuation-rate)
@@ -67,7 +68,9 @@ export class ExchangeRateService {
   ): Promise<CurrentExchangeRateResDto> {
     const targetCodes = input.currencyCodes?.length
       ? input.currencyCodes
-      : this.supportCurrencyList;
+      : this.supportCurrencyList.filter(
+          (targetCode) => targetCode !== input.baseCurrency,
+        );
     const today = new Date();
     // 응답 객체 준비
     const preparedResponse: Record<
@@ -85,7 +88,8 @@ export class ExchangeRateService {
         isAliveLatestRateCache.getTime() >
           Date.now() - this.latestRatethreshold;
 
-      if (isCacheHitted) {
+      // 캐시 히트 조건 부합하거나 || 마켓이 닫았을경우
+      if (isCacheHitted || !this.dateUtilService.isMarketOpen()) {
         this.logger.debug('latest-rate cache hit!!');
         for (const code of targetCodes) {
           const [change, changePct, rate, timestamp] =

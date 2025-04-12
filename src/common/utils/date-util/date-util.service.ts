@@ -49,4 +49,21 @@ export class DateUtilService {
   isBefore(targetDate1: Date, targetDate2: Date): boolean {
     return dayjs(targetDate1).isBefore(targetDate2);
   }
+
+  /**
+   * FX시장이 열려있는지 확인
+   *
+   * @returns 열려있으면 true, 닫혀있으면 false
+   */
+  isMarketOpen(): boolean {
+    const now = new Date();
+    const day = now.getUTCDay(); // 0 = sunday, 5 = friday
+    const hour = now.getUTCHours();
+
+    return !(
+      (day === 5 && hour >= 21) || // 금요일 21시 이후
+      day === 6 || // 토요일 하루 종일
+      (day === 0 && hour < 21) // 일요일 21시 이전
+    );
+  }
 }
