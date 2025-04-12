@@ -120,9 +120,9 @@ describe('ExchangeRateService', () => {
         ).not.toThrow();
       });
 
-      it('should call external API when cache was not hit', async () => {
+      it('should call external API when cache was not hit (when market is open)', async () => {
         // Arrange
-        const timestamp = new Date(Date.now() - 10000); // 10초 전 수집된 데이터
+        const timestamp = new Date(Date.now() - 600000); // 1시간 전에 수집된 데이터 -> 데이터 신뢰도 낮음 외부 api호출
         exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
           timestamp,
         );
@@ -132,6 +132,8 @@ describe('ExchangeRateService', () => {
           '1000', // rate
           `${timestamp}`, // timetsamp
         ]);
+        // 시장 오픈
+        dateUtilService.isMarketOpen.mockReturnValue(true);
         latestExchangeRateApi.getLatestRates.mockResolvedValue(
           ExchangeRateFixture.createDefaultLatestRates(baseCurrency),
         );
@@ -148,6 +150,41 @@ describe('ExchangeRateService', () => {
         // Assert
         expect(latestRateFromExternalSpy).toHaveBeenCalled();
         expect(fluctuationRateFromExternalSpy).toHaveBeenCalled();
+        expect(() =>
+          typia.assertEquals<CurrentExchangeRateResDto>(result),
+        ).not.toThrow();
+      });
+
+      it('should not call external when market was closed', async () => {
+        // Arrange
+        const timestamp = new Date(Date.now() - 600000); // 1시간 전에 수집된 데이터 -> 데이터 신뢰도 낮음
+        exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
+          timestamp,
+        );
+        exchangeRateRedisService.getLatestRate.mockResolvedValue([
+          '100', // change
+          '10', // changePct
+          '1000', // rate
+          `${timestamp}`, // timetsamp
+        ]);
+        // 시장 오픈하지 않은 경우 -> 금요일 9시가 마지막 수집이기 때문에 정상
+        dateUtilService.isMarketOpen.mockReturnValue(false);
+        latestExchangeRateApi.getLatestRates.mockResolvedValue(
+          ExchangeRateFixture.createDefaultLatestRates(baseCurrency),
+        );
+        fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
+          ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
+        );
+
+        // Act
+        const result = await exchangeRateService.getCurrencyExchangeRates({
+          baseCurrency,
+          currencyCodes,
+        });
+
+        // Assert
+        expect(latestRateFromExternalSpy).not.toHaveBeenCalled();
+        expect(fluctuationRateFromExternalSpy).not.toHaveBeenCalled();
         expect(() =>
           typia.assertEquals<CurrentExchangeRateResDto>(result),
         ).not.toThrow();
