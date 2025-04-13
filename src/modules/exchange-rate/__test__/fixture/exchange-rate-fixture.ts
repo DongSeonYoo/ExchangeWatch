@@ -41,8 +41,8 @@ export class ExchangeRateFixture {
           endRate: 1,
           highRate: 1,
           lowRate: 1,
-          change: 0,
-          changePct: 0,
+          change: 12,
+          changePct: 1.3,
         },
       ]),
     );
