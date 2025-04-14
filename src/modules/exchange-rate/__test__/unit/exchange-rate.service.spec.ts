@@ -76,193 +76,48 @@ describe('ExchangeRateService', () => {
   });
 
   describe('getCurrencyExchangeRates', () => {
-    describe('if baseCurrency is "KRW"', () => {
-      const baseCurrency = 'KRW';
-      const currencyCodes = supportCurrencyList;
-      let latestRateFromExternalSpy: jest.SpyInstance;
-      let fluctuationRateFromExternalSpy: jest.SpyInstance;
-
-      beforeEach(() => {
-        latestRateFromExternalSpy = jest.spyOn(
-          latestExchangeRateApi,
-          'getLatestRates',
-        );
-        fluctuationRateFromExternalSpy = jest.spyOn(
-          fluctuationExchangeRateApi,
-          'getFluctuationData',
-        );
-      });
-
-      it('should not call external API when cache was hit', async () => {
-        // Arrange
-        const timestamp = new Date(); // 방금 캐시된 따끈따끈한 데이터
-        exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
-          timestamp,
-        );
-        exchangeRateRedisService.getLatestRate.mockResolvedValue([
-          '100', // change
-          '10', // changePct
-          '1000', // rate
-          `${timestamp}`, // timetsamp
-        ]);
-
-        // Act
-        const result = await exchangeRateService.getCurrencyExchangeRates({
-          baseCurrency,
-          currencyCodes,
+    describe('캐시가 유효한 경우', () => {
+      describe('baseCurrency === KRW', () => {
+        describe('마켓이 열려있는 경우', () => {
+          it.todo('캐시(redis) 데이터와 조합하여 응답한다');
+          it.todo('외부 API는 fluctuation 만 호출한다');
+          it.todo('변동률이 Redis 캐시의 환율에 올바르게 조합되어 반환된다');
+          it.todo('timestamp는 redis에서 불러온 값을 그대로 사용해야 한다.');
         });
 
-        // Assert
-        expect(latestRateFromExternalSpy).not.toHaveBeenCalled();
-        expect(fluctuationRateFromExternalSpy).not.toHaveBeenCalled();
-        expect(() =>
-          typia.assertEquals<CurrentExchangeRateResDto>(result),
-        ).not.toThrow();
+        describe('마켓이 닫혀있는 경우', () => {
+          it.todo('두 외부 API는 호출하지 않는다');
+          it.todo('change, change_pct는 0으로 설정되야 한다');
+          it.todo('캐시(redis)값을 기반으로 응답해야한다');
+        });
       });
 
-      it('should call external API when cache was not hit (when market is open)', async () => {
-        // Arrange
-        const timestamp = new Date(Date.now() - 600000); // 1시간 전에 수집된 데이터 -> 데이터 신뢰도 낮음 외부 api호출
-        exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
-          timestamp,
-        );
-        exchangeRateRedisService.getLatestRate.mockResolvedValue([
-          '100', // change
-          '10', // changePct
-          '1000', // rate
-          `${timestamp}`, // timetsamp
-        ]);
-        // 시장 오픈
-        dateUtilService.isMarketOpen.mockReturnValue(true);
-        latestExchangeRateApi.getLatestRates.mockResolvedValue(
-          ExchangeRateFixture.createDefaultLatestRates(baseCurrency),
-        );
-        fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
-          ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
-        );
-
-        // Act
-        const result = await exchangeRateService.getCurrencyExchangeRates({
-          baseCurrency,
-          currencyCodes,
+      describe('baseCurrency !== KRW', () => {
+        describe('마켓이 열려있는 경우', () => {
+          it.todo('Redis의 KRW/base, KRW/targetCodes를 불러와 역산해야 한다.');
+          it.todo(
+            'fluctuation API는 baseCurrnecy + targetCodes 전부 포함하여 호출되어야 한다',
+          );
+          it.todo('변동률 보정이 정확히 계산되어 반환하여야 한다');
         });
 
-        // Assert
-        expect(latestRateFromExternalSpy).toHaveBeenCalled();
-        expect(fluctuationRateFromExternalSpy).toHaveBeenCalled();
-        expect(() =>
-          typia.assertEquals<CurrentExchangeRateResDto>(result),
-        ).not.toThrow();
-      });
-
-      it('should not call external when market was closed', async () => {
-        // Arrange
-        const timestamp = new Date(Date.now() - 600000); // 1시간 전에 수집된 데이터 -> 데이터 신뢰도 낮음
-        exchangeRateRedisService.getLatestRateHealthCheck.mockResolvedValue(
-          timestamp,
-        );
-        exchangeRateRedisService.getLatestRate.mockResolvedValue([
-          '100', // change
-          '10', // changePct
-          '1000', // rate
-          `${timestamp}`, // timetsamp
-        ]);
-        // 시장 오픈하지 않은 경우 -> 금요일 9시가 마지막 수집이기 때문에 정상
-        dateUtilService.isMarketOpen.mockReturnValue(false);
-        latestExchangeRateApi.getLatestRates.mockResolvedValue(
-          ExchangeRateFixture.createDefaultLatestRates(baseCurrency),
-        );
-        fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
-          ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
-        );
-
-        // Act
-        const result = await exchangeRateService.getCurrencyExchangeRates({
-          baseCurrency,
-          currencyCodes,
+        describe('마켓이 닫혀있는 경우', () => {
+          it.todo('두 외부 API는 호출되지 않는다');
+          it.todo('change, change_pct는 0으로 설정되야 한다');
+          it.todo('Redis의 rate만으로 역산해야한다');
         });
-
-        // Assert
-        expect(latestRateFromExternalSpy).not.toHaveBeenCalled();
-        expect(fluctuationRateFromExternalSpy).not.toHaveBeenCalled();
-        expect(() =>
-          typia.assertEquals<CurrentExchangeRateResDto>(result),
-        ).not.toThrow();
       });
     });
 
-    describe('if baseCurrency is not "KRW"', () => {
-      const baseCurrency = 'USD';
-      let fluctuationRateFromExternalSpy: jest.SpyInstance;
-      let latestRateFromExternalSpy: jest.SpyInstance;
-      beforeEach(() => {
-        fluctuationRateFromExternalSpy = jest.spyOn(
-          fluctuationExchangeRateApi,
-          'getFluctuationData',
-        );
-        latestRateFromExternalSpy = jest.spyOn(
-          latestExchangeRateApi,
-          'getLatestRates',
-        );
+    describe('캐시가 유효하지 않은 경우', () => {
+      describe('마켓이 열려있는 경우', () => {
+        it.todo('latestRate + fluctuation API를 호출하여 응답을 조합한다');
       });
 
-      it('should calculate inversed rates from and fetch fluctuation API if market was opened', async () => {
-        // Arrange
-        dateUtilService.isMarketOpen.mockReturnValue(true);
-        exchangeRateRedisService.getLatestRate.mockResolvedValue([
-          '100', // change
-          '10', // changePct
-          '1000', // rate
-          `${Date.now()}`, // timetsamp
-        ]);
-        fluctuationExchangeRateApi.getFluctuationData.mockResolvedValue(
-          ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
-        );
-
-        // Act
-        const result = await exchangeRateService.getCurrencyExchangeRates({
-          baseCurrency,
-        });
-
-        // Asesrt
-        expect(latestRateFromExternalSpy).not.toHaveBeenCalled(); // latestRate는 호출하지 않아야 함
-        expect(fluctuationRateFromExternalSpy).toHaveBeenCalled(); // fluctuationRate는 호출 해야함
-        expect(Object.keys(result.rates)).toHaveLength(30); // 기준 통화 제외한 30개 응답
-        expect(() =>
-          typia.assertEquals<CurrentExchangeRateResDto>(result),
-        ).not.toThrow();
-      });
-
-      it('should calculate inversed rates to change, change_pct = 0 from redis without calling external API if market was closed', async () => {
-        // Arrange
-        dateUtilService.isMarketOpen.mockReturnValue(false); // 시장이 닫혓을 경우
-        exchangeRateRedisService.getLatestRate.mockResolvedValue([
-          '100', // change
-          '10', // changePct
-          '1000', // rate
-          `${Date.now()}`, // timetsamp (실제로는 금요일 21시 (UTC))
-        ]);
-
-        // Act
-        const result = await exchangeRateService.getCurrencyExchangeRates({
-          baseCurrency,
-        });
-
-        // Assert
-        expect(latestRateFromExternalSpy).not.toHaveBeenCalled();
-        expect(fluctuationRateFromExternalSpy).not.toHaveBeenCalled();
-        expect(Object.keys(result.rates)).toHaveLength(30);
-        expect(result.rates['EUR'].dayChange).toBe(0); // 어떤 값이라도 변동값은 0이 되어야함
-        expect(result.rates['EUR'].dayChangePercent).toBe(0); // 어떤 값이라도 변동률이 0이 되어야 함
-        expect(() =>
-          typia.assertEquals<CurrentExchangeRateResDto>(result),
-        ).not.toThrow();
+      describe('마켓이 닫혀있는 경우', () => {
+        it.todo('에러 throw (추후 fallback snapshot)');
       });
     });
-
-    it.todo('hadnling external API(ratesRate)');
-
-    it.todo('handling external API(fluctuationRate)');
   });
 
   describe('getHistoricalRates', () => {
