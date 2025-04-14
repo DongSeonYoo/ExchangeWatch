@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import {
   CurrentExchangeRateReqDto,
   CurrentExchangeRateResDto,
@@ -35,34 +40,34 @@ export class ExchangeRateService {
   ) {}
 
   /**
-   * baseCurrency를 기준으로 최신 환율정보를 응답합니다 (30개의 통화쌍에 대해서)
+   * 현재 환율을 조회 (30개 통화쌍 반환)
+   * - 기준 통화(baseCurrency)를 기준으로 환율을 조회함
+   * - Redis에 저장된 latestRate 캐시 여부, FX 시장 상태(마켓 오픈/마감)에 따라 분기 처리
+   * - 필요 시 외부 API를 호출해 응답 생성
    *
-   * 1. baseCurrency가 KRW인경우
-   *  - Redis에 저장되어있는 최신 latestRate 확인 (ExternalGateway로부터 정기적으로 수집된)
-   *  - 해당 latestRate의 수집 시간이 임계치를 만족한다면 (캐시조건 부합)
-   *    - 해당 데이터들을 이용해서 응답을 조합하고 반환
-   *  - 만약 마켓이 닫은 상태일 경우 (캐시 히트 조건 부합)
+   * 캐시가 유효할 경우(신선한 데이터, Gateway가 정상적으로 환율을 처리하고있음을 확인)
+   *  1. baseCurrency가 'KRW'일 경우
+   *    - 1-1. 마켓이 열려있을 경우
+   *      - 캐시(latestRate) + 외부API(fluctuation) 호출하여 응답을 조합하여 반환
+   *    - 1-2. 마켓이 닫혀있을 경우 (주말)
+   *      - 캐시(latestRate) + 변동률 0으로 처리하고 응답을 조합하여 반환
    *
-   *  - 해당 latestRate의 수집 시간이 임계치를 만족하지 않는다면 (캐시조건 미부합)
-   *    - 외부API 각각 호출(latest-rate, fluctuation-rate)
-   *    - 해당 데이터들을 이용해서 응답을 조합하고 반환
+   *  2. baseCurrency가 'KRW'가 아닌 경우 (캐시된 데이터를 기반으로 역산 처리 필요)
+   *    - 2-1. 마켓이 열려있을 경우
+   *      - Redis로부터 KRW/base, KRW/targetCodes를 불러와서 역산
+   *      - 변동률은 외부API(fluctuation)를 호출하고, 변동률을 역산
+   *      - 위 역산된 데이터들을 기반으로 응답을 조합하여 반환
+   *    - 2-2. 마켓이 닫혀있을 경우 (주말)
+   *      - Redis로부터 KRW/base, KRw/targetCodes 불러와서 역산
+   *      - 변동률 데이터는 0으로 계산
+   *      - 위 역산된 데이터들을 기반으로 응답을 조합하여 반환
    *
-   * 2. baseCurrency가 KRW가 아닌 경우 (시장이 닫혀있을 경우) (KRW 기준으로 환율 역산(캐싱))
-   *  역산 로직:
-   *  - Redis에 저장되어있는 KRW/{baseCurrency}에 대한 latestRate값을 가져옴
-   *  - KRW/{targetCodes} 30개 조회
-   *  - (KRW/{input.baseCurrency}) / (KRW/{targetCodes...})
-   *
-   * 3. baseCurrency가 KRW가 아닌 경우 (시장이 열려있는 경우) (KRW기준으로 환율 역산)
-   *  - latest-lates는 외부 API 콜하지 않아도 됌
-   *  - fluctuation정보들은 어쩔수 없이 외부 API 콜해야함 (연산 불가)
-   *
-   * 3. 위 캐시 조건들을 부합하지 못할 경우
-   *  - SocketGateWay오류 혹은 외부 API 장애로 인해 latestRate 수집이 지연되었다고 판단
-   *  - 외부 API로부터 latest-rate, fluctuation-rate 호출
-   *  - 해당 데이터들을 이용해서 응답을 조합하고 반환
-   *
-   * @returns CurrentExchangeRateResDto
+   * 캐시가 유효하지 않을 경우
+   *  1. 마켓이 열려있을 경우
+   *    - 외부 API 2개 호출 (latest - fluctuation) 호출하여 응답을 조합하여 반환
+   *  2-2. 마켓이 닫혀있을 경우(주말)
+   *    - fallback 대상 없음 -> redis도 캐시 안돼있고, 외부 API도 무용지물
+   *    - 시장 마감 직전에 fallback snapshot 스케쥴러 필요
    */
   async getCurrencyExchangeRates(
     input: CurrentExchangeRateReqDto,
