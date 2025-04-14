@@ -5,6 +5,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { FrankFurterService } from './exchange-rates/frankfurter/frankfurter.service';
 import { FixerService } from './exchange-rates/fixer/fixer.service';
 import { CoinApiService } from './exchange-rates/coin-api/coin-api.service';
+import { CurrencyLayerService } from './exchange-rates/currencylayer/currencylayer.service';
 
 @Module({
   imports: [CoinApiModule.forRootAsync(), EventEmitterModule.forRoot()],
@@ -15,7 +16,7 @@ import { CoinApiService } from './exchange-rates/coin-api/coin-api.service';
     },
     {
       provide: 'FLUCTUATION_RATE_API',
-      useClass: CoinApiService,
+      useClass: CurrencyLayerService,
     },
     {
       provide: 'TIMESERIES_RATE_API',

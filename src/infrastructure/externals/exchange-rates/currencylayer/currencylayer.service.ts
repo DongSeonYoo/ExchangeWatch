@@ -1,13 +1,13 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IExchangeRateRestAPIService } from '../interfaces/exchange-rate-rest-api.interface';
+import { IFluctuationExchangeRateApi } from '../interfaces/exchange-rate-rest-api.interface';
 import { IExchangeRateExternalAPI } from '../interfaces/exchange-rate-api.interface';
 import { AppConfig } from '../../../config/config.type';
 import { ICurrencyLayerResponse } from './interfaces/currencylayer.interface';
 
 @Injectable()
-export class CurrencyLayerService implements IExchangeRateRestAPIService {
+export class CurrencyLayerService implements IFluctuationExchangeRateApi {
   private readonly apiKey: string;
   private apiUrl: string;
   private readonly logger = new Logger(CurrencyLayerService.name);
