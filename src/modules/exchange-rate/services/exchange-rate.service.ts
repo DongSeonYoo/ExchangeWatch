@@ -31,8 +31,10 @@ export class ExchangeRateService {
   constructor(
     @Inject('LATEST_EXCHANGE_RATE_API')
     private readonly latestExchangeRateAPI: ILatestExchangeRateApi,
-    @Inject('FLUCTUATION_RATE_API')
-    private readonly fluctuationRateAPI: IFluctuationExchangeRateApi,
+    @Inject('CURRENCYLAYER_FLUCTUATION_RATE_API')
+    private readonly currencyLayerfluctuationAPI: IFluctuationExchangeRateApi,
+    @Inject('COINAPI_FLUCTUATION_RATE_API')
+    private readonly coinApiFluctuationAPI: IFluctuationExchangeRateApi,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
     private readonly dateUtilService: DateUtilService,
     private readonly exchangeRateRawRepository: ExchangeRateRawRepository,
@@ -192,7 +194,6 @@ export class ExchangeRateService {
             timestamp: item.timestamp,
           };
         });
-      }
 
       return {
         baseCurrency: input.baseCurrency,
@@ -206,7 +207,7 @@ export class ExchangeRateService {
 
       const [latestRateResponse, fluctuationResponse] = await Promise.all([
         this.latestExchangeRateAPI.getLatestRates(input.baseCurrency),
-        this.fluctuationRateAPI.getFluctuationData(
+        this.currencyLayerfluctuationAPI.getFluctuationData(
           this.dateUtilService.getYesterday(),
           new Date(),
           input.baseCurrency,
@@ -296,12 +297,13 @@ export class ExchangeRateService {
     const startDate = missingDates[0];
     const endDate = missingDates[missingDates.length - 1];
 
-    const apiResponse = await this.fluctuationRateAPI.getFluctuationData(
-      startDate,
-      endDate,
-      input.baseCurrency,
-      [input.currencyCode],
-    );
+    const apiResponse =
+      await this.currencyLayerfluctuationAPI.getFluctuationData(
+        startDate,
+        endDate,
+        input.baseCurrency,
+        [input.currencyCode],
+      );
 
     const dailyRecord: IExchangeRateDaily.ICreate[] = missingDates.map(
       (date) => {
@@ -335,14 +337,15 @@ export class ExchangeRateService {
     const ohlcRecords = (
       await Promise.all(
         supportCurrencyList.map(async (baseCurrency) => {
-          const apiResponse = await this.fluctuationRateAPI.getFluctuationData(
-            startDate,
-            endDate,
-            baseCurrency,
-            this.supportCurrencyList.filter(
-              (targetCode) => targetCode !== baseCurrency,
-            ),
-          );
+          const apiResponse =
+            await this.currencyLayerfluctuationAPI.getFluctuationData(
+              startDate,
+              endDate,
+              baseCurrency,
+              this.supportCurrencyList.filter(
+                (targetCode) => targetCode !== baseCurrency,
+              ),
+            );
 
           return Object.entries(apiResponse.rates).map(
             ([currencyCode, data]) => ({
