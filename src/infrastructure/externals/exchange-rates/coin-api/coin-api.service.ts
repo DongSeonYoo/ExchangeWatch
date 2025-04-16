@@ -75,7 +75,7 @@ export class CoinApiService
     );
     const fluctuationResponses = await Promise.all(
       currencyCodes.map(async (currency) => {
-        const url = `https://api-historical.exrates.coinapi.io/v1/exchangerate/${baseCurrency}/${currency}/history?period_id=1DAY&time_start=${endDateString}`;
+        const url = `https://api-historical.exrates.coinapi.io/v1/exchangerate/${baseCurrency}/${currency}/history?period_id=1DAY&time_start=${startDateString}&time_end=${endDateString}`;
 
         const { data } =
           await this.httpService.axiosRef.get<
