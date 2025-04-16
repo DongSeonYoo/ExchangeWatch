@@ -82,139 +82,128 @@ export class ExchangeRateService {
     > = {};
 
     const isMarketOpen = this.dateUtilService.isMarketOpen();
-
     const isAliveLatestRateCache =
       await this.exchangeRateRedisService.getLatestRateHealthCheck('KRW');
     const isCacheHitted =
       isAliveLatestRateCache &&
       isAliveLatestRateCache.getTime() > Date.now() - this.latestRatethreshold;
 
-    if (isCacheHitted) {
-      if (input.baseCurrency === 'KRW') {
-        if (isMarketOpen) {
-          const fluctuationResponse =
-            await this.fluctuationRateAPI.getFluctuationData(
-              this.dateUtilService.getYesterday(),
-              new Date(),
-              input.baseCurrency,
-              targetCodes,
-            );
-
-          await Promise.all(
-            targetCodes.map(async (code) => {
-              const [, , rate, timestamp] =
-                await this.exchangeRateRedisService.getLatestRate(
-                  input.baseCurrency,
-                  code,
-                );
-
-              preparedResponse[code] = {
-                rate: Number(rate),
-                dayChange: fluctuationResponse.rates[code].change,
-                dayChangePercent: fluctuationResponse.rates[code].changePct,
-                timestamp: new Date(Number(timestamp)),
-              };
-            }),
-          );
-
-          return {
-            baseCurrency: input.baseCurrency,
-            rates: this.combinateLatestRates(preparedResponse),
-          };
-        } else {
-          await Promise.all(
-            targetCodes.map(async (code) => {
-              const [, , rate, timestamp] =
-                await this.exchangeRateRedisService.getLatestRate(
-                  input.baseCurrency,
-                  code,
-                );
-
-              preparedResponse[code] = {
-                rate: Number(rate),
-                dayChange: 0,
-                dayChangePercent: 0,
-                timestamp: new Date(Number(timestamp)),
-              };
-            }),
-          );
-
-          return {
-            baseCurrency: input.baseCurrency,
-            rates: this.combinateLatestRates(preparedResponse),
-          };
-        }
-      }
-
-      if (input.baseCurrency !== 'KRW') {
-        const [, , baseRateStr] =
-          await this.exchangeRateRedisService.getLatestRate(
+    // case 1: 캐시 HIT + base = KRW
+    if (isCacheHitted && input.baseCurrency === 'KRW') {
+      if (isMarketOpen) {
+        const fluctuationResponse =
+          await this.fluctuationRateAPI.getFluctuationData(
+            this.dateUtilService.getYesterday(),
+            new Date(),
             'KRW',
-            input.baseCurrency,
+            targetCodes,
           );
-        const baseRate = Number(baseRateStr);
 
-        const baseRedisResult = await Promise.all(
+        await Promise.all(
           targetCodes.map(async (code) => {
-            const [, changePct, rate, timestamp] =
+            const [, , rate, timestamp] =
               await this.exchangeRateRedisService.getLatestRate('KRW', code);
 
-            return {
-              code,
+            preparedResponse[code] = {
               rate: Number(rate),
-              changePct: Number(changePct),
+              dayChange: fluctuationResponse.rates[code].change,
+              dayChangePercent: fluctuationResponse.rates[code].changePct,
               timestamp: new Date(Number(timestamp)),
             };
           }),
         );
+      } else {
+        await Promise.all(
+          targetCodes.map(async (code) => {
+            const [, , rate, timestamp] =
+              await this.exchangeRateRedisService.getLatestRate('KRW', code);
 
-        if (isMarketOpen) {
-          const fluctuationResponse =
-            await this.fluctuationRateAPI.getFluctuationData(
-              this.dateUtilService.getYesterday(),
-              new Date(),
-              'KRW',
-              [...targetCodes, input.baseCurrency],
-            );
-
-          const baseFluctuation = fluctuationResponse.rates[input.baseCurrency];
-
-          baseRedisResult.forEach((item) => {
-            const invertedRate = item.rate / baseRate;
-            const changePct =
-              fluctuationResponse.rates[item.code]?.changePct -
-              baseFluctuation.changePct;
-            const change = invertedRate * (changePct / 100);
-
-            preparedResponse[item.code] = {
-              rate: invertedRate,
-              dayChange: change,
-              dayChangePercent: changePct,
-              timestamp: item.timestamp,
-            };
-          });
-        } else {
-          baseRedisResult.forEach((item) => {
-            const invertedRate = item.rate / baseRate;
-
-            preparedResponse[item.code] = {
-              rate: invertedRate,
+            preparedResponse[code] = {
+              rate: Number(rate),
               dayChange: 0,
               dayChangePercent: 0,
-              timestamp: item.timestamp,
+              timestamp: new Date(Number(timestamp)),
             };
-          });
-        }
-
-        return {
-          baseCurrency: input.baseCurrency,
-          rates: this.combinateLatestRates(preparedResponse),
-        };
+          }),
+        );
       }
+
+      return {
+        baseCurrency: 'KRW',
+        rates: this.combinateLatestRates(preparedResponse),
+      };
     }
 
+    // case 2: 캐시 HIT + base ≠ KRW (역산 필요)
+
+    if (isCacheHitted && input.baseCurrency !== 'KRW') {
+      const [, , baseRateStr] =
+        await this.exchangeRateRedisService.getLatestRate(
+          'KRW',
+          input.baseCurrency,
+        );
+      const baseRate = Number(baseRateStr);
+
+      const baseRedisResult = await Promise.all(
+        targetCodes.map(async (code) => {
+          const [, , rate, timestamp] =
+            await this.exchangeRateRedisService.getLatestRate('KRW', code);
+          return {
+            code,
+            rate: Number(rate),
+            timestamp: new Date(Number(timestamp)),
+          };
+        }),
+      );
+
+      if (isMarketOpen) {
+        const fluctuationResponse =
+          await this.fluctuationRateAPI.getFluctuationData(
+            this.dateUtilService.getYesterday(),
+            new Date(),
+            'KRW',
+            [...targetCodes, input.baseCurrency],
+          );
+
+        const baseFluctuation = fluctuationResponse.rates[input.baseCurrency];
+
+        baseRedisResult.forEach((item) => {
+          const invertedRate = item.rate / baseRate;
+          const targetFluctuation = fluctuationResponse.rates[item.code];
+
+          const changePct =
+            targetFluctuation?.changePct - baseFluctuation.changePct;
+          const change = invertedRate * (changePct / 100);
+
+          preparedResponse[item.code] = {
+            rate: invertedRate,
+            dayChange: change,
+            dayChangePercent: changePct,
+            timestamp: item.timestamp,
+          };
+        });
+      } else {
+        baseRedisResult.forEach((item) => {
+          const invertedRate = item.rate / baseRate;
+          preparedResponse[item.code] = {
+            rate: invertedRate,
+            dayChange: 0,
+            dayChangePercent: 0,
+            timestamp: item.timestamp,
+          };
+        });
+      }
+
+      return {
+        baseCurrency: input.baseCurrency,
+        rates: this.combinateLatestRates(preparedResponse),
+      };
+    }
+
+    // case 3: 캐시 MISS + 시장 열림 (call the external API (fallback))
     if (!isCacheHitted && isMarketOpen) {
       this.logger.debug('cache missed!!');
+
       const [latestRateResponse, fluctuationResponse] = await Promise.all([
         this.latestExchangeRateAPI.getLatestRates(input.baseCurrency),
         this.fluctuationRateAPI.getFluctuationData(
@@ -242,6 +231,8 @@ export class ExchangeRateService {
       };
     }
 
+    // case 4: 캐시 MISS + 시장 닫힘 → fallback 불가
+    // @todo fallback snapshot 복구 & 로깅
     throw new InternalServerErrorException('환율 데이터를 가져올 수 없습니다.');
   }
 
