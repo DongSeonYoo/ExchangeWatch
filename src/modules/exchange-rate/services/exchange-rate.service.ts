@@ -75,22 +75,21 @@ export class ExchangeRateService {
     const targetCodes = input.currencyCodes?.length
       ? input.currencyCodes
       : this.supportCurrencyList.filter((code) => code !== input.baseCurrency);
+
     const preparedResponse: Record<
       string,
       Pick<RateDetail, 'rate' | 'dayChange' | 'dayChangePercent' | 'timestamp'>
     > = {};
+
     const isMarketOpen = this.dateUtilService.isMarketOpen();
+
     const isAliveLatestRateCache =
-      await this.exchangeRateRedisService.getLatestRateHealthCheck(
-        input.baseCurrency,
-      );
+      await this.exchangeRateRedisService.getLatestRateHealthCheck('KRW');
     const isCacheHitted =
       isAliveLatestRateCache &&
       isAliveLatestRateCache.getTime() > Date.now() - this.latestRatethreshold;
 
-    // 캐시 히트 조건이 부합할 시 캐시된 데이터 활용
     if (isCacheHitted) {
-      // base가 KRW이면서 시장이 열려있을 경우, latestRate는 캐시에서 불러오고, fluctuation은 외부에서 가져와서 응답 조합
       if (input.baseCurrency === 'KRW') {
         if (isMarketOpen) {
           const fluctuationResponse =
@@ -100,6 +99,7 @@ export class ExchangeRateService {
               input.baseCurrency,
               targetCodes,
             );
+
           await Promise.all(
             targetCodes.map(async (code) => {
               const [, , rate, timestamp] =
@@ -121,9 +121,7 @@ export class ExchangeRateService {
             baseCurrency: input.baseCurrency,
             rates: this.combinateLatestRates(preparedResponse),
           };
-        }
-        // base가 KRW이면서 시장이 닫혀있을 경우, latestRate를 캐시에서 불러오고, fluctuation은 0으로 설정
-        if (!isMarketOpen) {
+        } else {
           await Promise.all(
             targetCodes.map(async (code) => {
               const [, , rate, timestamp] =
@@ -148,16 +146,14 @@ export class ExchangeRateService {
         }
       }
 
-      // base가 KRW가 아닌 경우 역산 필요
       if (input.baseCurrency !== 'KRW') {
-        // redis에 저장되어있는 캐시들을 KRW를 기준으로해서 가져옴 (역산 용도, prefix: base)
-        // 상위조건에서 cache hit 잡아줬기때문에 데이터 보장
         const [, , baseRateStr] =
           await this.exchangeRateRedisService.getLatestRate(
             'KRW',
             input.baseCurrency,
           );
         const baseRate = Number(baseRateStr);
+
         const baseRedisResult = await Promise.all(
           targetCodes.map(async (code) => {
             const [, changePct, rate, timestamp] =
@@ -172,7 +168,6 @@ export class ExchangeRateService {
           }),
         );
 
-        // 만약 시장이 열려있으면 fluctuation API를 호출해서 역산 변동률을 보정
         if (isMarketOpen) {
           const fluctuationResponse =
             await this.fluctuationRateAPI.getFluctuationData(
@@ -181,32 +176,32 @@ export class ExchangeRateService {
               'KRW',
               [...targetCodes, input.baseCurrency],
             );
+
           const baseFluctuation = fluctuationResponse.rates[input.baseCurrency];
-          baseRedisResult.forEach((baseRedisItem) => {
-            // 보정 시작
-            const invertedRate = baseRedisItem.rate / baseRate;
+
+          baseRedisResult.forEach((item) => {
+            const invertedRate = item.rate / baseRate;
             const changePct =
-              fluctuationResponse.rates[baseRedisItem.code].changePct -
+              fluctuationResponse.rates[item.code]?.changePct -
               baseFluctuation.changePct;
             const change = invertedRate * (changePct / 100);
 
-            preparedResponse[baseRedisItem.code] = {
+            preparedResponse[item.code] = {
               rate: invertedRate,
               dayChange: change,
               dayChangePercent: changePct,
-              timestamp: baseRedisItem.timestamp,
+              timestamp: item.timestamp,
             };
           });
         } else {
-          // 만약 시장이 닫혀있으면, 닫히기 직전 저장된 rate만 역산, 변동률은 0으로 고정
-          baseRedisResult.forEach((baseRedisItem) => {
-            const invertedRate = baseRedisItem.rate / baseRate;
+          baseRedisResult.forEach((item) => {
+            const invertedRate = item.rate / baseRate;
 
-            preparedResponse[baseRedisItem.code] = {
+            preparedResponse[item.code] = {
               rate: invertedRate,
               dayChange: 0,
               dayChangePercent: 0,
-              timestamp: baseRedisItem.timestamp,
+              timestamp: item.timestamp,
             };
           });
         }
@@ -219,7 +214,6 @@ export class ExchangeRateService {
     }
 
     if (!isCacheHitted && isMarketOpen) {
-      // 캐시 히트 조건 자체가 부합하지 않을 시(수집 데이터를 신뢰하지 못하는경우), 폴백로직(외부 api 호출하여 응답 조합) @todo: 캐시 write할필요가 있을까? -> 실시간성이 그정도로 중요한가?, 사실 Gateway 복구전략이 더 중요하지않을까?
       this.logger.debug('cache missed!!');
       const [latestRateResponse, fluctuationResponse] = await Promise.all([
         this.latestExchangeRateAPI.getLatestRates(input.baseCurrency),
@@ -246,15 +240,9 @@ export class ExchangeRateService {
         baseCurrency: input.baseCurrency,
         rates: this.combinateLatestRates(preparedResponse),
       };
-    } else {
-      /**
-       * 만약 캐시도 히트하지 않고, 시장이 닫혀있다면?
-       * - 주말이라 요청해도 의미없고, 캐시도 없다면? (절망의 상황)
-       * - 마켓 닫히기 직전 무조건 스냅샷으로 저장? 폴백snapshot?
-       * - @todo 폴백snapshot 호출
-       */
-      throw new InternalServerErrorException('');
     }
+
+    throw new InternalServerErrorException('환율 데이터를 가져올 수 없습니다.');
   }
 
   /**
