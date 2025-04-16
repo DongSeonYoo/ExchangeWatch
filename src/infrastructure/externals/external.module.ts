@@ -15,18 +15,23 @@ import { CurrencyLayerService } from './exchange-rates/currencylayer/currencylay
       useClass: CoinApiService,
     },
     {
-      provide: 'FLUCTUATION_RATE_API',
+      provide: 'CURRENCYLAYER_FLUCTUATION_RATE_API',
       useClass: CurrencyLayerService,
     },
     {
       provide: 'TIMESERIES_RATE_API',
       useClass: FrankFurterService,
     },
+    {
+      provide: 'COINAPI_FLUCTUATION_RATE_API',
+      useClass: CoinApiService,
+    },
     ExternalWebSocketGateWay,
   ],
   exports: [
     'LATEST_EXCHANGE_RATE_API',
-    'FLUCTUATION_RATE_API',
+    'CURRENCYLAYER_FLUCTUATION_RATE_API',
+    'COINAPI_FLUCTUATION_RATE_API',
     'TIMESERIES_RATE_API',
   ],
 })

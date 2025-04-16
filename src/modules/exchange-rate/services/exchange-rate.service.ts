@@ -31,8 +31,10 @@ export class ExchangeRateService {
   constructor(
     @Inject('LATEST_EXCHANGE_RATE_API')
     private readonly latestExchangeRateAPI: ILatestExchangeRateApi,
-    @Inject('FLUCTUATION_RATE_API')
-    private readonly fluctuationRateAPI: IFluctuationExchangeRateApi,
+    @Inject('CURRENCYLAYER_FLUCTUATION_RATE_API')
+    private readonly currencyLayerfluctuationAPI: IFluctuationExchangeRateApi,
+    @Inject('COINAPI_FLUCTUATION_RATE_API')
+    private readonly coinApiFluctuationAPI: IFluctuationExchangeRateApi,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
     private readonly dateUtilService: DateUtilService,
     private readonly exchangeRateRawRepository: ExchangeRateRawRepository,
@@ -90,52 +92,58 @@ export class ExchangeRateService {
 
     // case 1: 캐시 HIT + base = KRW
     if (isCacheHitted && input.baseCurrency === 'KRW') {
+      // 시장 열려있으면 그대로 캐싱 반환
       if (isMarketOpen) {
-        const fluctuationResponse =
-          await this.fluctuationRateAPI.getFluctuationData(
-            this.dateUtilService.getYesterday(),
-            new Date(),
-            'KRW',
-            targetCodes,
-          );
-
         await Promise.all(
           targetCodes.map(async (code) => {
-            const [, , rate, timestamp] =
-              await this.exchangeRateRedisService.getLatestRate('KRW', code);
+            const [change, changePct, rate, timestamp] =
+              await this.exchangeRateRedisService.getLatestRate(
+                input.baseCurrency,
+                code,
+              );
 
             preparedResponse[code] = {
               rate: Number(rate),
-              dayChange: fluctuationResponse.rates[code].change,
-              dayChangePercent: fluctuationResponse.rates[code].changePct,
+              dayChange: Number(change),
+              dayChangePercent: Number(changePct),
               timestamp: new Date(Number(timestamp)),
             };
           }),
         );
-      } else {
-        await Promise.all(
-          targetCodes.map(async (code) => {
-            const [, , rate, timestamp] =
-              await this.exchangeRateRedisService.getLatestRate('KRW', code);
 
-            preparedResponse[code] = {
-              rate: Number(rate),
-              dayChange: 0,
-              dayChangePercent: 0,
-              timestamp: new Date(Number(timestamp)),
-            };
-          }),
-        );
+        this.logger.debug('cache hit! [only using redis]');
+        return {
+          baseCurrency: input.baseCurrency,
+          rates: this.combinateLatestRates(preparedResponse),
+        };
       }
 
+      // 시장 닫혀있으면 변동률 0으로 세팅해서 반환
+      await Promise.all(
+        targetCodes.map(async (code) => {
+          const [change, changePct, rate, timestamp] =
+            await this.exchangeRateRedisService.getLatestRate(
+              input.baseCurrency,
+              code,
+            );
+
+          preparedResponse[code] = {
+            rate: Number(rate),
+            dayChange: Number(change),
+            dayChangePercent: Number(changePct),
+            timestamp: new Date(Number(timestamp)),
+          };
+        }),
+      );
+
+      this.logger.debug('cache hit! [redis + fluctuation API]');
       return {
-        baseCurrency: 'KRW',
+        baseCurrency: input.baseCurrency,
         rates: this.combinateLatestRates(preparedResponse),
       };
     }
 
     // case 2: 캐시 HIT + base ≠ KRW (역산 필요)
-
     if (isCacheHitted && input.baseCurrency !== 'KRW') {
       const [, , baseRateStr] =
         await this.exchangeRateRedisService.getLatestRate(
@@ -143,11 +151,11 @@ export class ExchangeRateService {
           input.baseCurrency,
         );
       const baseRate = Number(baseRateStr);
-
       const baseRedisResult = await Promise.all(
         targetCodes.map(async (code) => {
           const [, , rate, timestamp] =
             await this.exchangeRateRedisService.getLatestRate('KRW', code);
+
           return {
             code,
             rate: Number(rate),
@@ -156,19 +164,20 @@ export class ExchangeRateService {
         }),
       );
 
+      // 만약 시장이 열려있다면 외부 fluctuation 호출해서 latestRate, fluctuationRate 역산하여 반환
       if (isMarketOpen) {
         const fluctuationResponse =
-          await this.fluctuationRateAPI.getFluctuationData(
+          await this.currencyLayerfluctuationAPI.getFluctuationData(
             this.dateUtilService.getYesterday(),
             new Date(),
             'KRW',
             [...targetCodes, input.baseCurrency],
           );
-
         const baseFluctuation = fluctuationResponse.rates[input.baseCurrency];
 
         baseRedisResult.forEach((item) => {
           const invertedRate = item.rate / baseRate;
+
           const targetFluctuation = fluctuationResponse.rates[item.code];
 
           const changePct =
@@ -182,7 +191,17 @@ export class ExchangeRateService {
             timestamp: item.timestamp,
           };
         });
-      } else {
+
+        this.logger.debug(
+          'cache hit! [redis + fluctuation API (both inversion)]',
+        );
+        return {
+          baseCurrency: input.baseCurrency,
+          rates: this.combinateLatestRates(preparedResponse),
+        };
+      }
+      // 시장이 안열려있다면 캐싱된 데이터를 이용해서 latestRate만 역산해서 반환 변동률은 0
+      if (!isMarketOpen) {
         baseRedisResult.forEach((item) => {
           const invertedRate = item.rate / baseRate;
           preparedResponse[item.code] = {
@@ -192,21 +211,20 @@ export class ExchangeRateService {
             timestamp: item.timestamp,
           };
         });
-      }
 
-      return {
-        baseCurrency: input.baseCurrency,
-        rates: this.combinateLatestRates(preparedResponse),
-      };
+        this.logger.debug('cache hit! [redis (latestRate inversion)]');
+        return {
+          baseCurrency: input.baseCurrency,
+          rates: this.combinateLatestRates(preparedResponse),
+        };
+      }
     }
 
     // case 3: 캐시 MISS + 시장 열림 (call the external API (fallback))
     if (!isCacheHitted && isMarketOpen) {
-      this.logger.debug('cache missed!!');
-
       const [latestRateResponse, fluctuationResponse] = await Promise.all([
         this.latestExchangeRateAPI.getLatestRates(input.baseCurrency),
-        this.fluctuationRateAPI.getFluctuationData(
+        this.currencyLayerfluctuationAPI.getFluctuationData(
           this.dateUtilService.getYesterday(),
           new Date(),
           input.baseCurrency,
@@ -225,6 +243,7 @@ export class ExchangeRateService {
         }),
       );
 
+      this.logger.debug('cache missed!! [both API call]');
       return {
         baseCurrency: input.baseCurrency,
         rates: this.combinateLatestRates(preparedResponse),
@@ -296,12 +315,13 @@ export class ExchangeRateService {
     const startDate = missingDates[0];
     const endDate = missingDates[missingDates.length - 1];
 
-    const apiResponse = await this.fluctuationRateAPI.getFluctuationData(
-      startDate,
-      endDate,
-      input.baseCurrency,
-      [input.currencyCode],
-    );
+    const apiResponse =
+      await this.currencyLayerfluctuationAPI.getFluctuationData(
+        startDate,
+        endDate,
+        input.baseCurrency,
+        [input.currencyCode],
+      );
 
     const dailyRecord: IExchangeRateDaily.ICreate[] = missingDates.map(
       (date) => {
@@ -335,14 +355,15 @@ export class ExchangeRateService {
     const ohlcRecords = (
       await Promise.all(
         supportCurrencyList.map(async (baseCurrency) => {
-          const apiResponse = await this.fluctuationRateAPI.getFluctuationData(
-            startDate,
-            endDate,
-            baseCurrency,
-            this.supportCurrencyList.filter(
-              (targetCode) => targetCode !== baseCurrency,
-            ),
-          );
+          const apiResponse =
+            await this.currencyLayerfluctuationAPI.getFluctuationData(
+              startDate,
+              endDate,
+              baseCurrency,
+              this.supportCurrencyList.filter(
+                (targetCode) => targetCode !== baseCurrency,
+              ),
+            );
 
           return Object.entries(apiResponse.rates).map(
             ([currencyCode, data]) => ({
@@ -410,21 +431,31 @@ export class ExchangeRateService {
           timestamp: true,
         },
       );
+
     // 기존 데이터가 없을 시 초기 레코드 삽입 (redis-hash)
     if (!storedRate || !storedTimestamp) {
+      const { rates: fluctuationRates } =
+        await this.coinApiFluctuationAPI.getFluctuationData(
+          this.dateUtilService.getYesterday(),
+          new Date(latestTimestamp),
+          baseCurrency,
+          [currencyCode],
+        );
+
       await this.exchangeRateRedisService.setLatestRate(
         baseCurrency,
         currencyCode,
         {
-          change: 0,
-          changePct: 0,
-          rate: latestRateRound,
+          change: fluctuationRates[currencyCode].change,
+          changePct: fluctuationRates[currencyCode].changePct,
+          rate: latestRate,
           timestamp: latestTimestamp,
         },
       );
       this.logger.debug(
         `저장된 데이터가 존재하지 않아 새로운 통화쌍을 만들었습니다: ${baseCurrency}/${currencyCode}`,
       );
+
       return;
     }
 
@@ -495,7 +526,7 @@ export class ExchangeRateService {
             timestamp: latestTimestamp,
           },
         );
-        this.logger.debug(
+        this.logger.verbose(
           `변동률이 일정해서(${baseCurrency}/${currencyCode}) timestmp만 업데이트쳤습니다`,
         );
       }
