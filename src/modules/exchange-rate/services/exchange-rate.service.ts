@@ -434,11 +434,6 @@ export class ExchangeRateService {
 
     // 기존 데이터가 없을 시 초기 레코드 삽입 (redis-hash)
     if (!storedRate || !storedTimestamp) {
-      // const { rates: latestInitData } =
-      //   await this.latestExchangeRateAPI.getLatestRates(baseCurrency, [
-      //     currencyCode,
-      //   ]);
-
       const { rates: fluctuationRates } =
         await this.coinApiFluctuationAPI.getFluctuationData(
           this.dateUtilService.getYesterday(),
