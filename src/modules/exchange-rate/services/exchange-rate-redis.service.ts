@@ -27,7 +27,7 @@ export class ExchangeRateRedisService {
   }
 
   async setLatestRate(
-    baseCurrency: string,
+    baseCurrency: 'KRW', // 휴먼에러 방지
     currencyCode: string,
     fields: IRedisSchema.ILatestRateHash,
   ): Promise<void> {
@@ -63,7 +63,7 @@ export class ExchangeRateRedisService {
   async updateHealthCheck(baseCurrency: string): Promise<void> {
     const key = `${this.healthCheckey}:${baseCurrency}`;
 
-    await this.redisService.set(key, new Date().toISOString());
+    await this.redisService.set(key, new Date().toISOString(), 30);
 
     this.logger.debug(`update latest-rate healthcheck!!: ${baseCurrency}`);
   }

@@ -1,10 +1,5 @@
 import WebSocket from 'ws';
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../config/config.type';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -18,7 +13,7 @@ import { DateUtilService } from '../../common/utils/date-util/date-util.service'
 export class ExternalWebSocketGateWay implements OnModuleInit {
   private ws: WebSocket;
   private readonly websocketUrl: string;
-  private readonly baseCurrency: string = 'KRW';
+  private readonly defaultBaseCurrency: string = 'KRW';
   private readonly majorCurrencyCode: string[] = supportCurrencyList;
   private readonly logger: Logger = new Logger(ExternalWebSocketGateWay.name);
   private intervalSubscription: Subscription;
@@ -35,7 +30,7 @@ export class ExternalWebSocketGateWay implements OnModuleInit {
 
   onModuleInit() {
     if (this.dateUtilService.isMarketOpen()) {
-      this.testConnectLatestRateSocket();
+      this.connectLatestRateSocket();
     } else {
       this.disconnectLatestRateSocket();
     }
@@ -84,9 +79,9 @@ export class ExternalWebSocketGateWay implements OnModuleInit {
     this.ws.on('open', () => {
       this.logger.debug('@@coinapi websocket connected@@');
 
-      const currencyPairs = this.majorCurrencyCode.map(
-        (currency) => `${this.baseCurrency}/${currency}`,
-      );
+      const currencyPairs = this.majorCurrencyCode
+        .filter((currency) => currency !== this.defaultBaseCurrency) // KRW/KRW 방지
+        .map((currency) => `${this.defaultBaseCurrency}/${currency}`);
       this.ws.send(
         JSON.stringify({
           type: 'hello',
@@ -95,24 +90,27 @@ export class ExternalWebSocketGateWay implements OnModuleInit {
           subscribe_update_limit_ms_exrate: 5000,
         }),
       );
+    });
 
-      this.ws.on('message', async (data) => {
-        const priceData: CoinApiWebSocket.ExchangeRateMessage = JSON.parse(
-          data.toString(),
+    this.ws.on('message', async (data) => {
+      const priceData: CoinApiWebSocket.ExchangeRateMessage = JSON.parse(
+        data.toString(),
+      );
+
+      if (
+        priceData.type === 'exrate' &&
+        priceData.asset_id_base === this.defaultBaseCurrency
+      ) {
+        this.eventEmitter.emit(
+          LatestRateEvent.eventName,
+          new LatestRateEvent(
+            new Date(priceData.time).getTime(),
+            priceData.asset_id_base,
+            priceData.asset_id_quote,
+            priceData.rate,
+          ),
         );
-
-        if (priceData.type === 'exrate') {
-          this.eventEmitter.emit(
-            LatestRateEvent.eventName,
-            new LatestRateEvent(
-              new Date(priceData.time).getTime(),
-              priceData.asset_id_base,
-              priceData.asset_id_quote,
-              priceData.rate,
-            ),
-          );
-        }
-      });
+      }
     });
 
     this.ws.on('close', () => {

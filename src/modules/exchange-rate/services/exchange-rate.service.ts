@@ -397,150 +397,138 @@ export class ExchangeRateService {
   }
 
   /**
-   * 기본적으로 소켓에서 받은 데이터는 exchnage_rate_raw에 저장.
+   * 이 메서드는 시장 열림 여부를 신경 X,
+   * 소켓 데이터 수신을 전제하여 항상 호출
    *
-   * 1. 날짜가 바뀌었는지 체크 (dateUtilService.isBefore)
-   *  1-1. 날짜가 안바뀌었다면
-   *  - 소켓으로 받은 rate와 가장 최신에 저장된 rate와 비교
-   *  - 변동률이 일정 치 이상이다 -> latest-rates(redis) 업데이트
-   *  - 변동률이 그대로다 -> skip
+   * 1. Redis에 기존 저장된 환율 데이터(storedRate)가 없으면 최초 수집 처리
+   *    - 마지막 시장 거래일 기준 fluctuation API 호출
+   *    - 초기 change, changePct 계산하여 저장
    *
-   *  1-2. 날짜가 바뀌었다면
-   *  - 해당 key의 가장 최신 데이터를 가져옴 (이전 날짜의 종가)
-   *  - 해당 종가를 기준으로 change, chang_pct 초기화하고 latest-rates(redis) 업데이트.
-   *
-   * 2. exchange_rate_raw에 삽입
+   * 2. Redis에 데이터가 존재하는 경우
+   *    - 기존 수집 시점(storedTimestamp)과 최신 수신 시점(latestTimestamp) 비교
+   *    - 날짜가 바뀐 경우 변동률 초기화 (change=0, changePct=0)
+   *    - 날짜가 같으면 변동률 계산
+   *      - 변동률 기준(0.01%) 초과 시 full update + Pub/Sub 발행
+   *      - 변동률 기준 이하이면 timestamp만 갱신
+
+   * 3. 모든 경우에 대해 Raw 수집 기록은 항상 삽입
    */
-  async processLatestRateFromWS(
+  async handleLatestRateUpdate(
     baseCurrency: string,
     currencyCode: string,
     latestRate: number,
     latestTimestamp: number,
   ): Promise<void> {
-    // data from external api
-    const latestRateRound = parseFloat(latestRate.toFixed(6));
-    const latestDate = new Date(latestTimestamp);
+    const latestRateRounded = parseFloat(latestRate.toFixed(6));
+    const latestRateDate = new Date(latestTimestamp);
 
-    // redis에서 latest-rate의 hash(rate, timestamp) 조회
-    const [storedRate, storedTimestamp] =
+    const [storedRateStr, storedTimestampStr] =
       await this.exchangeRateRedisService.getLatestRate(
         baseCurrency,
         currencyCode,
-        {
-          rate: true,
-          timestamp: true,
-        },
+        { rate: true, timestamp: true },
       );
 
-    // 기존 데이터가 없을 시 초기 레코드 삽입 (redis-hash)
-    if (!storedRate || !storedTimestamp) {
+    // 1. Redis에 저장된 데이터가 없는 경우 (최초 수집 or Redis 장애 복구 이후)
+    if (!storedRateStr || !storedTimestampStr) {
+      const lastMarketDay = this.dateUtilService.getLastMarketDay();
       const { rates: fluctuationRates } =
         await this.coinApiFluctuationAPI.getFluctuationData(
-          this.dateUtilService.getYesterday(),
-          new Date(latestTimestamp),
+          lastMarketDay,
+          latestRateDate,
           baseCurrency,
           [currencyCode],
         );
 
-      await this.exchangeRateRedisService.setLatestRate(
+      const yesterdayChange = fluctuationRates[currencyCode]?.change ?? 0;
+      const yesterdayChangePct = fluctuationRates[currencyCode]?.changePct ?? 0;
+
+      await this.exchangeRateRedisService.setLatestRate('KRW', currencyCode, {
+        rate: latestRateRounded,
+        change: yesterdayChange,
+        changePct: yesterdayChangePct,
+        timestamp: latestTimestamp,
+      });
+
+      await this.exchangeRateRawRepository.createExchangeRate({
         baseCurrency,
         currencyCode,
-        {
-          change: fluctuationRates[currencyCode].change,
-          changePct: fluctuationRates[currencyCode].changePct,
-          rate: latestRate,
-          timestamp: latestTimestamp,
-        },
-      );
-      this.logger.debug(
-        `저장된 데이터가 존재하지 않아 새로운 통화쌍을 만들었습니다: ${baseCurrency}/${currencyCode}`,
-      );
+        rate: latestRateRounded,
+      });
 
       return;
     }
 
-    // data from redis (hashtable)
-    const prevRate = parseFloat(storedRate);
-    const prevRateRounded = parseFloat(prevRate.toFixed(6));
-    const storedDate = new Date(storedTimestamp);
-    const isNewDay = this.dateUtilService.isBefore(latestDate, storedDate);
+    const prevRate = parseFloat(storedRateStr);
+    const prevTimestamp = new Date(storedTimestampStr);
+    const isNewDay = this.dateUtilService.isBefore(
+      latestRateDate,
+      prevTimestamp,
+    );
 
-    // 날짜가 바뀐 경우 변동률 0으로 초기화
+    // 2. 날짜가 바뀌었으면 변동률 초기화
     if (isNewDay) {
-      await this.exchangeRateRedisService.setLatestRate(
+      await this.exchangeRateRedisService.setLatestRate('KRW', currencyCode, {
+        rate: latestRateRounded,
+        change: 0,
+        changePct: 0,
+        timestamp: Number(storedTimestampStr), // 시장 열리지 않았으면 이전 timestamp 유지
+      });
+
+      await this.exchangeRateRawRepository.createExchangeRate({
+        baseCurrency,
+        currencyCode,
+        rate: latestRateRounded,
+      });
+
+      return;
+    }
+
+    // 3. 날짜가 같으면 변동률 계산
+    const change = latestRateRounded - prevRate;
+    const changePct = (change / prevRate) * 100;
+
+    if (Math.abs(changePct) > 0.01) {
+      // 4-1. 변동률 기준 초과 시 full update + publish
+      await this.exchangeRateRedisService.setLatestRate('KRW', currencyCode, {
+        rate: latestRateRounded,
+        change,
+        changePct,
+        timestamp: latestTimestamp,
+      });
+
+      await this.exchangeRateRedisService.publishRateUpdate(
         baseCurrency,
         currencyCode,
         {
-          change: 0,
-          changePct: 0,
-          rate: latestRateRound,
+          baseCurrency,
+          currencyCode,
+          rate: latestRateRounded,
+          change,
+          changePct,
           timestamp: latestTimestamp,
         },
       );
-      this.logger.debug('날짜가 바뀌어서 변동률을 초기화했습니다');
     } else {
-      // 같은 거래일인 경우, 변동률 계산
-      const change = latestRateRound - prevRateRounded;
-      const changePct = (change / prevRateRounded) * 100;
-      const updateRecord = {
-        change: change,
-        changePct: changePct,
-        rate: latestRateRound,
-        timestamp: latestTimestamp,
-      };
+      // 4-2. 변동률 미만이면 timestamp만 update
+      await this.exchangeRateRedisService.updateLatestRate(
+        baseCurrency,
+        currencyCode,
+        {
+          timestamp: latestTimestamp,
+        },
+      );
 
-      // @TODO 변화감지량 상수화
-      // 변동률이 일정치 이상이면
-      if (Math.abs(changePct) > 0.01) {
-        // 업데이트 (latest-rate (hash table))
-        await this.exchangeRateRedisService.setLatestRate(
-          baseCurrency,
-          currencyCode,
-          updateRecord,
-        );
-        // publish (rate-update)
-        await this.exchangeRateRedisService.publishRateUpdate(
-          baseCurrency,
-          currencyCode,
-          {
-            ...updateRecord,
-            baseCurrency: baseCurrency,
-            currencyCode: currencyCode,
-          },
-        );
-
-        this.logger.debug('');
-        this.logger.debug('=============================================');
-        this.logger.debug(`${prevRateRounded} ====>>>> ${latestRateRound}`);
-        this.logger.debug(
-          `변동량(${baseCurrency}/${currencyCode}): ${changePct}`,
-        );
-        this.logger.debug('=============================================');
-        this.logger.debug('');
-      } else {
-        // 변동률이 일정하다면, timestamp만 부분 업데이트
-        await this.exchangeRateRedisService.updateLatestRate(
-          baseCurrency,
-          currencyCode,
-          {
-            timestamp: latestTimestamp,
-          },
-        );
-        this.logger.verbose(
-          `변동률이 일정해서(${baseCurrency}/${currencyCode}) timestmp만 업데이트쳤습니다`,
-        );
-      }
+      this.logger.verbose(
+        `변화량이 작아 timestamp만 업데이트 [${baseCurrency}/${currencyCode}]`,
+      );
     }
 
-    // 헬스체크 업데이트
-    await this.exchangeRateRedisService.updateHealthCheck(baseCurrency);
-    // 레코드 삽입 (default-postgres)
+    // 5. 항상 raw 기록 저장
     await this.exchangeRateRawRepository.createExchangeRate({
-      baseCurrency: baseCurrency,
-      currencyCode: currencyCode,
-      rate: latestRateRound,
+      baseCurrency,
+      currencyCode,
+      rate: latestRateRounded,
     });
-
-    return;
   }
 }
