@@ -79,7 +79,10 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
     baseCurrency = 'EUR',
     currencyCodes: string[] = [],
   ): Promise<IExchangeRateExternalAPI.IFluctuationResponse> {
-    const currencies = currencyCodes.join(',');
+    const currencies = currencyCodes
+      .filter((code) => code !== baseCurrency)
+      .join(',');
+
     const [startDateString, endDateString] = this.formatDateToString(
       startDate,
       endDate,
@@ -92,6 +95,7 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
       );
     if (!data.success) {
       this.logger.error('CurrencyLayer Error: ', data);
+
       throw new Error(`CurrencyLayer Error: ${JSON.stringify(data)}`);
     }
     const fluctuationRates = this.parseFluctuationQuotes(
