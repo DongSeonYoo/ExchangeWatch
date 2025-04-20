@@ -1,8 +1,7 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, Matches } from 'class-validator';
 import { IsValidCurrencyCode } from '../../../common/decorators/validations/is-valid-currency.validator';
-import { BaseOffsetDto } from '../../../common/dto/pagination/base-offset.dto';
 
 export class CurrentExchangeRateReqDto {
   /**
@@ -11,7 +10,7 @@ export class CurrentExchangeRateReqDto {
    * @example EUR
    */
   @IsNotEmpty()
-  @IsValidCurrencyCode()
+  @Matches(/^KRW$/, { message: 'baseCurrency is only can be KRW.' })
   baseCurrency: string;
 
   /**
