@@ -61,4 +61,30 @@ export class DateUtilService {
 
     return day >= 1 && day <= 5; // 월(1) ~ 금(5)만 열림
   }
+
+  /**
+   * 마지막으로 시장이 열렸던 날짜 반환 (UTC 기준)
+   * - 월요일이면 금요일 (3일 전)
+   * - 일요일이면 금요일 (2일 전)
+   * - 토요일이면 금요일 (1일 전)
+   * - 나머지는 하루 전
+   */
+  getLastMarketDay(): Date {
+    const now = new Date();
+    const day = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
+
+    let offset = 1;
+    if (day === 0) {
+      // Sunday
+      offset = 2;
+    } else if (day === 1) {
+      // Monday
+      offset = 3;
+    }
+
+    const lastMarketDay = new Date(now);
+    lastMarketDay.setUTCDate(now.getUTCDate() - offset);
+
+    return dayjs(dayjs(lastMarketDay).format('YYYY-MM-DD')).toDate();
+  }
 }
