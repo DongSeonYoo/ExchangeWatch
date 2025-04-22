@@ -9,13 +9,18 @@ import { TestIntegrateModules } from '../../../../../test/integration/utils/inte
 import { ExchangeRateService } from '../../services/exchange-rate.service';
 import { ExchangeRateRawRepository } from '../../repositories/exchange-rate-raw.repository';
 import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
+import { DateUtilModule } from '../../../../common/utils/date-util/date-util.module';
 
 describe('ExchangeRateController', () => {
   let controller: ExchangeRateController;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [...TestIntegrateModules.create(), ExternalAPIModule],
+      imports: [
+        ...TestIntegrateModules.create(),
+        ExternalAPIModule,
+        DateUtilModule,
+      ],
       controllers: [ExchangeRateController],
       providers: [
         ExchangeRateService,

@@ -1,1 +1,4 @@
-export interface IExchangeRateWebSocketService {}
+export interface IExchangeRateWebSocketService {
+  connect(): void;
+  disconnect(): void;
+}

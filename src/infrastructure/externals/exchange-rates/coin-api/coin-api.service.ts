@@ -7,16 +7,12 @@ import {
   IFluctuationExchangeRateApi,
   ILatestExchangeRateApi,
 } from '../interfaces/exchange-rate-rest-api.interface';
-import { IExchangeRateWebSocketService } from '../interfaces/exchange-rate-websocket.interface';
 import { ICoinApiResponse } from './interfaces/coin-api-response.interface';
 import { supportCurrencyList } from '../../../../modules/exchange-rate/constants/support-currency.constant';
 
 @Injectable()
 export class CoinApiService
-  implements
-    ILatestExchangeRateApi,
-    IFluctuationExchangeRateApi,
-    IExchangeRateWebSocketService
+  implements ILatestExchangeRateApi, IFluctuationExchangeRateApi
 {
   private readonly apiUrl: string;
   private readonly logger = new Logger(CoinApiService.name);
@@ -52,7 +48,7 @@ export class CoinApiService
       rates: data.rates.reduce((acc, rateInfo) => {
         acc[rateInfo.asset_id_quote] = rateInfo.rate;
         return acc;
-      }, {} as any),
+      }, {}),
     };
   }
 

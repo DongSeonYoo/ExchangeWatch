@@ -22,8 +22,7 @@ describe('ExchangeRateService', () => {
   let exchangeRateService: ExchangeRateService;
 
   let latestExchangeRateApi: MockProxy<ILatestExchangeRateApi>;
-  let currencyLayerFluctuationApi: MockProxy<IFluctuationExchangeRateApi>;
-  let coinApiFluctuationApi: MockProxy<IFluctuationExchangeRateApi>;
+  let fluctuationApi: MockProxy<IFluctuationExchangeRateApi>;
 
   let exchangeRateRedisService: MockProxy<ExchangeRateRedisService>;
   let dateUtilService: MockProxy<DateUtilService>;
@@ -40,11 +39,11 @@ describe('ExchangeRateService', () => {
           useValue: mock<ILatestExchangeRateApi>(),
         },
         {
-          provide: 'CURRENCYLAYER_FLUCTUATION_RATE_API',
+          provide: 'FLUCTUATION_RATE_API',
           useValue: mock<IFluctuationExchangeRateApi>(),
         },
         {
-          provide: 'COINAPI_FLUCTUATION_RATE_API',
+          provide: 'FLUCTUATION_RATE_API',
           useValue: mock<IFluctuationExchangeRateApi>(),
         },
         {
@@ -67,10 +66,7 @@ describe('ExchangeRateService', () => {
     }).compile();
 
     latestExchangeRateApi = module.get('LATEST_EXCHANGE_RATE_API');
-    currencyLayerFluctuationApi = module.get(
-      'CURRENCYLAYER_FLUCTUATION_RATE_API',
-    );
-    coinApiFluctuationApi = module.get('COINAPI_FLUCTUATION_RATE_API');
+    fluctuationApi = module.get('FLUCTUATION_RATE_API');
 
     exchangeRateService = module.get(ExchangeRateService);
     exchangeRateDailyRepository = module.get(ExchangeRateDailyRepository);
@@ -81,13 +77,13 @@ describe('ExchangeRateService', () => {
 
   it('should definded externalAPIService', () => {
     expect(latestExchangeRateApi).toBeDefined();
-    expect(currencyLayerFluctuationApi).toBeDefined();
+    expect(fluctuationApi).toBeDefined();
   });
 
   describe('getCurrencyExchangeRates', () => {
     let latestApiSpy: jest.SpyInstance;
-    let currencyLayerApiSpy: jest.SpyInstance;
-    let coinApiFluctuationSpy: jest.SpyInstance;
+    let fluctuationApiSpy: jest.SpyInstance;
+    let fluctuationSpy: jest.SpyInstance;
 
     const yesterday = new Date(Date.now() - 86400000);
     const baseCurrency = 'KRW';
@@ -97,14 +93,8 @@ describe('ExchangeRateService', () => {
       dateUtilService.getYesterday.mockReturnValue(yesterday);
       // init external api spy
       latestApiSpy = jest.spyOn(latestExchangeRateApi, 'getLatestRates');
-      currencyLayerApiSpy = jest.spyOn(
-        currencyLayerFluctuationApi,
-        'getFluctuationData',
-      );
-      coinApiFluctuationSpy = jest.spyOn(
-        coinApiFluctuationApi,
-        'getFluctuationData',
-      );
+      fluctuationApiSpy = jest.spyOn(fluctuationApi, 'getFluctuationData');
+      fluctuationSpy = jest.spyOn(fluctuationApi, 'getFluctuationData');
     });
 
     describe('Redis캐시가 유효할때', () => {
@@ -170,7 +160,7 @@ describe('ExchangeRateService', () => {
 
         // Assert
         expect(latestApiSpy).not.toHaveBeenCalled();
-        expect(currencyLayerApiSpy).not.toHaveBeenCalled();
+        expect(fluctuationApiSpy).not.toHaveBeenCalled();
       });
     });
 
@@ -183,7 +173,7 @@ describe('ExchangeRateService', () => {
         latestExchangeRateApi.getLatestRates.mockResolvedValue(
           ExchangeRateFixture.createDefaultLatestRates(baseCurrency),
         );
-        coinApiFluctuationApi.getFluctuationData.mockResolvedValue(
+        fluctuationApi.getFluctuationData.mockResolvedValue(
           ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
         );
       });
@@ -200,7 +190,7 @@ describe('ExchangeRateService', () => {
 
         // Assert
         expect(latestApiSpy).toHaveBeenCalled();
-        expect(coinApiFluctuationSpy).toHaveBeenCalled();
+        expect(fluctuationSpy).toHaveBeenCalled();
         expect(Object.keys(result.rates)).toHaveLength(30);
       });
 
@@ -244,7 +234,7 @@ describe('ExchangeRateService', () => {
         dateUtilService.isMarketOpen.mockReturnValue(false);
         dateUtilService.getLastMarketDay.mockReturnValue(fakeDate);
         exchangeRateDailyRepository.findDailyRates.mockResolvedValue([] as any);
-        currencyLayerApiSpy.mockResolvedValue(
+        fluctuationApiSpy.mockResolvedValue(
           ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
         );
         const dailyRateSaveSpy = jest.spyOn(
@@ -259,7 +249,7 @@ describe('ExchangeRateService', () => {
         });
 
         expect(dailyRateSaveSpy).toHaveBeenCalled();
-        expect(currencyLayerApiSpy).toHaveBeenCalled();
+        expect(fluctuationApiSpy).toHaveBeenCalled();
       });
 
       it.todo(
@@ -305,7 +295,7 @@ describe('ExchangeRateService', () => {
           );
 
         // mocking as many as missDates
-        currencyLayerFluctuationApi.getFluctuationData.mockResolvedValue(
+        fluctuationApi.getFluctuationData.mockResolvedValue(
           ExchangeRateFixture.createDefaultFluctuationRates(
             'EUR',
             new Date('2025-01-01'),
@@ -314,7 +304,7 @@ describe('ExchangeRateService', () => {
         );
 
         const fluctuationAPIspy = jest.spyOn(
-          currencyLayerFluctuationApi,
+          fluctuationApi,
           'getFluctuationData',
         );
         const dailyRepositorySpy = jest.spyOn(
@@ -383,7 +373,7 @@ describe('ExchangeRateService', () => {
           );
 
         // mocking as many as missDates
-        currencyLayerFluctuationApi.getFluctuationData.mockResolvedValue(
+        fluctuationApi.getFluctuationData.mockResolvedValue(
           ExchangeRateFixture.createDefaultFluctuationRates(
             'EUR',
             new Date('2025-01-01'),
@@ -435,10 +425,7 @@ describe('ExchangeRateService', () => {
           })) as ExchangeRatesDailyEntity[],
         );
 
-        const externalAPISpy = jest.spyOn(
-          currencyLayerFluctuationApi,
-          'getFluctuationData',
-        );
+        const externalAPISpy = jest.spyOn(fluctuationApi, 'getFluctuationData');
 
         // Act
         const result = await exchangeRateService.getHistoricalRates(input);
@@ -511,21 +498,18 @@ describe('ExchangeRateService', () => {
     const latestTimestamp = Date.now();
     let setLatestRateSpy: jest.SpyInstance;
     let updateRateSpy: jest.SpyInstance;
-    let coinApiFluctuationSpy: jest.SpyInstance;
+    let fluctuationSpy: jest.SpyInstance;
 
     beforeEach(() => {
       setLatestRateSpy = jest.spyOn(exchangeRateRedisService, 'setLatestRate');
       updateRateSpy = jest.spyOn(exchangeRateRedisService, 'updateLatestRate');
-      coinApiFluctuationSpy = jest.spyOn(
-        coinApiFluctuationApi,
-        'getFluctuationData',
-      );
+      fluctuationSpy = jest.spyOn(fluctuationApi, 'getFluctuationData');
     });
 
     it('redis에 저장된 데이터가 없는 경우 fluctuation API(coinapi)를 통해서 보강한다', async () => {
       // Arrange
       exchangeRateRedisService.getLatestRate.mockResolvedValue([null, null]);
-      coinApiFluctuationApi.getFluctuationData.mockResolvedValue(
+      fluctuationApi.getFluctuationData.mockResolvedValue(
         ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
       );
 
@@ -538,7 +522,7 @@ describe('ExchangeRateService', () => {
       );
 
       // Assert
-      expect(coinApiFluctuationSpy).toHaveBeenCalled();
+      expect(fluctuationSpy).toHaveBeenCalled();
       expect(setLatestRateSpy).toHaveBeenCalled();
     });
 

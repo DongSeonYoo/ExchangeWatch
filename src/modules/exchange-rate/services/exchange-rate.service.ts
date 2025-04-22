@@ -31,10 +31,8 @@ export class ExchangeRateService {
   constructor(
     @Inject('LATEST_EXCHANGE_RATE_API')
     private readonly latestExchangeRateAPI: ILatestExchangeRateApi,
-    @Inject('CURRENCYLAYER_FLUCTUATION_RATE_API')
-    private readonly currencyLayerfluctuationAPI: IFluctuationExchangeRateApi,
-    @Inject('COINAPI_FLUCTUATION_RATE_API')
-    private readonly coinApiFluctuationAPI: IFluctuationExchangeRateApi,
+    @Inject('FLUCTUATION_RATE_API')
+    private readonly fluctuationApi: IFluctuationExchangeRateApi,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
     private readonly dateUtilService: DateUtilService,
     private readonly exchangeRateRawRepository: ExchangeRateRawRepository,
@@ -108,8 +106,8 @@ export class ExchangeRateService {
         this.logger.debug('cache missed! [external latest + fluctuation API]');
         const [latestRateResponse, fluctuationResponse] = await Promise.all([
           this.latestExchangeRateAPI.getLatestRates(input.baseCurrency),
-          this.coinApiFluctuationAPI.getFluctuationData(
-            this.dateUtilService.getYesterday(),
+          this.fluctuationApi.getFluctuationData(
+            this.dateUtilService.getLastMarketDay(),
             new Date(),
             input.baseCurrency,
             targetCodes,
@@ -276,13 +274,12 @@ export class ExchangeRateService {
     const startDate = missingDates[0];
     const endDate = missingDates[missingDates.length - 1];
 
-    const apiResponse =
-      await this.currencyLayerfluctuationAPI.getFluctuationData(
-        startDate,
-        endDate,
-        input.baseCurrency,
-        [input.currencyCode],
-      );
+    const apiResponse = await this.fluctuationApi.getFluctuationData(
+      startDate,
+      endDate,
+      input.baseCurrency,
+      [input.currencyCode],
+    );
 
     const dailyRecord: IExchangeRateDaily.ICreate[] = missingDates.map(
       (date) => {
@@ -313,13 +310,12 @@ export class ExchangeRateService {
    * - generate OHLC data and insert into exchange_rates_daily
    */
   async calculateDailyRates(startDate: Date, endDate: Date) {
-    const fluctuationApiResponse =
-      await this.currencyLayerfluctuationAPI.getFluctuationData(
-        startDate,
-        endDate,
-        'KRW',
-        this.supportCurrencyList,
-      );
+    const fluctuationApiResponse = await this.fluctuationApi.getFluctuationData(
+      startDate,
+      endDate,
+      'KRW',
+      this.supportCurrencyList,
+    );
 
     const ohlcRecord = Object.entries(fluctuationApiResponse.rates).map(
       ([currencyCode, data]): IExchangeRateDaily.ICreate => ({
@@ -386,7 +382,7 @@ export class ExchangeRateService {
     if (!storedRateStr || !storedTimestampStr) {
       const lastMarketDay = this.dateUtilService.getLastMarketDay();
       const { rates: fluctuationRates } =
-        await this.coinApiFluctuationAPI.getFluctuationData(
+        await this.fluctuationApi.getFluctuationData(
           lastMarketDay,
           latestRateDate,
           baseCurrency,
