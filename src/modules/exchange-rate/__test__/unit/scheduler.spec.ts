@@ -1,13 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExchageRateScheduler } from '../../schedulers/exchange-rate.scheduler';
-import { instance, mock } from 'ts-mockito';
 import { DateUtilService } from '../../../../common/utils/date-util/date-util.service';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
+import { MockProxy } from 'jest-mock-extended';
+import mock from 'jest-mock-extended/lib/Mock';
 
 describe('ExchageRateScheduler', () => {
   let scheduler: ExchageRateScheduler;
-  let exchangeRateService = mock(ExchangeRateService);
-  let dateUtilService = mock(DateUtilService);
+  let exchangeRateService: MockProxy<ExchangeRateService>;
+  let dateUtilService: MockProxy<DateUtilService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -15,11 +16,11 @@ describe('ExchageRateScheduler', () => {
         ExchageRateScheduler,
         {
           provide: ExchangeRateService,
-          useValue: instance(exchangeRateService),
+          useValue: mock<ExchangeRateService>(),
         },
         {
           provide: DateUtilService,
-          useValue: instance(dateUtilService),
+          useValue: mock<DateUtilService>(),
         },
       ],
     }).compile();

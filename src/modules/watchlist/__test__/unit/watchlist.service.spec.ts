@@ -1,13 +1,13 @@
 import { Test } from '@nestjs/testing';
 import { WatchlistService } from '../../watchlist.service';
 import { WatchListRepository } from '../../watchlist.repository';
-import { instance, mock, when } from 'ts-mockito';
 import { AlreadyRegisterPairException } from '../../exceptions/already-register-pair.excepetion';
 import { WatchlistEntity } from '../../entitites/watch-list.entity';
+import { mock, MockProxy } from 'jest-mock-extended';
 
 describe('WatchListService', () => {
   let watchListService: WatchlistService;
-  const watchListRepository = mock(WatchListRepository);
+  let watchListRepository: MockProxy<WatchListRepository>;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
@@ -15,12 +15,13 @@ describe('WatchListService', () => {
         WatchlistService,
         {
           provide: WatchListRepository,
-          useValue: instance(watchListRepository),
+          useValue: mock(WatchListRepository),
         },
       ],
     }).compile();
 
     watchListService = module.get<WatchlistService>(WatchlistService);
+    watchListRepository = module.get(WatchListRepository);
   });
 
   it('should be defined', () => {
@@ -36,13 +37,9 @@ describe('WatchListService', () => {
 
     it('should throw AlreadyRegisterPairException when pair exists', async () => {
       // Arrange
-      when(
-        watchListRepository.findInterestPairByUser(
-          userIdx,
-          dto.baseCurrency,
-          dto.currencyCode,
-        ),
-      ).thenResolve({} as WatchlistEntity);
+      watchListRepository.findInterestPairByUser.mockResolvedValue(
+        {} as WatchlistEntity,
+      );
 
       // Act & Assert
       await expect(

@@ -1,14 +1,15 @@
 import { HttpService } from '@nestjs/axios';
 import { FrankFurterService } from '../frankfurter.service';
 import { ConfigService } from '@nestjs/config';
-import { instance, mock } from 'ts-mockito';
 import { Test } from '@nestjs/testing';
 import { TestConfigModule } from '../../../../../../test/integration/modules/test-config.module';
+import { MockProxy } from 'jest-mock-extended';
+import mock from 'jest-mock-extended/lib/Mock';
 
 describe('FrankfurterService', () => {
   let frankFurterService: FrankFurterService;
   let httpService: HttpService;
-  let configService = mock(ConfigService);
+  let configService: MockProxy<ConfigService>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -25,7 +26,7 @@ describe('FrankfurterService', () => {
         },
         {
           provide: ConfigService,
-          useValue: instance(configService),
+          useValue: mock<ConfigService>(),
         },
       ],
     }).compile();
