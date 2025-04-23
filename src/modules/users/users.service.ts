@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { UsersRepository } from './users.repository';
 import { IUser } from './interfaces/user.interface';
 import { UserEntity } from './entities/user.entity';
 import { UserNotFoundException } from './exceptions/user-not-found.exception';
+import { UsersRepository } from './repositories/users.repository';
 
 @Injectable()
 export class UsersService {

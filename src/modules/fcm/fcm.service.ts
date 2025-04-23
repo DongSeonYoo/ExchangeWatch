@@ -5,7 +5,7 @@ import {
   NotificationType,
 } from '../notifications/types/notification.type';
 import { IFcmNotification } from './interfaces/fcm.interface';
-import { UsersRepository } from '../users/repositories/user-repository';
+import { UsersRepository } from '../users/repositories/users.repository';
 
 @Injectable()
 export class FcmService {

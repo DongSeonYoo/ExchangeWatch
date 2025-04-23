@@ -24,7 +24,7 @@ export class ExchageRateScheduler {
    * @throws {ExternalApiException} when external api errors
    * @throws {DatabaseException} When database operation fails
    */
-  // @Cron('5 0 * * *') // UTC 00:05 (임시 comment 잘못 돌아가면 폭탄맞습니다잉)
+  @Cron('5 0 * * *') // UTC 00:05 (임시 comment 잘못 돌아가면 폭탄맞습니다잉)
   async aggregateDailyRates() {
     try {
       const today = new Date();

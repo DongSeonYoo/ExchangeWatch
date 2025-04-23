@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as fcmAdmin from 'firebase-admin';
 import { AppConfig } from '../../infrastructure/config/config.type';
 import { FcmService } from './fcm.service';
-import { UsersRepository } from '../users/repositories/user-repository';
+import { UsersRepository } from '../users/repositories/users.repository';
 
 @Module({
   providers: [
