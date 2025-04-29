@@ -15,8 +15,8 @@ export class UpdateRateListener {
   /**
    * UpdateRateEvent 캐치 시 Notification Trigger.
    *
-   * - 단순히 notification만 trigger
    * - SSE 실시간 전파
+   * - 단순히 notification만 trigger
    *
    * @todo 추후 메세지브로커 설정 후 주입받아서 변경가능
    */
@@ -24,12 +24,12 @@ export class UpdateRateListener {
   async handleUpdateRateEvent(event: UpdateRateEvent) {
     const { baseCurrency, data } = event;
 
+    this.exchangeRateSseService.emitEvent(baseCurrency, data);
+
     await this.notificationTriggerService.handleTargetPriceTrigger(
       baseCurrency,
       data.currencyCode,
       data.rate,
     );
-
-    this.exchangeRateSseService.emitEvent(baseCurrency, data);
   }
 }
