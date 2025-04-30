@@ -3,11 +3,17 @@ import { IUser } from './interfaces/user.interface';
 import { UserEntity } from './entities/user.entity';
 import { UserNotFoundException } from './exceptions/user-not-found.exception';
 import { UsersRepository } from './repositories/users.repository';
+import { UsersDeviceRepository } from './repositories/users-device.repository';
+import { IUserDevice } from './interfaces/user-device.interface';
+import { Transactional } from '@nestjs-cls/transactional';
 
 @Injectable()
 export class UsersService {
   private readonly logger: Logger = new Logger(UsersService.name);
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly usersDeviceRepository: UsersDeviceRepository,
+  ) {}
 
   async findUserByIdx(userIdx: number): Promise<UserEntity> {
     const existUser = await this.usersRepository.findUserByIdx(userIdx);
@@ -29,5 +35,35 @@ export class UsersService {
     }
 
     return await this.usersRepository.createUser(input);
+  }
+
+  /**
+   * 사용자 디바이스 등록
+   *
+   * 등록시
+   * - userIdx + deviceToken조합이 이미 있으면 -> 갱신
+   * - 다른 유저가 해당 토큰을 이미 등록해놨으면 -> 삭제 후 새 유저에게 등록
+   */
+  @Transactional()
+  async registerUserDevice(input: IUserDevice.ICreate): Promise<void> {
+    // 해당 토큰이 이미 존재하는지 확인
+    const existing = await this.usersDeviceRepository.findTokenByDeviceToken(
+      input.deviceToken,
+    );
+
+    // 만약 다른 유저가 이 토큰을 가지고 있다면? 삭제
+    if (existing && existing.userIdx !== input.userIdx) {
+      await this.usersDeviceRepository.deleteDeviceToken(
+        input.userIdx,
+        input.deviceToken,
+      );
+    }
+
+    // 디바이스 토큰 생성
+    await this.usersDeviceRepository.upsertDeviceToken({
+      userIdx: input.userIdx,
+      deviceToken: input.deviceToken,
+      deviceType: input.deviceType,
+    });
   }
 }
