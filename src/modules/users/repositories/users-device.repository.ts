@@ -10,14 +10,16 @@ export class UsersDeviceRepository {
     private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
   ) {}
 
-  async findTokenByDeviceToken(deviceToken: string): Promise<UserDeviceEntity> {
+  async findTokenByDeviceToken(
+    deviceToken: string,
+  ): Promise<UserDeviceEntity | null> {
     return await this.txHost.tx.userDevices
       .findFirst({
         where: {
           deviceToken,
         },
       })
-      .then(UserDeviceEntity.from);
+      .then((result) => (result ? UserDeviceEntity.from(result) : null));
   }
 
   async deleteDeviceToken(userIdx: number, deviceToken: string): Promise<void> {
