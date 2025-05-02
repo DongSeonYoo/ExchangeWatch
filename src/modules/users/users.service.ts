@@ -66,4 +66,24 @@ export class UsersService {
       deviceType: input.deviceType,
     });
   }
+
+  /**
+   * 해당 유저의 등록된 디바이스 토큰을 삭제
+   */
+  async deleteUserDevice(userIdx: number, deviceToken: string): Promise<void> {
+    const checkHasToken = await this.usersDeviceRepository.findTokenByUser(
+      userIdx,
+      deviceToken,
+    );
+    if (!checkHasToken) {
+      this.logger.log(
+        `No device token found for user ${userIdx} and token ${deviceToken}`,
+      );
+      return;
+    }
+
+    await this.usersDeviceRepository.deleteDeviceToken(userIdx, deviceToken);
+
+    return;
+  }
 }

@@ -10,6 +10,25 @@ export class UsersDeviceRepository {
     private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
   ) {}
 
+  async findTokenByUser(
+    userIdx: number,
+    deviceToken: string,
+  ): Promise<UserDeviceEntity | null> {
+    return await this.txHost.tx.userDevices
+      .findUnique({
+        where: {
+          userIdx_deviceToken: {
+            userIdx,
+            deviceToken,
+          },
+          Users: {
+            deletedAt: null,
+          },
+        },
+      })
+      .then((result) => (result ? UserDeviceEntity.from(result) : null));
+  }
+
   async findTokenByDeviceToken(
     deviceToken: string,
   ): Promise<UserDeviceEntity | null> {
@@ -23,10 +42,12 @@ export class UsersDeviceRepository {
   }
 
   async deleteDeviceToken(userIdx: number, deviceToken: string): Promise<void> {
-    await this.txHost.tx.userDevices.deleteMany({
+    await this.txHost.tx.userDevices.delete({
       where: {
-        userIdx,
-        deviceToken,
+        userIdx_deviceToken: {
+          userIdx,
+          deviceToken,
+        },
         Users: {
           deletedAt: null,
         },
