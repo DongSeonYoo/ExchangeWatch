@@ -5,6 +5,7 @@ import { IFluctuationExchangeRateApi } from '../interfaces/exchange-rate-rest-ap
 import { IExchangeRateExternalAPI } from '../interfaces/exchange-rate-api.interface';
 import { AppConfig } from '../../../config/config.type';
 import { ICurrencyLayerResponse } from './interfaces/currencylayer.interface';
+import { supportCurrencyList } from '../../../../modules/exchange-rate/constants/support-currency.constant';
 
 @Injectable()
 export class CurrencyLayerService implements IFluctuationExchangeRateApi {
@@ -28,15 +29,16 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
     baseCurrency = 'EUR',
     currencyCodes: string[] = [],
   ): Promise<IExchangeRateExternalAPI.ILatestRatesResponse> {
-    const currencies = currencyCodes.join(',');
+    const currencies =
+      currencyCodes.length === 0 ? supportCurrencyList : currencyCodes;
     const url = `${this.apiUrl}/live?access_key=${this.apiKey}&source=${baseCurrency}&currencies=${currencies}`;
-
-    const { data } =
+    const response =
       await this.httpService.axiosRef.get<ICurrencyLayerResponse.IRealTimeRates>(
         url,
       );
+    const data = response.data;
     if (!data.success) {
-      throw new Error(`CurrencyLayer Error: ${JSON.stringify(data)}`);
+      throw new Error(`CurrencyLayer Error: ${response.statusText}`);
     }
 
     const rates = this.parseRealTimeQuotes(data.source, data.quotes);
