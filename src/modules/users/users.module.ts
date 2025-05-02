@@ -5,9 +5,8 @@ import { UsersRepository } from './repositories/users.repository';
 import { UsersDeviceRepository } from './repositories/users-device.repository';
 
 @Module({
-  exports: [UsersService],
-  imports: [],
   controllers: [UsersController],
   providers: [UsersService, UsersRepository, UsersDeviceRepository],
+  exports: [UsersService, UsersRepository, UsersDeviceRepository],
 })
 export class UsersModule {}
