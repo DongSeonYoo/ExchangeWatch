@@ -24,6 +24,55 @@ describe('usersDeviceRepository (integrate)', () => {
   it('should definded', () => {
     expect(usersDeviceRepository).toBeDefined();
   });
+
+  describe('findTokenByUser', () => {
+    beforeEach(async () => {
+      await prisma.userDevices.deleteMany();
+    });
+
+    it('should return a device token associated with the given user', async () => {
+      // Arrange
+      const deviceToken = 'device_token_by_user_1';
+      await prisma.userDevices.create({
+        data: {
+          userIdx,
+          deviceToken: deviceToken,
+          deviceType: 'android',
+        },
+      });
+
+      // Act
+      const result = await usersDeviceRepository.findTokenByUser(
+        userIdx,
+        deviceToken,
+      );
+
+      // Assert
+      expect(() => typia.assertEquals<UserDeviceEntity>(result)).not.toThrow();
+    });
+
+    it('should not return a device token when token not exists', async () => {
+      // Arrange
+      const deviceToken = 'device_token_by_user_1';
+      await prisma.userDevices.create({
+        data: {
+          userIdx,
+          deviceToken: deviceToken,
+          deviceType: 'android',
+        },
+      });
+
+      // Act
+      const result = await usersDeviceRepository.findTokenByUser(
+        userIdx,
+        'fake_device_token',
+      );
+
+      // Assert
+      expect(result).toBeNull();
+    });
+  });
+
   describe('findTokenByDeviceToken', () => {
     const deviceToken = 'device_token_by_user_1';
 

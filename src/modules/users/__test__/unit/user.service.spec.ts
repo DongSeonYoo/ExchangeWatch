@@ -3,6 +3,8 @@ import { UsersService } from '../../users.service';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { UsersRepository } from '../../repositories/users.repository';
 import { UsersDeviceRepository } from '../../repositories/users-device.repository';
+import { UserDeviceEntity } from '../../entities/user-device.entity';
+import { Logger } from '@nestjs/common';
 
 describe('UserService [unit]', () => {
   let usersService: UsersService;
@@ -99,6 +101,47 @@ describe('UserService [unit]', () => {
         deviceToken,
         deviceType,
       });
+    });
+  });
+
+  describe('deleteUserDevice', () => {
+    const userIdx = 1;
+    const deviceToken = 'device_token_by_user_1';
+
+    it('should log a warning if token does not exist', async () => {
+      // Arrange
+      usersDeviceRepository.findTokenByUser.mockResolvedValue(null);
+      const loggerSpy = jest.spyOn(Logger.prototype, 'log');
+      const deleteTokenSpy = jest.spyOn(
+        usersDeviceRepository,
+        'deleteDeviceToken',
+      );
+
+      // Act
+      await usersService.deleteUserDevice(userIdx, deviceToken);
+
+      // Assert
+      expect(loggerSpy).toHaveBeenCalledWith(
+        `No device token found for user ${userIdx} and token ${deviceToken}`,
+      );
+      expect(deleteTokenSpy).not.toHaveBeenCalledWith(userIdx, deviceToken);
+    });
+
+    it('should call deleteDeviceToken when token exists', async () => {
+      // Arrange
+      const deleteTokenSpy = jest.spyOn(
+        usersDeviceRepository,
+        'deleteDeviceToken',
+      );
+      usersDeviceRepository.findTokenByUser.mockResolvedValue(
+        {} as UserDeviceEntity,
+      );
+
+      // Act
+      await usersService.deleteUserDevice(userIdx, deviceToken);
+
+      // Assert
+      expect(deleteTokenSpy).toHaveBeenCalledWith(userIdx, deviceToken);
     });
   });
 });
