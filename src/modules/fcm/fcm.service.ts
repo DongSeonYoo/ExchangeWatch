@@ -1,11 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { app, messaging } from 'firebase-admin';
-import {
-  NotificationDataMap,
-  NotificationType,
-} from '../notifications/types/notification.type';
+import { NotificationType } from '../notifications/types/notification.type';
 import { IFcmNotification } from './interfaces/fcm.interface';
-import { UsersRepository } from '../users/repositories/users.repository';
+import { UsersDeviceRepository } from '../users/repositories/users-device.repository';
 
 @Injectable()
 export class FcmService {
@@ -13,7 +10,7 @@ export class FcmService {
 
   constructor(
     @Inject('FCM_ADMIN') private readonly firebaseApp: app.App,
-    private readonly userService: UsersRepository,
+    private readonly usersDeviceRepository: UsersDeviceRepository,
   ) {}
 
   /**
@@ -25,11 +22,25 @@ export class FcmService {
     userIdx: number,
     args: IFcmNotification.ICreate<T>,
   ) {
-    const userDeviceTokens = await this.getUserDeviceTokens(userIdx);
+    const userDeviceTokens =
+      await this.usersDeviceRepository.findTokensByUser(userIdx);
+    if (userDeviceTokens.length === 0) {
+      this.logger.log(
+        `해당하는 사용자의 디바이스 토큰이 존재하지 않습니다: user: ${userIdx}`,
+      );
+      return;
+    }
+
     const message: messaging.MulticastMessage = {
-      tokens: userDeviceTokens,
-      notification: args.notification,
-      data: args.data as any,
+      tokens: userDeviceTokens.map((e) => e.deviceToken),
+      notification: {
+        title: args.notification.title,
+        body: args.notification.body,
+      },
+      data: {
+        type: args.notificationType,
+        payload: JSON.stringify(args.data),
+      },
     };
 
     const response = await this.firebaseApp
@@ -40,12 +51,5 @@ export class FcmService {
     this.logger.debug(
       `FCM sent to ${userDeviceTokens.length} devices. Success: ${response.successCount}, Failure: ${response.failureCount}`,
     );
-  }
-  /**
-   * 테스트용 유저 디바이스 토큰 조회 (임시)
-   */
-  private async getUserDeviceTokens(userIdx: number): Promise<string[]> {
-    // @TODO: DB에서 user-device 테이블 조회로 대체
-    return ['TEST_DEVICE_TOKEN_1', 'TEST_DEVICE_TOKEN_2'];
   }
 }

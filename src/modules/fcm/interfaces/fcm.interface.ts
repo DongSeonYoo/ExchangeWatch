@@ -24,6 +24,7 @@ export namespace IFcmNotification {
   }
 
   export interface ICreate<T extends NotificationType> extends IBase {
+    notificationType: T;
     data: NotificationDataMap[T];
   }
 }

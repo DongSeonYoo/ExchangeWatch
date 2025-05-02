@@ -3,9 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import * as fcmAdmin from 'firebase-admin';
 import { AppConfig } from '../../infrastructure/config/config.type';
 import { FcmService } from './fcm.service';
-import { UsersRepository } from '../users/repositories/users.repository';
+import { UsersModule } from '../users/users.module';
 
 @Module({
+  imports: [UsersModule],
   providers: [
     FcmService,
     {
@@ -25,7 +26,6 @@ import { UsersRepository } from '../users/repositories/users.repository';
       },
       inject: [ConfigService],
     },
-    UsersRepository,
   ],
   exports: [FcmService],
 })

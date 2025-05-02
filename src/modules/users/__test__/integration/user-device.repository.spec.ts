@@ -21,22 +21,59 @@ describe('usersDeviceRepository (integrate)', () => {
     prisma = app.get(TEST_PRISMA_TOKEN);
   });
 
-  it('should definded', () => {
+  afterEach(async () => {
+    await prisma.userDevices.deleteMany();
+  });
+
+  it('should be defined', () => {
     expect(usersDeviceRepository).toBeDefined();
   });
 
-  describe('findTokenByUser', () => {
-    beforeEach(async () => {
-      await prisma.userDevices.deleteMany();
+  describe('findTokensByUser', () => {
+    it('should return tokens by user idx', async () => {
+      // Arrange
+      const deviceToken = ['user_1_device_token1', 'user_1_device_token2'];
+      await prisma.userDevices.createMany({
+        data: [
+          {
+            userIdx: 1,
+            deviceToken: deviceToken[0],
+            deviceType: 'ios',
+          },
+          {
+            userIdx: 1,
+            deviceToken: deviceToken[1],
+            deviceType: 'android',
+          },
+        ],
+      });
+
+      // Act
+      const act = await usersDeviceRepository.findTokensByUser(userIdx);
+
+      // Assert
+      expect(() => typia.assertEquals<UserDeviceEntity[]>(act)).not.toThrow();
+      expect(act.map((e) => e.deviceToken)).toEqual(deviceToken);
     });
 
+    it('should return empty tokens when user does not have any token', async () => {
+      // Act
+      const act = await usersDeviceRepository.findTokensByUser(userIdx);
+
+      // Assert
+      expect(() => typia.assertEquals<UserDeviceEntity[]>(act)).not.toThrow();
+      expect(act).toEqual([]);
+    });
+  });
+
+  describe('findTokenByUser', () => {
     it('should return a device token associated with the given user', async () => {
       // Arrange
       const deviceToken = 'device_token_by_user_1';
       await prisma.userDevices.create({
         data: {
           userIdx,
-          deviceToken: deviceToken,
+          deviceToken,
           deviceType: 'android',
         },
       });
@@ -51,17 +88,7 @@ describe('usersDeviceRepository (integrate)', () => {
       expect(() => typia.assertEquals<UserDeviceEntity>(result)).not.toThrow();
     });
 
-    it('should not return a device token when token not exists', async () => {
-      // Arrange
-      const deviceToken = 'device_token_by_user_1';
-      await prisma.userDevices.create({
-        data: {
-          userIdx,
-          deviceToken: deviceToken,
-          deviceType: 'android',
-        },
-      });
-
+    it('should not return a device token when token does not exist', async () => {
       // Act
       const result = await usersDeviceRepository.findTokenByUser(
         userIdx,
@@ -86,12 +113,6 @@ describe('usersDeviceRepository (integrate)', () => {
       });
     });
 
-    afterEach(async () => {
-      await prisma.userDevices.deleteMany({
-        where: { deviceToken: deviceToken },
-      });
-    });
-
     it('should return a device token registered by the user', async () => {
       // Act
       const act =
@@ -108,7 +129,7 @@ describe('usersDeviceRepository (integrate)', () => {
           'non_existing_token',
         );
 
-      //   Assert
+      // Assert
       expect(() => typia.assertEquals<UserDeviceEntity>(act)).toThrow();
       expect(act).toBeNull();
     });
@@ -128,8 +149,10 @@ describe('usersDeviceRepository (integrate)', () => {
     });
 
     it('should delete a token registered by the user', async () => {
-      // Act
+      // Arrange
       await usersDeviceRepository.deleteDeviceToken(userIdx, deviceToken);
+
+      // Act
       const act =
         await usersDeviceRepository.findTokenByDeviceToken(deviceToken);
 
@@ -141,17 +164,15 @@ describe('usersDeviceRepository (integrate)', () => {
   describe('upsertDeviceToken', () => {
     const deviceToken = 'token_upsert_test';
 
-    beforeEach(async () => {
-      await prisma.userDevices.deleteMany({ where: { deviceToken } });
-    });
-
     it('should create a new token if it does not exist', async () => {
-      // Act
+      // Arrange
       await usersDeviceRepository.upsertDeviceToken({
         userIdx,
         deviceToken,
         deviceType: 'android',
       });
+
+      // Act
       const act =
         await usersDeviceRepository.findTokenByDeviceToken(deviceToken);
 
@@ -170,12 +191,13 @@ describe('usersDeviceRepository (integrate)', () => {
         },
       });
 
-      // Act
       await usersDeviceRepository.upsertDeviceToken({
         userIdx,
         deviceToken,
         deviceType: 'ios',
       });
+
+      // Act
       const act =
         await usersDeviceRepository.findTokenByDeviceToken(deviceToken);
 

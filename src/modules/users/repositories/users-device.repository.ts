@@ -10,6 +10,19 @@ export class UsersDeviceRepository {
     private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
   ) {}
 
+  async findTokensByUser(userIdx: number): Promise<UserDeviceEntity[]> {
+    return await this.txHost.tx.userDevices
+      .findMany({
+        where: {
+          userIdx,
+          Users: {
+            deletedAt: null,
+          },
+        },
+      })
+      .then((result) => result.map(UserDeviceEntity.from));
+  }
+
   async findTokenByUser(
     userIdx: number,
     deviceToken: string,
