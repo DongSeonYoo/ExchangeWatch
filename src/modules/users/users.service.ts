@@ -54,8 +54,8 @@ export class UsersService {
     // 만약 다른 유저가 이 토큰을 가지고 있다면? 삭제
     if (existing && existing.userIdx !== input.userIdx) {
       await this.usersDeviceRepository.deleteDeviceToken(
-        input.userIdx,
-        input.deviceToken,
+        existing.userIdx,
+        existing.deviceToken,
       );
     }
 

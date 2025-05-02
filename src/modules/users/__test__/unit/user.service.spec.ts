@@ -41,7 +41,7 @@ describe('UserService [unit]', () => {
     let createDeviceTokenSpy: jest.SpyInstance;
     let deleteDeviceTokenSpy: jest.SpyInstance;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       createDeviceTokenSpy = jest.spyOn(
         usersDeviceRepository,
         'upsertDeviceToken',
@@ -82,6 +82,7 @@ describe('UserService [unit]', () => {
       // Arrange
       usersDeviceRepository.findTokenByDeviceToken.mockResolvedValue({
         userIdx: 12,
+        deviceToken,
       } as any);
 
       // Act
@@ -92,7 +93,7 @@ describe('UserService [unit]', () => {
       });
 
       // Assert
-      expect(deleteDeviceTokenSpy).toHaveBeenCalled();
+      expect(deleteDeviceTokenSpy).toHaveBeenCalledWith(12, deviceToken);
       expect(createDeviceTokenSpy).toHaveBeenCalledWith({
         userIdx,
         deviceToken,
