@@ -2,8 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { NotificationRepository } from '../notification.repository';
 import { NotificationHistoryRepository } from '../../notification-histories/repositories/notification-history.repository';
 import { FcmService } from '../../fcm/fcm.service';
-import { NotificationDataMap } from '../types/notification.type';
-import { UpdateRateEvent } from '../../../infrastructure/events/exchange-rate/update-rate.event';
 import { Transactional } from '@nestjs-cls/transactional';
 
 @Injectable()
@@ -59,6 +57,7 @@ export class NotificationTriggerService {
             await this.fcmService.sendNotificationToDevice<'TARGET_PRICE'>(
               userIdx,
               {
+                notificationType: 'TARGET_PRICE',
                 notification: {
                   title: '환율 알림',
                   body: `${currencyCode}가 목표가[${latestRate}]에 도달했습니다`,
