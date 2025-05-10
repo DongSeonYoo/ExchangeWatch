@@ -1,21 +1,16 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { IRedisSubscriber } from '../interfaces/redis-subsciber.interface';
 import Redis from 'ioredis';
 import { RedisService } from '../redis.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IRedisSchema } from '../interfaces/redis-schema.interface';
 import { UpdateRateEvent } from '../../events/exchange-rate/update-rate.event';
+import { CustomLoggerService } from '../../../common/logger/custom-logger.service';
 
 @Injectable()
 export class RateUpdateSubscriber
   implements IRedisSubscriber, OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(RateUpdateSubscriber.name);
   private readonly subscriber: Redis;
   private readonly rateUpdateChannelPattern = 'rate-update:*';
   private isSubscribed = false;
@@ -23,7 +18,9 @@ export class RateUpdateSubscriber
   constructor(
     private readonly redisService: RedisService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly logger: CustomLoggerService,
   ) {
+    this.logger.context = RateUpdateSubscriber.name;
     this.subscriber = this.redisService.duplicate;
   }
 
@@ -44,7 +41,7 @@ export class RateUpdateSubscriber
 
       this.subscriber.on('pmessage', this.handleMessage.bind(this));
 
-      this.logger.debug(`Subscribed '${this.rateUpdateChannelPattern}'`);
+      this.logger.info(`Subscribed '${this.rateUpdateChannelPattern}'`);
     } catch (error) {
       this.logger.error(`Failed subscribed: ${error.message}`, error.stack);
       throw error;

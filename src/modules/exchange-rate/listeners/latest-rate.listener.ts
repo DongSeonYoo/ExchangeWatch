@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ExchangeRateService } from '../services/exchange-rate.service';
 import { LatestRateEvent } from '../../../infrastructure/events/exchange-rate/latest-rate.event';
@@ -6,8 +6,6 @@ import { ExchangeRateRedisService } from '../services/exchange-rate-redis.servic
 
 @Injectable()
 export class LatestRateListener {
-  private readonly logger: Logger = new Logger(LatestRateListener.name);
-
   constructor(
     private readonly exchangeRateRedisService: ExchangeRateRedisService,
     private readonly exchangeRateService: ExchangeRateService,
@@ -31,10 +29,6 @@ export class LatestRateListener {
       event.currencyCode,
       event.rate,
       event.timestamp,
-    );
-
-    this.logger.debug(
-      `update latest-rate healthcheck!!: ${event.baseCurrency}/${event.currencyCode}`,
     );
   }
 }

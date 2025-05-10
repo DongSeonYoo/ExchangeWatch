@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { LatestRateSseService } from '../../sse/services/latest-rate-sse.service';
 import { UpdateRateEvent } from '../../../infrastructure/events/exchange-rate/update-rate.event';
@@ -6,7 +6,6 @@ import { NotificationTriggerService } from '../../notifications/services/notific
 
 @Injectable()
 export class UpdateRateListener {
-  private readonly logger = new Logger(UpdateRateListener.name);
   constructor(
     private readonly exchangeRateSseService: LatestRateSseService,
     private readonly notificationTriggerService: NotificationTriggerService,

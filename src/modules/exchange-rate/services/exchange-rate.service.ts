@@ -2,7 +2,6 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
-  Logger,
 } from '@nestjs/common';
 import {
   CurrentExchangeRateReqDto,
@@ -21,10 +20,10 @@ import { ExchangeRateRawRepository } from '../repositories/exchange-rate-raw.rep
 import { IExchangeRateDaily } from '../interfaces/exchange-rate-daily.interface';
 import { getCurrencyNameInKorean } from '../constants/symbol-kr.mapper';
 import { ExchangeRateRedisService } from './exchange-rate-redis.service';
+import { CustomLoggerService } from '../../../common/logger/custom-logger.service';
 
 @Injectable()
 export class ExchangeRateService {
-  private readonly logger = new Logger(ExchangeRateService.name);
   private readonly supportCurrencyList = supportCurrencyList;
   private readonly latestRatethreshold = 10000; // 임계값 10s
 
@@ -37,7 +36,10 @@ export class ExchangeRateService {
     private readonly dateUtilService: DateUtilService,
     private readonly exchangeRateRawRepository: ExchangeRateRawRepository,
     private readonly exchangeRateRedisService: ExchangeRateRedisService,
-  ) {}
+    private readonly logger: CustomLoggerService,
+  ) {
+    this.logger.context = ExchangeRateService.name;
+  }
 
   /**
    * 현재 최신 환율 조회 (기준 통화: KRW 고정)
@@ -88,7 +90,7 @@ export class ExchangeRateService {
         }),
       );
 
-      this.logger.debug(
+      this.logger.verbose(
         `cache hit! [redis only]${isMarketOpen ? '' : ' (주말은 변동량 없음'}`,
       );
       return {
@@ -103,7 +105,9 @@ export class ExchangeRateService {
     if (!isCacheHitted) {
       // [2-1] 시장 열림 → 외부 API fallback
       if (isMarketOpen) {
-        this.logger.debug('cache missed! [external latest + fluctuation API]');
+        this.logger.verbose(
+          'cache missed! [external latest + fluctuation API]',
+        );
         const [latestRateResponse, fluctuationResponse] = await Promise.all([
           this.latestExchangeRateAPI.getLatestRates(input.baseCurrency),
           this.fluctuationApi.getFluctuationData(
@@ -180,7 +184,7 @@ export class ExchangeRateService {
           };
         });
 
-        this.logger.debug('weekend fallback! [snapshot]');
+        this.logger.verbose('weekend fallback! [snapshot]');
         return {
           baseCurrency: input.baseCurrency,
           rates: this.combinateLatestRates(

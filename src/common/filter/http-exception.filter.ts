@@ -4,19 +4,16 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { IExceptionResponse } from 'src/common/dto/interfaces/response.interface';
-import { AppConfig } from '../../infrastructure/config/config.type';
+import { CustomLoggerService } from '../logger/custom-logger.service';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
-  constructor(
-    private readonly logger: Logger,
-    private readonly configService: ConfigService<AppConfig, true>,
-  ) {}
+  constructor(private readonly logger: CustomLoggerService) {
+    this.logger.context = HttpExceptionFilter.name;
+  }
 
   private convertErrorMessage(errors: string[]): string {
     return errors.map((err) => `Validation Error: ${err}`).join(', ');
@@ -42,10 +39,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       statusCode: status,
       timestamp: new Date(),
     };
-
-    if (this.configService.get('nodeEnv') === 'development') {
-      this.logger.debug(exception.stack);
-    }
 
     return res.status(status).json(response);
   }
