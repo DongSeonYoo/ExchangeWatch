@@ -1,17 +1,19 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { app, messaging } from 'firebase-admin';
+import { app, FirebaseError, messaging } from 'firebase-admin';
 import { NotificationType } from '../notifications/types/notification.type';
 import { IFcmNotification } from './interfaces/fcm.interface';
 import { UsersDeviceRepository } from '../users/repositories/users-device.repository';
+import { CustomLoggerService } from '../../common/logger/custom-logger.service';
 
 @Injectable()
 export class FcmService {
-  private readonly logger = new Logger(FcmService.name);
-
   constructor(
     @Inject('FCM_ADMIN') private readonly firebaseApp: app.App,
     private readonly usersDeviceRepository: UsersDeviceRepository,
-  ) {}
+    private readonly logger: CustomLoggerService,
+  ) {
+    this.logger.context = FcmService.name;
+  }
 
   /**
    * FCM 디바이스 전송
@@ -43,13 +45,30 @@ export class FcmService {
       },
     };
 
-    const response = await this.firebaseApp
-      .messaging()
-      .sendEachForMulticast(message);
+    try {
+      const response = await this.firebaseApp
+        .messaging()
+        .sendEachForMulticast(message);
 
-    // 4. 로그
-    this.logger.debug(
-      `FCM sent to ${userDeviceTokens.length} devices. Success: ${response.successCount}, Failure: ${response.failureCount}`,
-    );
+      response.responses.forEach((result) => {
+        if (!result.success) {
+          const fcmError = result.error as FirebaseError;
+          this.logger.error(
+            `발송 실패. userIdx: ${userIdx}, type: ${args.notificationType}, [${fcmError.code}]: ${fcmError.message}`,
+            fcmError.stack,
+          );
+        } else {
+          this.logger.verbose(
+            `메시지 발송 성공. userIdx: ${userIdx}, type: ${args.notificationType}`,
+          );
+        }
+      });
+    } catch (error) {
+      const err = error as FirebaseError;
+      this.logger.error(
+        `메시지 전체 발송 실패, userIdx: 1, Error: ${err.message}, code: ${err.code}`,
+        err.stack,
+      );
+    }
   }
 }

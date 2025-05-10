@@ -139,3 +139,15 @@ model ExchangeRatesRaw {
   @@index([currencyCode, baseCurrency, createdAt(sort: Desc)], map: "idx_exchange_rates_latest")
   @@map("exchange_rates_raw")
 }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model SystemLogs {
+  id        Int       @id @default(autoincrement())
+  level     String
+  message   String
+  context   String?
+  trace     String?
+  timestamp DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("system_logs")
+}

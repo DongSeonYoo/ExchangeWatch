@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { IUser } from './interfaces/user.interface';
 import { UserEntity } from './entities/user.entity';
 import { UserNotFoundException } from './exceptions/user-not-found.exception';
@@ -6,14 +6,17 @@ import { UsersRepository } from './repositories/users.repository';
 import { UsersDeviceRepository } from './repositories/users-device.repository';
 import { IUserDevice } from './interfaces/user-device.interface';
 import { Transactional } from '@nestjs-cls/transactional';
+import { CustomLoggerService } from '../../common/logger/custom-logger.service';
 
 @Injectable()
 export class UsersService {
-  private readonly logger: Logger = new Logger(UsersService.name);
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly usersDeviceRepository: UsersDeviceRepository,
-  ) {}
+    private readonly logger: CustomLoggerService,
+  ) {
+    this.logger.context = UsersService.name;
+  }
 
   async findUserByIdx(userIdx: number): Promise<UserEntity> {
     const existUser = await this.usersRepository.findUserByIdx(userIdx);
@@ -76,7 +79,7 @@ export class UsersService {
       deviceToken,
     );
     if (!checkHasToken) {
-      this.logger.log(
+      this.logger.verbose(
         `No device token found for user ${userIdx} and token ${deviceToken}`,
       );
       return;

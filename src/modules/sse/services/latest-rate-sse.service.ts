@@ -1,21 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
+import { CustomLoggerService } from '../../../common/logger/custom-logger.service';
 
 /**
  * TODO
  *  - base SseService만들고, 도메인 별 sseService가 상속받아 비즈니스 이어받게
  *  - 정기적인 shceduler로 비어있는 channel삭제
- *
  */
 @Injectable()
 export class LatestRateSseService {
-  private readonly logger = new Logger(LatestRateSseService.name);
   private readonly subjectPrefix = 'latest-rate:';
   /**
    * subjectName: latest-rate:KRW, { ... eventData }
    * Map<subjectName, eventData>
    */
   private subjects = new Map<string, Subject<any>>();
+
+  constructor(private readonly logger: CustomLoggerService) {
+    this.logger.context = LatestRateSseService.name;
+  }
 
   /**
    * 특정 채널의 이벤트를 구독할 Observable을 반환
@@ -37,9 +40,13 @@ export class LatestRateSseService {
     const subject = this.subjects.get(subjectName);
     if (subject) {
       subject.next(data);
-      this.logger.debug(`Emitted event on channel: ${subjectName}`);
+      this.logger.debug(
+        `Emitted event on channel: ${subjectName}, payload: ${JSON.stringify(data)}`,
+      );
     } else {
-      this.logger.debug(`No subject exists for channel: ${subjectName}`);
+      this.logger.verbose(
+        `Tried to emit SSE on missing channel: ${subjectName}, payload: ${JSON.stringify(data)}`,
+      );
     }
   }
 
@@ -51,7 +58,7 @@ export class LatestRateSseService {
     if (subject) {
       subject.complete();
       this.subjects.delete(channel);
-      this.logger.debug(`Removed idle channel: ${channel}`);
+      this.logger.info(`Removed idle channel: ${channel}`);
     }
   }
 }

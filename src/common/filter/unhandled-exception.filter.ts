@@ -3,13 +3,16 @@ import {
   Catch,
   ExceptionFilter,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 import { IExceptionResponse } from 'src/common/dto/interfaces/response.interface';
+import { CustomLoggerService } from '../logger/custom-logger.service';
 
 @Catch(Error)
 export class UnhandledExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: Logger) {}
+  constructor(private readonly logger: CustomLoggerService) {
+    this.logger.context = UnhandledExceptionFilter.name;
+  }
+
   catch(exception: Error, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const req = ctx.getRequest();
@@ -23,11 +26,7 @@ export class UnhandledExceptionFilter implements ExceptionFilter {
       timestamp: new Date(),
     };
 
-    this.logger.error(
-      exception.message,
-      exception.stack,
-      UnhandledExceptionFilter.name,
-    );
+    this.logger.error(exception.message, exception.stack);
 
     return res.status(statusCode).send(response);
   }

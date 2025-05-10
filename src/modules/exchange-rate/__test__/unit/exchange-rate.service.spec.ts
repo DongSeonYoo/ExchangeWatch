@@ -15,11 +15,14 @@ import { ExchangeRateFixture } from '../fixture/exchange-rate-fixture';
 import { ExchangeRateRawRepository } from '../../repositories/exchange-rate-raw.repository';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
 import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
+import { CustomLoggerService } from '../../../../common/logger/custom-logger.service';
+import { InternalServerErrorException } from '@nestjs/common';
 
 describe('ExchangeRateService', () => {
   const currencyCodes = supportCurrencyList.filter((code) => code !== 'KRW');
 
   let exchangeRateService: ExchangeRateService;
+  let loggerService: CustomLoggerService;
 
   let latestExchangeRateApi: MockProxy<ILatestExchangeRateApi>;
   let fluctuationApi: MockProxy<IFluctuationExchangeRateApi>;
@@ -34,6 +37,10 @@ describe('ExchangeRateService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExchangeRateService,
+        {
+          provide: CustomLoggerService,
+          useValue: mock(CustomLoggerService),
+        },
         {
           provide: 'LATEST_EXCHANGE_RATE_API',
           useValue: mock<ILatestExchangeRateApi>(),
@@ -73,6 +80,7 @@ describe('ExchangeRateService', () => {
     exchangeRateRawRepository = module.get(ExchangeRateRawRepository);
     exchangeRateRedisService = module.get(ExchangeRateRedisService);
     dateUtilService = module.get(DateUtilService);
+    loggerService = module.get(CustomLoggerService);
   });
 
   it('should definded externalAPIService', () => {
@@ -228,18 +236,14 @@ describe('ExchangeRateService', () => {
         });
       });
 
-      it('시장이 닫혀있는 경우,만약 폴백 스냅샷이 DB에 존재하지 않는다면, 마지막으로 시장이 닫혔던 날짜의 snapshot을 외부 fluctuation(currencyCode)를 호출해 저장한다', async () => {
+      it('시장 마감, 마감 직전 스냅샷 없음, 마지막으로 시장이 닫혔던 날짜의 snapshot을 외부 fluctuation(currencyCode)를 호출해 저장한다', async () => {
         // Arrange
-        const fakeDate = new Date('2025-04-18T00:00:00.000Z');
+        const fakeLastMarketDate = new Date('2025-04-18T00:00:00.000Z');
         dateUtilService.isMarketOpen.mockReturnValue(false);
-        dateUtilService.getLastMarketDay.mockReturnValue(fakeDate);
+        dateUtilService.getLastMarketDay.mockReturnValue(fakeLastMarketDate);
         exchangeRateDailyRepository.findDailyRates.mockResolvedValue([] as any);
         fluctuationApiSpy.mockResolvedValue(
           ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
-        );
-        const dailyRateSaveSpy = jest.spyOn(
-          exchangeRateDailyRepository,
-          'saveDailyRates',
         );
 
         // Act
@@ -248,12 +252,15 @@ describe('ExchangeRateService', () => {
           currencyCodes,
         });
 
-        expect(dailyRateSaveSpy).toHaveBeenCalled();
+        expect(exchangeRateDailyRepository.saveDailyRates).toHaveBeenCalled();
         expect(fluctuationApiSpy).toHaveBeenCalled();
+        expect(loggerService.error).toHaveBeenCalledWith(
+          `폴백 스냅샷 없음, ${fakeLastMarketDate} 기준 스냅샷 생성 시도`,
+        );
       });
 
       it.todo(
-        '캐시가 존재하지 않고, 스냅샷도 존재하지 않고, 시장도 열지 않았다면 500에러를 던진다',
+        '캐시가 존재하지 않고, 스냅샷도 존재하지 않고, 시장도 열지 않고, 외부 API의 history도  호출불가하다면 500에러를 던진다 [요기 지금 비즈니스로직상 도달불가능. 리팩토링 시급]',
       );
     });
   });
