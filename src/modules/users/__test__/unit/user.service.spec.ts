@@ -4,17 +4,22 @@ import { mock, MockProxy } from 'jest-mock-extended';
 import { UsersRepository } from '../../repositories/users.repository';
 import { UsersDeviceRepository } from '../../repositories/users-device.repository';
 import { UserDeviceEntity } from '../../entities/user-device.entity';
-import { Logger } from '@nestjs/common';
+import { CustomLoggerService } from '../../../../common/logger/custom-logger.service';
 
 describe('UserService [unit]', () => {
   let usersService: UsersService;
   let usersRepository: MockProxy<UsersRepository>;
   let usersDeviceRepository: MockProxy<UsersDeviceRepository>;
+  let loggerService: CustomLoggerService;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
         UsersService,
+        {
+          provide: CustomLoggerService,
+          useValue: mock(CustomLoggerService),
+        },
         {
           provide: UsersRepository,
           useValue: mock(UsersRepository),
@@ -29,6 +34,7 @@ describe('UserService [unit]', () => {
     usersService = module.get(UsersService);
     usersRepository = module.get(UsersRepository);
     usersDeviceRepository = module.get(UsersDeviceRepository);
+    loggerService = module.get(CustomLoggerService);
   });
 
   it('should be definded', () => {
@@ -111,7 +117,6 @@ describe('UserService [unit]', () => {
     it('should log a warning if token does not exist', async () => {
       // Arrange
       usersDeviceRepository.findTokenByUser.mockResolvedValue(null);
-      const loggerSpy = jest.spyOn(Logger.prototype, 'log');
       const deleteTokenSpy = jest.spyOn(
         usersDeviceRepository,
         'deleteDeviceToken',
@@ -121,7 +126,7 @@ describe('UserService [unit]', () => {
       await usersService.deleteUserDevice(userIdx, deviceToken);
 
       // Assert
-      expect(loggerSpy).toHaveBeenCalledWith(
+      expect(loggerService.verbose).toHaveBeenCalledWith(
         `No device token found for user ${userIdx} and token ${deviceToken}`,
       );
       expect(deleteTokenSpy).not.toHaveBeenCalledWith(userIdx, deviceToken);
