@@ -4,7 +4,6 @@ import { ExternalAPIModule } from '../../../../infrastructure/externals/external
 import { ExchangeRateDailyRepository } from '../../repositories/exchange-rate-daily.repository';
 import { DateUtilService } from '../../../../common/utils/date-util/date-util.service';
 import { RedisService } from '../../../../infrastructure/redis/redis.service';
-import { Logger } from '@nestjs/common';
 import { TestIntegrateModules } from '../../../../../test/integration/utils/integrate-module.util';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
 import { ExchangeRateRawRepository } from '../../repositories/exchange-rate-raw.repository';
@@ -29,7 +28,6 @@ describe('ExchangeRateController', () => {
         ExchangeRateRawRepository,
         DateUtilService,
         RedisService,
-        Logger,
       ],
     }).compile();
 
