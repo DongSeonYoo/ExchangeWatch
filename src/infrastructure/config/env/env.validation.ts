@@ -61,4 +61,7 @@ export const envValidationSchema = Joi.object({
   FCM_PROJECT_ID: Joi.string().required(),
   FCM_CLIENT_EMAIL: Joi.string().required(),
   FCM_PRIVATE_KEY: Joi.string().required(),
+
+  // OPENAI
+  OPEN_API_KEY: Joi.string().required(),
 });
