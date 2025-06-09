@@ -1,4 +1,4 @@
-import { IsDate, IsNotEmpty } from 'class-validator';
+import { IsDate, IsNotEmpty, Matches } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ExchangeRatesDailyEntity } from '../entities/exchange-rate-daily.entity';
 import { IsValidCurrencyCode } from '../../../common/decorators/validations/is-valid-currency.validator';
@@ -12,7 +12,7 @@ export class CurrentExchangeHistoryReqDto {
    * @example EUR
    */
   @IsNotEmpty()
-  @IsValidCurrencyCode()
+  @Matches(/^KRW$/, { message: 'baseCurrency is only can be KRW.' })
   baseCurrency: string;
 
   /**

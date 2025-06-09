@@ -5,8 +5,8 @@ import { DateUtilService } from '../../../common/utils/date-util/date-util.servi
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
-export class ExchageRateScheduler {
-  private readonly logger: Logger = new Logger(ExchageRateScheduler.name);
+export class ExchangeRateScheduler {
+  private readonly logger: Logger = new Logger(ExchangeRateScheduler.name);
 
   constructor(
     private readonly exchangeRateService: ExchangeRateService,

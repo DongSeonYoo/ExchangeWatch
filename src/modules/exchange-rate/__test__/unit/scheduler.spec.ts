@@ -1,19 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ExchageRateScheduler } from '../../schedulers/exchange-rate.scheduler';
+import { ExchangeRateScheduler } from '../../schedulers/exchange-rate.scheduler';
 import { DateUtilService } from '../../../../common/utils/date-util/date-util.service';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
 import { MockProxy } from 'jest-mock-extended';
 import mock from 'jest-mock-extended/lib/Mock';
 
 describe('ExchageRateScheduler', () => {
-  let scheduler: ExchageRateScheduler;
+  let scheduler: ExchangeRateScheduler;
   let exchangeRateService: MockProxy<ExchangeRateService>;
   let dateUtilService: MockProxy<DateUtilService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ExchageRateScheduler,
+        ExchangeRateScheduler,
         {
           provide: ExchangeRateService,
           useValue: mock<ExchangeRateService>(),
@@ -25,7 +25,7 @@ describe('ExchageRateScheduler', () => {
       ],
     }).compile();
 
-    scheduler = module.get(ExchageRateScheduler);
+    scheduler = module.get(ExchangeRateScheduler);
     dateUtilService = module.get(DateUtilService);
   });
 

@@ -31,6 +31,7 @@
     "prepare": "ts-patch install && typia patch"
   },
   "dependencies": {
+    "@agentica/core": "^0.27.3",
     "@nestjs-cls/transactional": "^2.4.6",
     "@nestjs-cls/transactional-adapter-prisma": "^1.2.9",
     "@nestjs/axios": "^4.0.0",
@@ -62,6 +63,7 @@
     "nest-winston": "^1.10.2",
     "nestjs-cls": "^5.0.1",
     "npm": "^10.8.1",
+    "openai": "^4.100.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
@@ -71,7 +73,7 @@
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1",
     "superagent": "^10.1.1",
-    "typia": "^7.6.4",
+    "typia": "^9.3.1",
     "uuid": "^11.0.3",
     "winston": "^3.17.0"
   },

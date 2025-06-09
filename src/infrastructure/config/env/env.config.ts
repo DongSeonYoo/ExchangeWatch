@@ -70,4 +70,8 @@ export const appConfig = registerAs('', () => ({
     FCM_CLIENT_EMAIL: process.env.FCM_CLIENT_EMAIL,
     FCM_PRIVATE_KEY: Buffer.from(process.env.FCM_PRIVATE_KEY!).toString(),
   },
+
+  openai: {
+    OPENAI_API_KEY: process.env.OPEN_API_KEY,
+  },
 }));

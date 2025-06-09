@@ -3,7 +3,7 @@ import { ExchangeRateService } from './services/exchange-rate.service';
 import { ExchangeRateController } from './controllers/exchange-rate.controller';
 import { RedisModule } from '../../infrastructure/redis/redis.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ExchageRateScheduler } from './schedulers/exchange-rate.scheduler';
+import { ExchangeRateScheduler } from './schedulers/exchange-rate.scheduler';
 import { ExchangeRateDailyRepository } from './repositories/exchange-rate-daily.repository';
 import { ExternalAPIModule } from '../../infrastructure/externals/external.module';
 import { LatestRateListener } from './listeners/latest-rate.listener';
@@ -29,7 +29,7 @@ import { NotificationModule } from '../notifications/notification.module';
     RedisService,
     ExchangeRateService,
     ExchangeRateRedisService,
-    ExchageRateScheduler,
+    ExchangeRateScheduler,
     ExchangeRateDailyRepository,
     ExchangeRateRawRepository,
     IsAfterConstraint,
@@ -37,6 +37,6 @@ import { NotificationModule } from '../notifications/notification.module';
     LatestRateListener,
     UpdateRateListener,
   ],
-  exports: [],
+  exports: [ExchangeRateService],
 })
 export class ExchangeRateModule {}

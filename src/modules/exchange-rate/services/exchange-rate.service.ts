@@ -68,14 +68,14 @@ export class ExchangeRateService {
     const isMarketOpen = this.dateUtilService.isMarketOpen();
     const isAliveLatestRateCache =
       await this.exchangeRateRedisService.getLatestRateHealthCheck('KRW');
-    const isCacheHitted =
+    const isCacheHit =
       isAliveLatestRateCache &&
       isAliveLatestRateCache.getTime() > Date.now() - this.latestRatethreshold;
 
     // ==========================================
     // [1] 캐시 HIT
     // ==========================================
-    if (isCacheHitted) {
+    if (isCacheHit) {
       await Promise.all(
         targetCodes.map(async (code) => {
           const [change, changePct, rate, timestamp] =
@@ -95,14 +95,14 @@ export class ExchangeRateService {
       );
       return {
         baseCurrency: input.baseCurrency,
-        rates: this.combinateLatestRates(input.baseCurrency, preparedResponse),
+        rates: this.combineLatestRates(input.baseCurrency, preparedResponse),
       };
     }
 
     // ==========================================
     // [2] 캐시 MISS
     // ==========================================
-    if (!isCacheHitted) {
+    if (!isCacheHit) {
       // [2-1] 시장 열림 → 외부 API fallback
       if (isMarketOpen) {
         this.logger.verbose(
@@ -129,10 +129,7 @@ export class ExchangeRateService {
 
         return {
           baseCurrency: input.baseCurrency,
-          rates: this.combinateLatestRates(
-            input.baseCurrency,
-            preparedResponse,
-          ),
+          rates: this.combineLatestRates(input.baseCurrency, preparedResponse),
         };
       }
 
@@ -175,22 +172,21 @@ export class ExchangeRateService {
           ).then((r) => r.flat());
         }
 
-        snapshotRecords.forEach((record) => {
-          preparedResponse[record.currencyCode] = {
-            rate: Number(record.closeRate),
-            dayChange: 0, // 주말은 변동률 없음
-            dayChangePercent: 0,
-            timestamp: record.ohlcDate,
-          };
-        });
+        snapshotRecords
+          .filter((record) => targetCodes.includes(record.currencyCode))
+          .forEach((record) => {
+            preparedResponse[record.currencyCode] = {
+              rate: Number(record.closeRate),
+              dayChange: 0,
+              dayChangePercent: 0,
+              timestamp: record.ohlcDate,
+            };
+          });
 
         this.logger.verbose('weekend fallback! [snapshot]');
         return {
           baseCurrency: input.baseCurrency,
-          rates: this.combinateLatestRates(
-            input.baseCurrency,
-            preparedResponse,
-          ),
+          rates: this.combineLatestRates(input.baseCurrency, preparedResponse),
         };
       }
     }
@@ -205,9 +201,9 @@ export class ExchangeRateService {
   }
 
   /**
-   * Gernerate daily data by combining recent currency-rate and fluctuation rate
+   * Generate daily data by combining recent currency-rate and fluctuation rate
    */
-  private combinateLatestRates(
+  private combineLatestRates(
     baseCurrency: string,
     rates: Record<
       string,
