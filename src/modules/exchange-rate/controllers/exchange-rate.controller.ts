@@ -12,11 +12,19 @@ import { ExchangeRateService } from '../services/exchange-rate.service';
 import { ApiSuccess } from '../../../common/decorators/swaggers/success.decorator';
 import { ApiExceptions } from '../../../common/decorators/swaggers/exception.decorator';
 import { InvalidCurrencyCodeException } from '../../../common/decorators/validations/is-valid-currency.validator';
+import {
+  ExchangeRateInsightReqDto,
+  ExchangeRateInsightResDto,
+} from '../dto/exchange-rates-insight.dto';
+import { AgenticaService } from '../../../common/agents/agentica.service';
 
 @ApiTags('Exchange-rates')
 @Controller('exchange-rates')
 export class ExchangeRateController {
-  constructor(private readonly exchangeRateService: ExchangeRateService) {}
+  constructor(
+    private readonly exchangeRateService: ExchangeRateService,
+    private readonly agenticaService: AgenticaService,
+  ) {}
 
   /**
    * 현재 환율 조회
@@ -56,5 +64,40 @@ export class ExchangeRateController {
     const result = await this.exchangeRateService.getHistoricalRates(query);
 
     return CurrentExchangeHistoryResDto.of(baseCurrency, currencyCode, result);
+  }
+
+  /**
+   * AI 환율 분석 요약 리포트 조회
+   *
+   * @remarks 특정 통화쌍에 대한 AI 기반 환율 분석 요약 리포트를 제공합니다.
+   * 'days' 파라미터로 분석 기간을 지정할 수 있으며, 지정하지 않으면 기본 7일로 분석합니다.
+   */
+  @Get('insight')
+  @ApiSuccess(ExchangeRateInsightResDto)
+  @ApiExceptions({
+    exampleTitle: '올바르지 않은 통화 코드일 경우',
+    schema: InvalidCurrencyCodeException,
+  })
+  async getCurrencyExchangeInsight(@Query() dto: ExchangeRateInsightReqDto) {
+    const agent = await this.agenticaService.getAgent();
+    const prompt = `
+    ${dto.baseCurrency}/${dto.currencyCode} 환율을 최근 ${dto.days}일간 분석해주세요.
+    
+    다음 정보를 포함하여 종합적인 분석 리포트를 작성해주세요:
+    1. 현재 환율의 상대적 위치 (백분위, 평균 대비)
+    2. 최근 추세와 변동성 분석
+    3. 주요 고점/저점 대비 현재 상황
+    4. 주목할 만한 패턴이나 특징
+    
+    분석을 위해 필요한 데이터는 available functions를 사용해서 가져와 주세요.
+      `;
+    await agent
+      .conversate(prompt)
+      .then((res) => {
+        // @TODO 이부분 캐싱 로직 분리해서 SSE로 스트리밍 or 평문으로 응답
+        return res.map((r) => r.toJSON());
+      })
+      .then((res) => console.log('최종 agent 결과: ', res))
+      .catch(console.error);
   }
 }
