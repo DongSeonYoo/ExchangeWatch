@@ -30,6 +30,7 @@ import { HttpExceptionFilter } from './common/filter/http-exception.filter';
 import { SuccessResponseInterceptor } from './common/interceptor/response.interceptor';
 import { FcmModule } from './modules/fcm/fcm.module';
 import { CustomLoggerModule } from './common/logger/logger.module';
+import { AgentModule } from './common/agents/agents.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { CustomLoggerModule } from './common/logger/logger.module';
         }),
       ],
     }),
+    AgentModule,
     CustomLoggerModule,
     UsersModule,
     AuthModule,
