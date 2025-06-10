@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import dayjs, { ManipulateType } from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 /**
  * Provides date manipulation method using by dayjs
@@ -48,6 +51,19 @@ export class DateUtilService {
 
   isBefore(targetDate1: Date, targetDate2: Date): boolean {
     return dayjs(targetDate1).isBefore(targetDate2);
+  }
+
+  /**
+   * 새로운 거래일인지 UTC기준으로 확인
+   *
+   * @param currentTimestamp 현재 타임스탬프
+   * @param prevTimestamp 이전 타임스탬프
+   */
+  isNewTradingDay(currentTimestamp: number, prevTimestamp: number): boolean {
+    const currentDate = dayjs.utc(currentTimestamp).format('DD/MM/YYYY');
+    const prevDate = dayjs.utc(prevTimestamp).format('DD/MM/YYYY');
+
+    return currentDate !== prevDate;
   }
 
   /**
