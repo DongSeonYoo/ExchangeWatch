@@ -5,17 +5,14 @@ import { HttpService } from '@nestjs/axios';
 import { mock, MockProxy } from 'jest-mock-extended';
 
 describe('CoinApiService (unit, external)', () => {
-  let coinApiService: MockProxy<CoinApiService>;
+  let coinApiService: CoinApiService;
   let httpService: MockProxy<HttpService>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
         CoinApiService,
-        {
-          provide: ConfigService,
-          useFactory: () => mock<CoinApiService>(),
-        },
+        ConfigService,
         {
           provide: HttpService,
           useFactory: () => mock<HttpService>(),
@@ -27,7 +24,7 @@ describe('CoinApiService (unit, external)', () => {
     httpService = module.get(HttpService);
   });
 
-  it('Should be definded', () => {
+  it('Should be defined', () => {
     expect(coinApiService).toBeDefined();
   });
 

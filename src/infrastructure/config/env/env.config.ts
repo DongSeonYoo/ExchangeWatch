@@ -22,8 +22,8 @@ export const appConfig = registerAs('', () => ({
     apiUrl: process.env.FIXER_API_URL,
   },
 
-  frankFurter: {
-    baseUrl: process.env.FRANK_FURTER_URL,
+  frankFurther: {
+    baseUrl: process.env.FRANK_FURTHER_URL,
   },
 
   currencyLayer: {

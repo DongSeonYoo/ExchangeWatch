@@ -1,4 +1,4 @@
-export namespace IFrankFurter {
+export namespace IFrankFurther {
   export interface ILatestRates {
     base: string;
     date: Date;
