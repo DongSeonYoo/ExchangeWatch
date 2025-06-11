@@ -4,6 +4,7 @@ export namespace IRedisSchema {
     change: number;
     changePct: number;
     timestamp: number;
+    openRate: number;
   }
 
   export interface IUpdateRate extends ILatestRateHash {

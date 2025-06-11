@@ -16,7 +16,6 @@ import { ExchangeRateRawRepository } from '../../repositories/exchange-rate-raw.
 import { ExchangeRateService } from '../../services/exchange-rate.service';
 import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
 import { CustomLoggerService } from '../../../../common/logger/custom-logger.service';
-import { InternalServerErrorException } from '@nestjs/common';
 
 describe('ExchangeRateService', () => {
   const currencyCodes = supportCurrencyList.filter((code) => code !== 'KRW');
@@ -83,7 +82,7 @@ describe('ExchangeRateService', () => {
     loggerService = module.get(CustomLoggerService);
   });
 
-  it('should definded externalAPIService', () => {
+  it('should defined externalAPIService', () => {
     expect(latestExchangeRateApi).toBeDefined();
     expect(fluctuationApi).toBeDefined();
   });
@@ -449,10 +448,10 @@ describe('ExchangeRateService', () => {
       it.todo('should call external api 31 times (supportCurrencies count) ');
 
       it.todo(
-        'should convert the recived data according to the entity structure',
+        'should convert the received data according to the entity structure',
       );
 
-      it.todo('should save recived data into the DB');
+      it.todo('should save received data into the DB');
     });
   });
 
@@ -506,17 +505,30 @@ describe('ExchangeRateService', () => {
     let setLatestRateSpy: jest.SpyInstance;
     let updateRateSpy: jest.SpyInstance;
     let fluctuationSpy: jest.SpyInstance;
+    let redisPublishRateSpy: jest.SpyInstance;
 
     beforeEach(() => {
       setLatestRateSpy = jest.spyOn(exchangeRateRedisService, 'setLatestRate');
       updateRateSpy = jest.spyOn(exchangeRateRedisService, 'updateLatestRate');
       fluctuationSpy = jest.spyOn(fluctuationApi, 'getFluctuationData');
+      redisPublishRateSpy = jest.spyOn(
+        exchangeRateRedisService,
+        'publishRateUpdate',
+      );
     });
 
-    it('redis에 저장된 데이터가 없는 경우 fluctuation API(coinapi)를 통해서 보강한다', async () => {
+    it('redis에 저장된 데이터가 없는 경우 fluctuation API를 호출하여 초기값을 세팅한다. ', async () => {
       // Arrange
-      exchangeRateRedisService.getLatestRate.mockResolvedValue([null, null]);
+      exchangeRateRedisService.getLatestRate.mockResolvedValue([]);
       fluctuationApi.getFluctuationData.mockResolvedValue(
+        /**
+         * @return startRate: 1,
+          endRate: 1,
+          highRate: 1,
+          lowRate: 1,
+          change: 12,
+          changePct: 1.3,
+         */
         ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
       );
 
@@ -530,15 +542,26 @@ describe('ExchangeRateService', () => {
 
       // Assert
       expect(fluctuationSpy).toHaveBeenCalled();
-      expect(setLatestRateSpy).toHaveBeenCalled();
+      expect(setLatestRateSpy).toHaveBeenCalledWith(
+        baseCurrency,
+        currencyCode,
+        expect.objectContaining({
+          rate: latestRate,
+          timestamp: latestTimestamp,
+          change: 12,
+          changePct: 1.3,
+          openRate: 1,
+        }),
+      );
     });
 
-    it('날짜가 바뀌었으면 변동률을 0으로 초기화한다', async () => {
+    it('새로운 거래일일 경우, 제일 마지막에 redis에 수집된 데이터를 넣어준 후, 해당 날짜의 변동률을 0으로 초기화해준다. 바로 이전 날짜의 환율을 시가로 설정한다', async () => {
       // Arrange
-      dateUtilService.isBefore.mockReturnValue(true);
+      dateUtilService.isNewTradingDay.mockReturnValue(true);
       exchangeRateRedisService.getLatestRate.mockResolvedValue([
-        '1.2345',
-        `${latestTimestamp - 86400000}`,
+        `${latestRate}`, // 바로 이전 환율
+        `${latestTimestamp}`, // 바로 이전 타임스탬프
+        `${latestRate}`, //바로 이전 환율
       ]);
 
       // Act
@@ -554,44 +577,81 @@ describe('ExchangeRateService', () => {
         baseCurrency,
         currencyCode,
         expect.objectContaining({
+          rate: latestRate,
+          timestamp: latestTimestamp,
           change: 0,
           changePct: 0,
-          rate: latestRate,
+          openRate: latestRate,
         }),
       );
     });
 
     it('같은 날짜이고 변동률이 임계치 이상이면 full update한다', async () => {
       // Arrange
-      dateUtilService.isBefore.mockReturnValue(false);
+      dateUtilService.isNewTradingDay.mockReturnValue(false);
       exchangeRateRedisService.getLatestRate.mockResolvedValue([
-        `${latestRate - 100}`, // 외환위기급변화
-        `${latestTimestamp - 5000}`, // 5초전 정상수집데이터
+        `${latestRate}`,
+        `${latestTimestamp - 5000}`, // 5초전 (정상수집데이터)
+        `${latestRate}`, // 해당 날짜의 시가
       ]);
 
       // Act
       await exchangeRateService.handleLatestRateUpdate(
         baseCurrency,
         currencyCode,
-        latestRate,
+        latestRate - 100, // 외환위기급변화
         latestTimestamp,
       );
 
       // Assert
       expect(updateRateSpy).toHaveBeenCalledWith(baseCurrency, currencyCode, {
-        change: 100,
-        changePct: -101.24999190000065,
-        rate: latestRate,
+        change: -100,
+        changePct: -8100.051840331777,
+        rate: latestRate - 100,
         timestamp: latestTimestamp,
       });
+    });
+
+    it('같은 날짜에 변동률이 임계치 이상이라면 redis publish한다', async () => {
+      // Arrange
+      dateUtilService.isNewTradingDay.mockReturnValue(false);
+      exchangeRateRedisService.getLatestRate.mockResolvedValue([
+        `${latestRate}`,
+        `${latestTimestamp - 5000}`, // 5초전 (정상수집데이터)
+        `${latestRate}`, // 해당 날짜의 시가
+      ]);
+
+      // Act
+      await exchangeRateService.handleLatestRateUpdate(
+        baseCurrency,
+        currencyCode,
+        latestRate - 100,
+        latestTimestamp,
+      );
+
+      // Assert
+      expect(redisPublishRateSpy).toHaveBeenCalledWith(
+        baseCurrency,
+        currencyCode,
+        {
+          baseCurrency,
+          currencyCode,
+          rate: latestRate - 100,
+          change: -100,
+          changePct: -8100.051840331777,
+          timestamp: latestTimestamp,
+          openRate: latestRate,
+        },
+      );
     });
 
     it('같은 날짜이고, 변동률이 존재하지 않는다면 timestamp만 업데이트 한다', async () => {
       // Arrange
-      dateUtilService.isBefore.mockReturnValue(false);
+      dateUtilService.isNewTradingDay.mockReturnValue(false);
       exchangeRateRedisService.getLatestRate.mockResolvedValue([
         `${latestRate}`, // latetRate와 변화가 없을때
         `${latestTimestamp - 5000}`, // 5초전 정상수집데이터
+        `${latestRate}`, // 해당 날짜의 시가
       ]);
 
       // Act
@@ -608,11 +668,12 @@ describe('ExchangeRateService', () => {
       });
     });
 
-    it('모든 케이스에 대해서 raw데이터를 rdb에 삽입한다', async () => {
+    it('정상적으로 수집이 된 대해서 rdb에 rate-raw데이터로 삽입한다', async () => {
       // Arrange
       exchangeRateRedisService.getLatestRate.mockResolvedValue([
         `${latestRate}`,
         `${latestTimestamp}`,
+        `${latestRate}`, // 해당 날짜의 시가
       ]);
       const rawSpy = jest.spyOn(
         exchangeRateRawRepository,

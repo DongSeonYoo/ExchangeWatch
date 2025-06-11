@@ -14,7 +14,7 @@ describe('DateUtilService', () => {
     dateUtilService = module.get(DateUtilService);
   });
 
-  it('should definded DateUtilService', () => {
+  it('should defined DateUtilService', () => {
     expect(dateUtilService).toBeDefined();
   });
 
@@ -82,6 +82,38 @@ describe('DateUtilService', () => {
 
       // Assert
       expect(result).toBeFalsy();
+    });
+  });
+
+  describe('isNewTradingDay', () => {
+    it('should return false when two timestamps are on the same day', () => {
+      // Arrange
+      const prevTimestamp = new Date('2025-06-10T00:00:00Z').getTime();
+      const currentTimestamp = new Date('2025-06-10T23:59:00Z').getTime();
+
+      // Act
+      const result = dateUtilService.isNewTradingDay(
+        currentTimestamp,
+        prevTimestamp,
+      );
+
+      // Assert
+      expect(result).toBeFalsy();
+    });
+
+    it('should return true if the current timestamp is on a different day than the previous one', () => {
+      // Arrange
+      const prevTimestamp = new Date('2025-06-10T23:59:59Z').getTime();
+      const currentTimestamp = new Date('2025-06-11T00:00:00Z').getTime();
+
+      // Act
+      const result = dateUtilService.isNewTradingDay(
+        currentTimestamp,
+        prevTimestamp,
+      );
+
+      // Assert
+      expect(result).toBeTruthy();
     });
   });
 });

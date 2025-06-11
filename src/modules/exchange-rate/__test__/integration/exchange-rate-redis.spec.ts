@@ -26,7 +26,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
     await redis.flushall();
   });
 
-  it('should definded ExchangeRateRedisService', () => {
+  it('should defined ExchangeRateRedisService', () => {
     expect(exchangeRateRedisService).toBeDefined();
   });
 
@@ -38,6 +38,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
         changePct: 0,
         rate: 1500,
         timestamp: new Date('2001-06-12').getTime(),
+        openRate: 1500,
       });
     });
 
@@ -92,7 +93,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
       expect(result).toStrictEqual(['0', '0', '1500']);
     });
 
-    it('should return null array when values aren"t there', async () => {
+    it('should return null array when values are not there', async () => {
       // Arrange
       const baseCurrency = 'KRW';
       const currencyCode = 'EUR';
@@ -125,8 +126,9 @@ describe('ExchangeRateRedisService (Integration)', () => {
         changePct: -20,
         rate: 1200,
         timestamp: new Date('2001-06-12').getTime(),
+        openRate: 1200,
       });
-      const [change, changePct, rate, timestamp] =
+      const [change, changePct, rate, timestamp, openRate] =
         await exchangeRateRedisService.getLatestRate(
           baseCurrency,
           currencyCode,
@@ -135,6 +137,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
             changePct: true,
             rate: true,
             timestamp: true,
+            openRate: true,
           },
         );
 
@@ -142,6 +145,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
       expect(change).toBe('-300');
       expect(changePct).toBe('-20');
       expect(rate).toEqual('1200');
+      expect(openRate).toEqual('1200');
       expect(timestamp).toEqual(String(new Date('2001-06-12').getTime()));
     });
   });
@@ -156,6 +160,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
         changePct: -20,
         rate: 1200,
         timestamp,
+        openRate: 1200,
       });
     });
 
@@ -175,7 +180,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
         },
       );
 
-      const [change, changePct, rate, timestamp] =
+      const [change, changePct, rate, timestamp, openRate] =
         await exchangeRateRedisService.getLatestRate(
           baseCurrency,
           currencyCode,
@@ -184,6 +189,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
             changePct: true,
             rate: true,
             timestamp: true,
+            openRate: true,
           },
         );
 
@@ -191,6 +197,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
       expect(change).toBe('-100'); // 부분 업데이트된 값
       expect(changePct).toBe('-10'); // 부분 업데이트된 값
       expect(rate).toEqual('1200');
+      expect(openRate).toEqual('1200');
       expect(timestamp).toEqual(String(new Date('2001-06-12').getTime()));
     });
 
@@ -204,6 +211,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
         changePct: -20,
         rate: 1200,
         timestamp: new Date('2001-06-12').getTime(),
+        openRate: 1200,
       });
 
       // Act
@@ -216,7 +224,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
         },
       );
 
-      const [change, changePct, rate, timestamp] =
+      const [change, changePct, rate, timestamp, openRate] =
         await exchangeRateRedisService.getLatestRate(
           baseCurrency,
           currencyCode,
@@ -225,6 +233,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
             changePct: true,
             rate: true,
             timestamp: true,
+            openRate: true,
           },
         );
 
@@ -232,6 +241,7 @@ describe('ExchangeRateRedisService (Integration)', () => {
       expect(change).toBe('-100'); // 변경된 값
       expect(changePct).toBe('-20');
       expect(rate).toEqual('1200');
+      expect(openRate).toEqual('1200');
       expect(timestamp).toEqual(String(new Date('2001-06-12').getTime()));
     });
   });
