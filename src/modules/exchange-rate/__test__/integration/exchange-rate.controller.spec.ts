@@ -9,6 +9,7 @@ import { ExchangeRateService } from '../../services/exchange-rate.service';
 import { ExchangeRateRawRepository } from '../../repositories/exchange-rate-raw.repository';
 import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
 import { DateUtilModule } from '../../../../common/utils/date-util/date-util.module';
+import { AgenticaService } from '../../../../common/agents/agentica.service';
 
 describe('ExchangeRateController', () => {
   let controller: ExchangeRateController;
@@ -28,6 +29,7 @@ describe('ExchangeRateController', () => {
         ExchangeRateRawRepository,
         DateUtilService,
         RedisService,
+        AgenticaService,
       ],
     }).compile();
 
