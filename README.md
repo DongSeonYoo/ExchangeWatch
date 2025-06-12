@@ -1,7 +1,9 @@
-# Exchange Watch - 실시간 환율 추적
+# Exchange Watch Monorepo
+
+실시간 환율 추적 및 AI 기반 분석 웹 애플리케이션의 모노레포입니다.
 
 **Exchange Watch**는 전 세계 환율 정보를 실시간으로 수집하고,
-사용자의 관심 통화쌍을 실시간으로 모니터링하며, 일간 이력 집계 및 알림까지 제공하는 백엔드 서버입니다.
+사용자의 관심 통화쌍을 실시간으로 모니터링하며, 일간 이력 집계 및 알림까지 제공하는 풀스택 애플리케이션입니다.
 
 ## 💡 주요 기능 (Features)
 - 전 세계 주요 통화의 실시간 환율 수집 및 실시간 스트리밍 제공 (WebSocket + SSE)
@@ -13,7 +15,21 @@
 - 단위/통합 테스트를 갖춘 안정적인 서비스 기반
 ---
 
-## ⚙️ 기술 스택 및 사용처
+## 프로젝트 구조
+
+```
+exchange-watch/
+├── apps/
+│   ├── backend/          # NestJS 백엔드 API 서버
+│   └── frontend/         # Next.js 프론트엔드 애플리케이션
+├── packages/
+│   └── shared/           # 공유 타입 및 유틸리티
+└── package.json          # 워크스페이스 설정
+```
+
+## ⚙️ 기술 스택
+
+### 백엔드 (NestJS)
 | 범주      | 기술                   | 사용처                                                                               |
 | --------- | ---------------------- | ------------------------------------------------------------------------------------ |
 | Language  | TypeScript             | 정적 타입 기반으로 안정성과 가독성 확보                                              |
@@ -23,9 +39,21 @@
 | ORM       | Prisma                 | type-safe한 DB접근 및 마이그레이션 자동화 및 테스트 환경 분리                        |
 | Cache     | Redis                  | 수집된 실시간 환율 캐싱 및 외부 API 호출 최소화                                      |
 | Messaging | Redis Pub/Sub          | 클라이언트 관리 및 Redis Pub/Sub을 통한 변동된 통화쌍만 실시간 부분 전송             |
+| AI        | OpenAI, Agentica       | 환율 분석 및 인사이트 생성                                                           |
 | Infra     | Docker, Docker Compose | 로컬, 테스트, 배포 환경 일관성 확보                                                  |
 | Test      | Jest, Supertest        | 단위/통합 테스트 및 외부 의존성 테스트                                               |
----
+
+### 프론트엔드 (Next.js)
+| 범주         | 기술                    | 사용처                                  |
+| ------------ | ----------------------- | --------------------------------------- |
+| Framework    | Next.js 15 (App Router) | React 기반 풀스택 프레임워크            |
+| Language     | TypeScript              | 타입 안전성 및 개발 생산성 향상         |
+| Styling      | Tailwind CSS            | 유틸리티 우선 CSS 프레임워크, 다크 테마 |
+| State Mgmt   | Zustand                 | 클라이언트 상태 관리 (인증 등)          |
+| Server State | TanStack Query          | 서버 상태 관리, 캐싱, 동기화            |
+| Charts       | Lightweight Charts      | 고성능 캔들스틱 차트                    |
+| Drag & Drop  | React Beautiful DnD     | 관심목록 순서 변경                      |
+| HTTP Client  | Axios                   | API 통신 및 자동 토큰 갱신              |
 
 ## 🧱 시스템 아키텍처
 
