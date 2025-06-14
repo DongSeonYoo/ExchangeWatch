@@ -28,7 +28,7 @@
     "docker-frank": "docker run -d -p 4000:8080 lineofflight/FrankFurther",
     "docker-test:up": "docker-compose -f docker-compose-test.yml up -d",
     "docker-test:down": "docker-compose -f docker-compose-test.yml down -v",
-    "prepare": "ts-patch install && typia patch"
+    "prepare": "ts-patch install && typia patch && prisma generate"
   },
   "dependencies": {
     "@agentica/core": "^0.27.3",
