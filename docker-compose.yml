@@ -1,12 +1,20 @@
 version: '3.8'
 
 services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - '3000:80'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
+    networks:
+      - exchange-watch-net
   app:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-    ports:
-      - '3000:3000'
+      dockerfile: Dockerfile.prod
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_HOST=redis
@@ -17,25 +25,23 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      frankfurter:
-        condition: service_started
     env_file:
       - .env
-    volumes:
-      - .:/app
-      - /app/node_modules
+    command: sh -c "npx prisma migrate deploy && node dist/src/main.js"
+    networks:
+      - exchange-watch-net
 
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     ports:
-      - '6378:6379'
-    volumes:
-      - redis_data:/data
+      - '6379:6379'
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - exchange-watch-net
 
   postgres:
     image: postgres:latest
@@ -45,20 +51,16 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-    volumes:
-      - ./erd.sql:/docker-entrypoint-initdb.d/init.sql
-      - postgres_data:/var/lib/postgresql/data
+    # volumes:
+    #   - ./erd.sql:/docker-entrypoint-initdb.d/init.sql
+    #   - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - exchange-watch-net
 
-  frankfurter:
-    image: lineofflight/frankfurter
-    ports:
-      - '4000:8080'
-
-volumes:
-  redis_data:
-  postgres_data:
+networks:
+  exchange-watch-net:

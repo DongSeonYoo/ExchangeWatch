@@ -1,31 +1,44 @@
 # ###################
-# # BUILD FOR PRODUCTION
+# # Builder Stage
 # ###################
+FROM node:22-alpine AS builder
 
-# Build Stage
-FROM node:22 AS builder
+# Run openSSL For Prisma engine
+RUN apk add --no-cache openssl
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
 COPY package*.json ./
-COPY prisma ./prisma/
 
 RUN npm install
 
+# Setting Prisma client
+COPY prisma ./prisma/
+RUN npx prisma generate
+# Copy source codes
 COPY . .
 
+# build application
 RUN npm run build
 
-# Production Stage
+# devdependencies 제거
+RUN npm prune --production
+
+
+# ###################
+# # Production Stage
+# ###################
 FROM node:22-slim
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/prisma ./prisma
+WORKDIR /usr/src/app
+
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/package*.json ./
+COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "dist/src/main.js"]
