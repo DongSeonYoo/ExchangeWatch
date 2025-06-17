@@ -517,20 +517,13 @@ describe('ExchangeRateService', () => {
       );
     });
 
-    it('redis에 저장된 데이터가 없는 경우 fluctuation API를 호출하여 초기값을 세팅한다. ', async () => {
+    it('redis에 저장된 데이터가 없는 경우 warn레벨로 로그를 찍는다', async () => {
       // Arrange
-      exchangeRateRedisService.getLatestRate.mockResolvedValue([]);
-      fluctuationApi.getFluctuationData.mockResolvedValue(
-        /**
-         * @return startRate: 1,
-          endRate: 1,
-          highRate: 1,
-          lowRate: 1,
-          change: 12,
-          changePct: 1.3,
-         */
-        ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
-      );
+      exchangeRateRedisService.getLatestRate.mockResolvedValue([
+        '1500',
+        '1234567890',
+        '1450',
+      ]);
 
       // Act
       await exchangeRateService.handleLatestRateUpdate(
@@ -541,18 +534,7 @@ describe('ExchangeRateService', () => {
       );
 
       // Assert
-      expect(fluctuationSpy).toHaveBeenCalled();
-      expect(setLatestRateSpy).toHaveBeenCalledWith(
-        baseCurrency,
-        currencyCode,
-        expect.objectContaining({
-          rate: latestRate,
-          timestamp: latestTimestamp,
-          change: 12,
-          changePct: 1.3,
-          openRate: 1,
-        }),
-      );
+      loggerService.warn(`No Redis data for ${currencyCode}`);
     });
 
     it('새로운 거래일일 경우, 제일 마지막에 redis에 수집된 데이터를 넣어준 후, 해당 날짜의 변동률을 0으로 초기화해준다. 바로 이전 날짜의 환율을 시가로 설정한다', async () => {
@@ -697,8 +679,51 @@ describe('ExchangeRateService', () => {
       });
     });
 
+    it('레디스에 초기 데이터가 없을 경우, (init이 아닌, 소켓 수신 받았을 경우에) 500에러를 반환한다', async () => {
+      // Arrange
+      exchangeRateRedisService.getLatestRate.mockResolvedValue([]); // Redis에 데이터 없을 경우
+
+      // Act
+      await exchangeRateService.handleLatestRateUpdate(
+        baseCurrency,
+        currencyCode,
+        latestRate,
+        latestTimestamp,
+      );
+
+      // Assert
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        `No Redis data for ${currencyCode}`,
+      );
+      expect(fluctuationApi.getFluctuationData).not.toHaveBeenCalled();
+    });
+
     it.todo('최초 저장 시 fluctuation API 실패하면 예외를 던진다');
 
     it.todo('변동률이 미미할 때 로그가 찍히는지 검증한다 (verbose level)');
+  });
+
+  describe('initializeAllCurrencyData', () => {
+    describe('만약 기존 캐시 데이터가 이미 redis에 존재할 때', () => {
+      it('외부 API 호출(fluctuation)을 하지 않는다.', async () => {
+        // Arrange
+        // 모든 필드가 들어있을때 (사실상 개발단계에서만 발생할것 같다)
+        let fluctuationSpy = jest.spyOn(fluctuationApi, 'getFluctuationData');
+        exchangeRateRedisService.getLatestRate.mockResolvedValue([
+          '1500',
+          '1234567890',
+          '1450',
+        ]);
+
+        // Act
+        await exchangeRateService.initializeAllCurrencyData();
+
+        // Assert
+        expect(loggerService.info).toHaveBeenCalledWith(
+          'All currency data already exists in Redis',
+        );
+        expect(fluctuationSpy).not.toHaveBeenCalled();
+      });
+    });
   });
 });

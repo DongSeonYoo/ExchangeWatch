@@ -22,6 +22,7 @@ import { getCurrencyNameInKorean } from '../constants/symbol-kr.mapper';
 import { ExchangeRateRedisService } from './exchange-rate-redis.service';
 import { CustomLoggerService } from '../../../common/logger/custom-logger.service';
 import { CURRENCY_THRESHOLDS } from '../constants/currency-thresholds.constant';
+import { debounce } from 'lodash';
 
 @Injectable()
 export class ExchangeRateService {
@@ -348,20 +349,123 @@ export class ExchangeRateService {
   }
 
   /**
+   * WebSocket 연결 시 모든 통화 데이터 초기화
+   * Redis에 없는 통화들을 한번에 Fluctuation API로 가져와서 초기 설정
+   */
+  async initializeAllCurrencyData(): Promise<void> {
+    this.logger.info('Initializing all currency data from external API');
+
+    try {
+      // KRW를 제외한 모든 지원 통화 리스트
+      const targetCurrencies = this.supportCurrencyList.filter(
+        (code) => code !== 'KRW',
+      );
+
+      // Redis에서 기존 통화 데이터 존재 여부 체크
+      const missingCurrencies =
+        await this.checkMissingCurrencies(targetCurrencies);
+
+      if (missingCurrencies.length > 0) {
+        this.logger.info(
+          `Fetching initial data for ${missingCurrencies.length} currencies: ${missingCurrencies.join(', ')}`,
+        );
+        await this.fetchAllMissingCurrencies(missingCurrencies);
+      } else {
+        this.logger.info('All currency data already exists in Redis');
+      }
+
+      this.logger.info('Currency data initialization completed');
+    } catch (error) {
+      this.logger.error('Failed to initialize currency data:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Redis에 데이터가 없는 통화들을 체크
+   */
+  private async checkMissingCurrencies(
+    targetCurrencies: string[],
+  ): Promise<string[]> {
+    const missingCurrencies: string[] = [];
+
+    for (const currencyCode of targetCurrencies) {
+      const [storedRate, storedTimestamp, storedOpenRate] =
+        await this.exchangeRateRedisService.getLatestRate('KRW', currencyCode, {
+          rate: true,
+          timestamp: true,
+          openRate: true,
+        });
+
+      if (!storedRate || !storedTimestamp || !storedOpenRate) {
+        missingCurrencies.push(currencyCode);
+      }
+    }
+
+    return missingCurrencies;
+  }
+
+  /**
+   * 누락된 모든 통화 데이터를 fluctuation API로 한번에 가져오기
+   */
+  private async fetchAllMissingCurrencies(
+    missingCurrencies: string[],
+  ): Promise<void> {
+    try {
+      const lastMarketDay = this.dateUtilService.getLastMarketDay();
+      const currentDate = new Date();
+
+      // 모든 누락된 통화들의 fluctuation 데이터 가져옴
+      this.logger.debug(
+        `Calling fluctuation API for ${missingCurrencies.length} currencies`,
+      );
+
+      const fluctuationData = await this.fluctuationApi.getFluctuationData(
+        lastMarketDay,
+        currentDate,
+        'KRW',
+        missingCurrencies,
+      );
+
+      // Redis에 모든 데이터 저장
+      const timestamp = Date.now();
+      for (const currencyCode of missingCurrencies) {
+        const rateData = fluctuationData.rates[currencyCode];
+        if (rateData) {
+          await this.exchangeRateRedisService.setLatestRate(
+            'KRW',
+            currencyCode,
+            {
+              rate: rateData.endRate,
+              change: rateData.change,
+              changePct: rateData.changePct,
+              openRate: rateData.startRate,
+              timestamp: timestamp,
+            },
+          );
+        }
+      }
+
+      this.logger.info(
+        `Successfully initialized ${missingCurrencies.length} currencies in redis`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to fetch missing currency data:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 이 메서드는 시장 열림 여부를 신경 X,
    * 소켓 데이터 수신을 전제하여 항상 호출
    *
-   * 1. Redis에 기존 저장된 환율 데이터(storedRate)가 없으면 최초 수집 처리
-   *    - 마지막 시장 거래일 기준 fluctuation API 호출
-   *    - 초기 change, changePct 계산하여 저장
-   *
+   * 1. Redis에 기존 저장된 환율 데이터(storedRate)가 없으면 스킵
    * 2. Redis에 데이터가 존재하는 경우
    *    - 기존 수집 시점(storedTimestamp)과 최신 수신 시점(latestTimestamp) 비교
    *    - 날짜가 바뀐 경우 변동률 초기화 (change=0, changePct=0)
    *    - 날짜가 같으면 변동률 계산
    *      - 각 통화쌍 변동률 기준 초과 시 full update + Pub/Sub 발행
    *      - 변동률 기준 이하이면 timestamp만 갱신
-
    * 3. 모든 경우에 대해 Raw 수집 기록은 항상 삽입
    */
   async handleLatestRateUpdate(
@@ -380,21 +484,9 @@ export class ExchangeRateService {
         openRate: true,
       });
 
-    // 1. Redis에 저장된 데이터가 없는 경우 (최초 수집 or 레디스 장애 시)
+    // 1. Redis에 저장된 데이터가 없는 경우 (레디스 장애 시) 500에러,
     if (!storedLatestRateStr || !storedTimestampStr || !storedOpenRateStr) {
-      const fluctuationRate = await this.fluctuationApi.getFluctuationData(
-        this.dateUtilService.getLastMarketDay(),
-        new Date(latestTimestamp),
-      );
-
-      await this.exchangeRateRedisService.setLatestRate('KRW', currencyCode, {
-        rate: latestRate,
-        change: fluctuationRate.rates[currencyCode].change,
-        changePct: fluctuationRate.rates[currencyCode].changePct,
-        openRate: fluctuationRate.rates[currencyCode].startRate,
-        timestamp: latestTimestamp,
-      });
-
+      this.logger.warn(`No Redis data for ${currencyCode}`);
       return;
     }
 
