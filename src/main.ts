@@ -8,11 +8,18 @@ import { AppConfig } from './infrastructure/config/config.type';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const PORT = app
-    .get<ConfigService<AppConfig, true>>(ConfigService)
-    .get('port', { infer: true });
+  const configService = app.get<ConfigService<AppConfig, true>>(ConfigService);
+  const PORT = configService.get('port', { infer: true });
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
 
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
+
+  app.enableCors({
+    origin: [frontendUrl, 'http://localhost:3000', 'http://localhost:4000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  });
 
   app.setGlobalPrefix('api');
   app.use(cookieParser());
