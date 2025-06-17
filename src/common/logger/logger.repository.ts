@@ -12,7 +12,7 @@ export class LoggerRepository {
         level: input.level,
         message: input.message,
         context: input.context,
-        trace: input.trace,
+        trace: input.trace?.toString(),
       },
     });
 
