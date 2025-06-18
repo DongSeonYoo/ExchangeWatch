@@ -24,35 +24,39 @@ export class ExchangeRateFunction {
   async summarizePercentileInsight(
     input: RateInsightSummaryInput,
   ): Promise<RateInsightSummaryOutput> {
-    const currentData = await this.exchangeRateService.getCurrencyExchangeRates(
-      {
+    try {
+      const currentData =
+        await this.exchangeRateService.getCurrencyExchangeRates({
+          baseCurrency: input.baseCurrency,
+          currencyCodes: [input.currencyCode],
+        });
+      const currentRate = currentData.rates[input.currencyCode].rate;
+      const startDate = this.dateUtilService.subDate(input.days, 'day');
+      const endDate = new Date();
+
+      const historicalData = await this.exchangeRateService.getHistoricalRates({
         baseCurrency: input.baseCurrency,
-        currencyCodes: [input.currencyCode],
-      },
-    );
-    const currentRate = currentData.rates[input.currencyCode].rate;
-    const startDate = this.dateUtilService.subDate(input.days, 'day');
-    const endDate = new Date();
+        currencyCode: input.currencyCode,
+        startedAt: startDate,
+        endedAt: endDate,
+      });
 
-    const historicalData = await this.exchangeRateService.getHistoricalRates({
-      baseCurrency: input.baseCurrency,
-      currencyCode: input.currencyCode,
-      startedAt: startDate,
-      endedAt: endDate,
-    });
-
-    return {
-      baseCurrency: input.baseCurrency,
-      currencyCode: input.currencyCode,
-      currentRate: currentRate,
-      historicalData: historicalData.map((e) => ({
-        avg: e.avgRate,
-        close: e.closeRate,
-        high: e.highRate,
-        low: e.lowRate,
-        ohlcDate: e.ohlcDate,
-        open: e.openRate,
-      })),
-    };
+      return {
+        baseCurrency: input.baseCurrency,
+        currencyCode: input.currencyCode,
+        currentRate: currentRate,
+        historicalData: historicalData.map((e) => ({
+          avg: e.avgRate,
+          close: e.closeRate,
+          high: e.highRate,
+          low: e.lowRate,
+          ohlcDate: e.ohlcDate,
+          open: e.openRate,
+        })),
+      };
+    } catch (error) {
+      this.loggerService.error(error.message, error);
+      throw error;
+    }
   }
 }
