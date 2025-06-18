@@ -1,26 +1,41 @@
-import { Injectable, Inject, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, Inject, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { CustomLoggerService } from '../../common/logger/custom-logger.service';
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
-  protected readonly logger = new Logger(RedisService.name);
   protected subscriber: Redis;
 
-  constructor(@Inject('REDIS_CLIENT') protected readonly redisClient: Redis) {}
+  constructor(
+    @Inject('REDIS_CLIENT') protected readonly redisClient: Redis,
+    private readonly loggerService: CustomLoggerService,
+  ) {
+    this.loggerService.context = RedisService.name;
+  }
 
   onModuleDestroy() {
+    this.loggerService.debug('Redis client destroyed');
     this.redisClient.quit();
   }
 
   /**
-   * Redis default get
+   * Redis default get with serialization
    * @param key
-   * @returns
+   * @returns serialized data or null
    */
   async get<T = string>(key: string): Promise<T | null> {
     const rawData = await this.redisClient.get(key);
 
     return rawData ? (JSON.parse(rawData) as T) : null;
+  }
+
+  /**
+   * Redis default get without serialization
+   * @param key
+   * @returns raw data or null
+   */
+  async getRaw(key: string): Promise<string | null> {
+    return await this.redisClient.get(key);
   }
 
   /**
