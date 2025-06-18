@@ -15,7 +15,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'refresh') {
   ) {
     super(<WithSecretOrKey>{
       jwtFromRequest: (req: Request) => {
-        return req.body?.refreshToken;
+        return req.cookies?.refreshToken;
       },
       ignoreExpiration: false,
       secretOrKey: configService.get('token.JWT_REFRESH_SECRET', {
