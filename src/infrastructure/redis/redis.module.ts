@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../config/config.type';
@@ -19,8 +19,7 @@ import { RateUpdateSubscriber } from './subscribers/rate-update.subscriber';
     },
     RedisService,
     RateUpdateSubscriber,
-    Logger,
   ],
-  exports: ['REDIS_CLIENT'],
+  exports: [RedisService],
 })
 export class RedisModule {}
