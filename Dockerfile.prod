@@ -8,13 +8,13 @@ RUN apk add --no-cache openssl
 
 WORKDIR /usr/src/app
 
+# Copy package & prisma files
 COPY package*.json ./
+COPY prisma ./prisma/
 
+# Install dependencies
 RUN npm install
 
-# Setting Prisma client
-COPY prisma ./prisma/
-RUN npx prisma generate
 # Copy source codes
 COPY . .
 
