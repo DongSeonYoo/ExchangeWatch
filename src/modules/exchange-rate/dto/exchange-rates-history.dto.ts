@@ -100,14 +100,14 @@ export class CurrentExchangeHistoryResDto {
   /**
    * 기준 통화
    *
-   * @example EUR
+   * @example KRW
    */
   baseCurrency: string;
 
   /**
    * 비교할 대상 통화
    *
-   * @example KRW
+   * @example EUR
    */
   currencyCode: string;
 

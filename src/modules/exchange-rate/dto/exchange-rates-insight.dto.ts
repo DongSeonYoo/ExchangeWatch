@@ -6,7 +6,7 @@ export class ExchangeRateInsightReqDto {
   /**
    * 기준 통화
    *
-   * @example EUR
+   * @example KRW
    */
   @IsNotEmpty()
   @Matches(/^KRW$/, { message: 'baseCurrency is only can be KRW.' })
@@ -15,7 +15,7 @@ export class ExchangeRateInsightReqDto {
   /**
    * 비교할 대상 통화
    *
-   * @example KRW
+   * @example EUR
    */
   @IsNotEmpty()
   @IsValidCurrencyCode()

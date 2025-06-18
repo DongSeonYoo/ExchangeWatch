@@ -7,7 +7,7 @@ export class CurrentExchangeRateReqDto {
   /**
    * 기준 통화
    *
-   * @example EUR
+   * @example KRW
    */
   @IsNotEmpty()
   @Matches(/^KRW$/, { message: 'baseCurrency is only can be KRW.' })
