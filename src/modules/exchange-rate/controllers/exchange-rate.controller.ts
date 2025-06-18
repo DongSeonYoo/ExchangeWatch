@@ -17,6 +17,7 @@ import {
   ExchangeRateInsightResDto,
 } from '../dto/exchange-rates-insight.dto';
 import { AgenticaService } from '../../../common/agents/agentica.service';
+import { Observable } from 'rxjs';
 
 @ApiTags('Exchange-rates')
 @Controller('exchange-rates')
@@ -80,24 +81,26 @@ export class ExchangeRateController {
   })
   async getCurrencyExchangeInsight(@Query() dto: ExchangeRateInsightReqDto) {
     const agent = await this.agenticaService.getAgent();
+
     const prompt = `
-    ${dto.baseCurrency}/${dto.currencyCode} 환율을 최근 ${dto.days}일간 분석해주세요.
-    
-    다음 정보를 포함하여 종합적인 분석 리포트를 작성해주세요:
-    1. 현재 환율의 상대적 위치 (백분위, 평균 대비)
-    2. 최근 추세와 변동성 분석
-    3. 주요 고점/저점 대비 현재 상황
-    4. 주목할 만한 패턴이나 특징
-    
-    분석을 위해 필요한 데이터는 available functions를 사용해서 가져와 주세요.
-      `;
-    await agent
-      .conversate(prompt)
-      .then((res) => {
-        // @TODO 이부분 캐싱 로직 분리해서 SSE로 스트리밍 or 평문으로 응답
-        return res.map((r) => r.toJSON());
-      })
-      .then((res) => console.log('최종 agent 결과: ', res))
-      .catch(console.error);
+    당신은 외환 시장(Foreign Exchange) 전문 이코노미스트입니다.
+    주어진 환율 데이터와 관련 뉴스를 바탕으로 아래 형식에 맞춰 ${dto.baseCurrency}/${dto.currencyCode}에 대한 해당하는 환율 쌍의 데일리 리포트를 생성하세요.
+
+    헤드라인: 현재 상황을 한 문장으로 요약. (예: "${dto.baseCurrency}/${dto.currencyCode}, 좁은 박스권 속 미세한 상승 흐름 포착")
+    최근 동향 분석: 최근 ${dto.days}일간의 최고/최저가와 현재 가격을 비교하여 박스권인지, 추세가 있는지 분석.
+    관련 뉴스 요약: 해당 기간에 발생한 주요 뉴스 헤드라인들을 리스트업.
+    종합 의견: 예를들어: '가격은 현재 상승 추세이며, 같은 기간에 '미국 고용지표 호조'라는 뉴스가 있었습니다' 와 같이, 두 데이터를 나란히 보여주며 상관관계를 암시하는 수준으로만 요약.
+  `;
+    const responses = await agent.conversate(prompt);
+    const jsonResponses = responses.map((r) => r.toJSON());
+
+    const describeResponse = jsonResponses.find(
+      (response) => response.type === 'describe',
+    );
+
+    const analysisText =
+      describeResponse?.text || '분석 결과를 생성할 수 없습니다.';
+
+    return ExchangeRateInsightResDto.from(analysisText);
   }
 }
