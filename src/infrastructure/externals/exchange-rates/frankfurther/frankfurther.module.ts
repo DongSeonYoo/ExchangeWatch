@@ -1,6 +1,6 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { FrankFurtherService } from './FrankFurther.service';
+import { FrankFurtherService } from './frankfurther.service';
 
 @Module({
   imports: [
