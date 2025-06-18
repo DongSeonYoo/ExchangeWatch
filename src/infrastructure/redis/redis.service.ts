@@ -74,4 +74,33 @@ export class RedisService implements OnModuleDestroy {
   get duplicate(): Redis {
     return this.redisClient.duplicate();
   }
+
+  /**
+   * Setting redis lock
+   * @param key key of lock
+   * @param value value of lock
+   * @param ttl time to live
+   */
+  async setLock(key: string, value: string, ttl: number): Promise<boolean> {
+    const result = await this.redisClient.set(key, value, 'EX', ttl, 'NX');
+    return result === 'OK';
+  }
+
+  /**
+   * Release redis lock
+   * @param key key of lock
+   */
+  async releaseLock(key: string): Promise<void> {
+    await this.redisClient.del(key);
+  }
+
+  /**
+   * Renewal lock TTL
+   * @param key key of lock
+   * @param ttl time to live
+   */
+  async renewLock(key: string, ttl: number): Promise<boolean> {
+    const result = await this.redisClient.expire(key, ttl);
+    return result === 1;
+  }
 }
