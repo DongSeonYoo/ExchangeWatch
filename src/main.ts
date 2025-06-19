@@ -23,6 +23,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.use(cookieParser());
+  app.enableShutdownHooks();
 
   setSwagger(app);
 
