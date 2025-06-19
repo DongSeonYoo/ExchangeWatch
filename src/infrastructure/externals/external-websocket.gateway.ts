@@ -1,10 +1,10 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { IExchangeRateWebSocketService } from './exchange-rates/interfaces/exchange-rate-websocket.interface';
 import { DateUtilService } from '../../common/utils/date-util/date-util.service';
 import { CustomLoggerService } from '../../common/logger/custom-logger.service';
 
 @Injectable()
-export class ExternalWebSocketGateWay implements OnModuleInit {
+export class ExternalWebSocketGateWay {
   constructor(
     @Inject('WEBSOCKET_IMPL')
     private readonly collectLatestRateSocket: IExchangeRateWebSocketService,
@@ -14,7 +14,7 @@ export class ExternalWebSocketGateWay implements OnModuleInit {
     this.logger.context = ExternalWebSocketGateWay.name;
   }
 
-  onModuleInit() {
+  startConnection() {
     if (this.dateUtilService.isMarketOpen()) {
       this.logger.debug('[개장]: 실시간 환율정보 수집');
       this.collectLatestRateSocket.connect();

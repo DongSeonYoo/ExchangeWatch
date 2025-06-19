@@ -31,6 +31,7 @@ import { SuccessResponseInterceptor } from './common/interceptor/response.interc
 import { FcmModule } from './modules/fcm/fcm.module';
 import { CustomLoggerModule } from './common/logger/logger.module';
 import { AgentModule } from './common/agents/agents.module';
+import { ClusterModule } from './infrastructure/cluster/cluster.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { AgentModule } from './common/agents/agents.module';
         }),
       ],
     }),
+    ClusterModule,
     AgentModule,
     CustomLoggerModule,
     UsersModule,

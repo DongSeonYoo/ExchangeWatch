@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnApplicationBootstrap, OnModuleInit } from '@nestjs/common';
 import { ExchangeRateService } from './services/exchange-rate.service';
 import { ExchangeRateController } from './controllers/exchange-rate.controller';
 import { RedisModule } from '../../infrastructure/redis/redis.module';
@@ -13,9 +13,9 @@ import { IsAfterConstraint } from '../../common/decorators/validations/is-after.
 import { IsBeforeThanConstraint } from '../../common/decorators/validations/is-before-than.validator';
 import { SseModule } from '../sse/sse.module';
 import { ExchangeRateRedisService } from './services/exchange-rate-redis.service';
-import { RedisService } from '../../infrastructure/redis/redis.service';
 import { NotificationModule } from '../notifications/notification.module';
 import { CustomLoggerService } from '../../common/logger/custom-logger.service';
+import { RoleService } from '../../infrastructure/cluster/role/role.service';
 
 @Module({
   imports: [
@@ -27,7 +27,6 @@ import { CustomLoggerService } from '../../common/logger/custom-logger.service';
   ],
   controllers: [ExchangeRateController],
   providers: [
-    RedisService,
     ExchangeRateService,
     ExchangeRateRedisService,
     ExchangeRateScheduler,
@@ -40,25 +39,4 @@ import { CustomLoggerService } from '../../common/logger/custom-logger.service';
   ],
   exports: [ExchangeRateService],
 })
-export class ExchangeRateModule implements OnModuleInit {
-  constructor(
-    private readonly exchangeRateService: ExchangeRateService,
-    private readonly loggerService: CustomLoggerService,
-  ) {
-    this.loggerService.context = ExchangeRateModule.name;
-  }
-
-  async onModuleInit() {
-    try {
-      this.loggerService.debug(
-        'Try to initializing currency rate for cache warm up from external api',
-      );
-      await this.exchangeRateService.initializeAllCurrencyData();
-    } catch (error) {
-      this.loggerService.warn(
-        'failed to init currency data from external api',
-        error,
-      );
-    }
-  }
-}
+export class ExchangeRateModule {}
