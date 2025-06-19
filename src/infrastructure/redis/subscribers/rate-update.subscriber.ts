@@ -80,7 +80,7 @@ export class RateUpdateSubscriber
       await this.subscriber.punsubscribe(this.rateUpdateChannelPattern);
       this.subscriber.removeAllListeners('pmessage');
       this.isSubscribed = false;
-      this.logger.log(
+      this.logger.info(
         `Release redis subscribe about: ${this.rateUpdateChannelPattern}`,
       );
     } catch (error) {
