@@ -34,6 +34,7 @@ import { FrankFurtherService } from './exchange-rates/frankfurther/frankfurther.
     'FLUCTUATION_RATE_API',
     'TIMESERIES_RATE_API',
     'WEBSOCKET_IMPL',
+    ExternalWebSocketGateWay,
   ],
 })
 export class ExternalAPIModule {}
