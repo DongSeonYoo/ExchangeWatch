@@ -24,9 +24,14 @@ export class RedisService implements OnModuleDestroy {
    * @returns serialized data or null
    */
   async get<T = string>(key: string): Promise<T | null> {
-    const rawData = await this.redisClient.get(key);
+    try {
+      const rawData = await this.redisClient.get(key);
 
-    return rawData ? (JSON.parse(rawData) as T) : null;
+      return rawData ? (JSON.parse(rawData) as T) : null;
+    } catch (error) {
+      this.loggerService.error('Json converted error: ', error);
+      throw error;
+    }
   }
 
   /**
