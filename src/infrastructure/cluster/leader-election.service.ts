@@ -1,5 +1,5 @@
-import { Inject, Injectable, OnApplicationShutdown } from '@nestjs/common';
-import { RedisService } from '../../infrastructure/redis/redis.service';
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import { RedisService } from '../redis/redis.service';
 import { RoleService } from './role/role.service';
 import { CustomLoggerService } from '../../common/logger/custom-logger.service';
 import { v4 as uuidv4 } from 'uuid';

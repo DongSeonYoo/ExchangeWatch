@@ -4,6 +4,7 @@ import { RedisService } from './redis.service';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../config/config.type';
 import { RateUpdateSubscriber } from './subscribers/rate-update.subscriber';
+import { LockManagerService } from './lock-manager.service';
 
 @Module({
   providers: [
@@ -19,7 +20,8 @@ import { RateUpdateSubscriber } from './subscribers/rate-update.subscriber';
     },
     RedisService,
     RateUpdateSubscriber,
+    LockManagerService,
   ],
-  exports: [RedisService],
+  exports: [LockManagerService, RedisService],
 })
 export class RedisModule {}

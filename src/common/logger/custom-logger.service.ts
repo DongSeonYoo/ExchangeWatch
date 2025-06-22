@@ -14,10 +14,10 @@ export class CustomLoggerService implements LoggerService {
   ) {}
 
   async log(message: string) {
-    this.logger.log(message, { context: this.context });
+    this.logger.info(message, { context: this.context });
 
     await this.loggerRepository.saveLog({
-      level: 'LOG',
+      level: 'INFO',
       message: message,
       context: this.context,
     });

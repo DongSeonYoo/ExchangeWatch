@@ -22,7 +22,6 @@ import { getCurrencyNameInKorean } from '../constants/symbol-kr.mapper';
 import { ExchangeRateRedisService } from './exchange-rate-redis.service';
 import { CustomLoggerService } from '../../../common/logger/custom-logger.service';
 import { CURRENCY_THRESHOLDS } from '../constants/currency-thresholds.constant';
-import { debounce } from 'lodash';
 
 @Injectable()
 export class ExchangeRateService {
@@ -334,8 +333,6 @@ export class ExchangeRateService {
     );
 
     await this.exchangeRateDailyRepository.saveDailyRates(ohlcRecord);
-
-    // additional logging
   }
 
   generateCurrencyPairs(
