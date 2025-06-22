@@ -1,13 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { IExchangeRateWebSocketService } from '../interfaces/exchange-rate-websocket.interface';
 import { WebSocket } from 'ws';
 import { supportCurrencyList } from '../../../../modules/exchange-rate/constants/support-currency.constant';
-import { ExternalWebSocketGateWay } from '../../external-websocket.gateway';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../../../config/config.type';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CoinApiWebSocket } from './interfaces/coin-api-websocket.interface';
 import { LatestRateEvent } from '../../../events/exchange-rate/latest-rate.event';
+import { CustomLoggerService } from '../../../../common/logger/custom-logger.service';
 
 @Injectable()
 export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
@@ -15,12 +15,13 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
   private readonly conApiUrl: string;
   private readonly defaultBaseCurrency: string = 'KRW';
   private readonly majorCurrencyCode: string[] = supportCurrencyList;
-  private readonly logger: Logger = new Logger(ExternalWebSocketGateWay.name);
 
   constructor(
     private readonly configService: ConfigService<AppConfig, true>,
     private readonly eventEmitter: EventEmitter2,
+    private readonly logger: CustomLoggerService,
   ) {
+    this.logger.context = CoinApiWebSocketService.name;
     this.conApiUrl = this.configService.get('coinApi.baseUrl', {
       infer: true,
     });
@@ -79,12 +80,12 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
     });
 
     this.ws.on('error', (error) => {
-      this.logger.error('WebSocket error', error);
+      this.logger.error('WebSocket error', error.stack);
     });
   }
 
   disconnect(): void {
     this.ws?.close();
-    this.logger.log('Websocket connection closed');
+    this.logger.info('Websocket connection closed');
   }
 }

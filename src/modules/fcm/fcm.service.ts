@@ -27,7 +27,7 @@ export class FcmService {
     const userDeviceTokens =
       await this.usersDeviceRepository.findTokensByUser(userIdx);
     if (userDeviceTokens.length === 0) {
-      this.logger.log(
+      this.logger.info(
         `해당하는 사용자의 디바이스 토큰이 존재하지 않습니다: user: ${userIdx}`,
       );
       return;

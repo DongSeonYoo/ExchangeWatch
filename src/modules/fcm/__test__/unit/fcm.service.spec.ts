@@ -127,7 +127,7 @@ describe('FcmService [unit]', () => {
 
       // Assert
       expect(sendEachForMulticastMock).not.toHaveBeenCalled();
-      expect(loggerServiceMock.log).toHaveBeenCalledWith(
+      expect(loggerServiceMock.info).toHaveBeenCalledWith(
         `해당하는 사용자의 디바이스 토큰이 존재하지 않습니다: user: ${userIdx}`,
       );
     });
