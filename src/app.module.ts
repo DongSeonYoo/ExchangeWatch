@@ -32,6 +32,7 @@ import { FcmModule } from './modules/fcm/fcm.module';
 import { CustomLoggerModule } from './common/logger/logger.module';
 import { AgentModule } from './common/agents/agents.module';
 import { ClusterModule } from './infrastructure/cluster/cluster.module';
+import { ScheduleManagerModule } from './modules/scheduling/schedule-manager.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { ClusterModule } from './infrastructure/cluster/cluster.module';
         }),
       ],
     }),
+    ScheduleManagerModule,
     ClusterModule,
     AgentModule,
     CustomLoggerModule,
