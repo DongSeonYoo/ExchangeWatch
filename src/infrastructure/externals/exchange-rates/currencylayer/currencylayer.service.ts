@@ -78,7 +78,7 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
   async getFluctuationData(
     startDate: Date,
     endDate: Date,
-    baseCurrency = 'EUR',
+    baseCurrency = 'KRW',
     currencyCodes: string[] = [],
   ): Promise<IExchangeRateExternalAPI.IFluctuationResponse> {
     const currencies = currencyCodes
@@ -206,7 +206,7 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
           {
             startRate: info.start_rate,
             endRate: info.end_rate,
-            change: info.change,
+            change: info.change || info.end_rate - info.start_rate,
             changePct: info.change_pct,
             highRate: info.start_rate * (1 + info.change_pct / 100),
             lowRate: info.start_rate * (1 - info.change_pct / 100),
