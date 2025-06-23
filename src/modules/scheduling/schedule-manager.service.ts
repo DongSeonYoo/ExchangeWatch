@@ -19,7 +19,7 @@ export class ScheduleManagerService {
   /**
    * 하루동안의 수집된 환율 데이터를 집계합니다
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runDailyAggregation() {
     await this.lockManagerService.runWithLock('daily-aggregation', async () => {
       try {
