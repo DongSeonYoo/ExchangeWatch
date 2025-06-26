@@ -39,17 +39,12 @@ model ExchangeRatesDaily {
   idx          Int      @id @default(autoincrement())
   baseCurrency String   @map("base_currency") @db.Char(3)
   currencyCode String   @map("currency_code") @db.Char(3)
-  openRate     Decimal  @map("open_rate") @db.Decimal(20, 8)
-  highRate     Decimal  @map("high_rate") @db.Decimal(20, 8)
-  lowRate      Decimal  @map("low_rate") @db.Decimal(20, 8)
-  closeRate    Decimal  @map("close_rate") @db.Decimal(20, 8)
-  avgRate      Decimal  @map("avg_rate") @db.Decimal(20, 8)
-  rateCount    Int      @map("rate_count")
-  ohlcDate     DateTime @map("ohlc_date") @db.Date
+  rate         Decimal  @db.Decimal(20, 8)
+  rateDate     DateTime @map("rate_date") @db.Date
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@unique([currencyCode, baseCurrency, ohlcDate], map: "exchange_rates_daily_unique")
-  @@index([currencyCode, baseCurrency, ohlcDate], map: "idx_exchange_rates_lookup")
+  @@unique([currencyCode, baseCurrency, rateDate], map: "exchange_rates_daily_unique")
+  @@index([currencyCode, baseCurrency, rateDate], map: "idx_exchange_rates_lookup")
   @@map("exchange_rates_daily")
 }
 
