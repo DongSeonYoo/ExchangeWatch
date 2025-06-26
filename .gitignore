@@ -131,3 +131,6 @@ erd.*
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# mockdata for production codes
+historical-mock/
