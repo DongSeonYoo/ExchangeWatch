@@ -100,6 +100,7 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
 
       throw new Error(`CurrencyLayer Error: ${JSON.stringify(data)}`);
     }
+
     const fluctuationRates = this.parseFluctuationQuotes(
       data.source,
       data.quotes,
@@ -208,8 +209,6 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
             endRate: info.end_rate,
             change: info.change || info.end_rate - info.start_rate,
             changePct: info.change_pct,
-            highRate: info.start_rate * (1 + info.change_pct / 100),
-            lowRate: info.start_rate * (1 - info.change_pct / 100),
           },
         ];
       }),
