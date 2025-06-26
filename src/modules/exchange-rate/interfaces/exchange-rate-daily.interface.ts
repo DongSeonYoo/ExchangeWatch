@@ -6,13 +6,8 @@ export namespace IExchangeRateDaily {
       ExchangeRatesDailyEntity,
       | 'baseCurrency'
       | 'currencyCode'
-      | 'openRate'
-      | 'highRate'
-      | 'lowRate'
-      | 'closeRate'
-      | 'avgRate'
-      | 'ohlcDate'
-      | 'rateCount'
+      | 'rate'
+      | 'rateDate'
     > {}
 
   export interface IFindDailyRatesInput {

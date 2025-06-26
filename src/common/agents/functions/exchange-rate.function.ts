@@ -16,10 +16,10 @@ export class ExchangeRateFunction {
   }
 
   /**
-   * 환율의 OHLC 히스토리 데이터를 분석하여 현재 환율 위치, 추세, 변동성 등을 종합적 데이터를 반환합니다
+   * 환율의 히스토리 데이터를 분석하여 현재 환율 위치, 추세, 변동성 등을 종합적 데이터를 반환합니다
    *
    * @param input 환율 분석을 위한 매개변수
-   * @returns 정확한 분석을 위한 해당 기간 간의 환율 데이터
+   * @returns 정확한 분석을 위한 해당 기간의 환율 트렌드 데이터
    */
   async summarizePercentileInsight(
     input: RateInsightSummaryInput,
@@ -30,7 +30,7 @@ export class ExchangeRateFunction {
           baseCurrency: input.baseCurrency,
           currencyCodes: [input.currencyCode],
         });
-      const currentRate = currentData.rates[input.currencyCode].rate;
+      const currentRate = currentData[input.currencyCode].rate;
       const startDate = this.dateUtilService.subDate(input.days, 'day');
       const endDate = new Date();
 
@@ -46,12 +46,8 @@ export class ExchangeRateFunction {
         currencyCode: input.currencyCode,
         currentRate: currentRate,
         historicalData: historicalData.map((e) => ({
-          avg: e.avgRate,
-          close: e.closeRate,
-          high: e.highRate,
-          low: e.lowRate,
-          ohlcDate: e.ohlcDate,
-          open: e.openRate,
+          rate: e.rate,
+          rateDate: e.rateDate,
         })),
       };
     } catch (error) {

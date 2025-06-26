@@ -9,7 +9,7 @@ export class CurrentExchangeHistoryReqDto {
   /**
    * 기준 통화
    *
-   * @example EUR
+   * @example KRW
    */
   @IsNotEmpty()
   @Matches(/^KRW$/, { message: 'baseCurrency is only can be KRW.' })
@@ -18,7 +18,7 @@ export class CurrentExchangeHistoryReqDto {
   /**
    * 비교할 대상 통화
    *
-   * @example KRW
+   * @example EUR
    */
   @IsNotEmpty()
   @IsValidCurrencyCode()
@@ -49,51 +49,16 @@ export class RateHistory {
   /**
    * 날짜
    *
-   * @example 2024-01-01
+   * @example 2025-01-13
    */
   date: Date;
 
   /**
-   * 시가
+   * 환율
    *
    * @example 1304.50
    */
-  open: number;
-
-  /**
-   * 고가
-   *
-   * @example 1304.50
-   */
-  high: number;
-
-  /**
-   * 저가
-   *
-   * @example 1304.50
-   */
-  low: number;
-
-  /**
-   * 종가
-   *
-   * @example 1304.50
-   */
-  close: number;
-
-  /**
-   * 평균가
-   *
-   * @example 1304.50
-   */
-  average: number;
-
-  /**
-   * 수집된 데이터 수 (1일 144개 정상)
-   *
-   * @example 144
-   */
-  rateCount: number;
+  rate: number;
 }
 
 export class CurrentExchangeHistoryResDto {
@@ -112,7 +77,7 @@ export class CurrentExchangeHistoryResDto {
   currencyCode: string;
 
   /**
-   * 일별 OHLC 데이터
+   * 일별 환율 데이터
    */
   rates: RateHistory[];
 
@@ -129,13 +94,8 @@ export class CurrentExchangeHistoryResDto {
       baseCurrency,
       currencyCode,
       rates: entities.map((entity) => ({
-        date: entity.ohlcDate,
-        open: entity.openRate,
-        high: entity.highRate,
-        low: entity.lowRate,
-        close: entity.closeRate,
-        average: entity.avgRate,
-        rateCount: entity.rateCount,
+        date: entity.rateDate,
+        rate: Number(entity.rate),
       })),
     });
   }

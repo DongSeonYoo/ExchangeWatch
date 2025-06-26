@@ -21,54 +21,16 @@ export class ExchangeRatesDailyEntity {
   currencyCode: string;
 
   /**
-   * 시가
-   *
-   * @example 1298.50
-   */
-  openRate: number;
-
-  /**
-   * 고가
-   *
-   * @example 1305.20
-   */
-  highRate: number;
-
-  /**
-   * 저가
-   *
-   * @example 1297.80
-   */
-  lowRate: number;
-
-  /**
-   * 종가
+   * 환율
    *
    * @example 1301.30
    */
-  closeRate: number;
+  rate: number;
 
   /**
-   * 하루 평균 환율
-   *
-   * @example 1300.25
+   * 환율 날짜
    */
-  avgRate: number;
-
-  /**
-   * 하루동안 수집된 데이터 양
-   *
-   * 데이터 품질 모니터링 용도
-   * avgRate의 신뢰성 보장하기 위함
-   *
-   * @example 540
-   */
-  rateCount: number;
-
-  /**
-   * 시장 거래일 (OHLC데이터 기준일)
-   */
-  ohlcDate: Date;
+  rateDate: Date;
 
   /**
    * 생성일시
@@ -83,12 +45,8 @@ export class ExchangeRatesDailyEntity {
   static from(args: Prisma.ExchangeRatesDaily): ExchangeRatesDailyEntity {
     return new ExchangeRatesDailyEntity({
       ...args,
-      highRate: args.highRate.toNumber(),
-      openRate: args.openRate.toNumber(),
-      lowRate: args.lowRate.toNumber(),
-      closeRate: args.closeRate.toNumber(),
-      avgRate: args.avgRate.toNumber(),
-      ohlcDate: args.ohlcDate,
+      rate: args.rate.toNumber(),
+      rateDate: args.rateDate,
     });
   }
 }

@@ -36,33 +36,13 @@ export interface RateInsightSummaryOutput {
    */
   historicalData: Array<{
     /**
-     * 시장 거래일 (OHLC데이터 기준일)
+     * 환율 날짜
      */
-    ohlcDate: Date;
+    rateDate: Date;
 
     /**
-     * 시가
+     * 환율
      */
-    open: number;
-
-    /**
-     * 고가
-     */
-    high: number;
-
-    /**
-     * 저가
-     */
-    low: number;
-
-    /**
-     * 종가
-     */
-    close: number;
-
-    /**
-     * 평균가
-     */
-    avg: number;
+    rate: number;
   }>;
 }
