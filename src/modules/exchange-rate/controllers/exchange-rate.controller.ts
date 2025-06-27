@@ -102,4 +102,10 @@ export class ExchangeRateController {
 
     return ExchangeRateInsightResDto.from(analysisText);
   }
+
+  /**
+   * AI 일일 환율 분석 요약 리포트 가져오기
+   */
+  @Get('insight/daily')
+  async getCurrencyExchangeInsightDaily() {}
 }
