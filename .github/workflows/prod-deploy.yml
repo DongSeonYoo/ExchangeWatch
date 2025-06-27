@@ -9,7 +9,7 @@ on:
       - '!**/*.spec.ts'
       - '!**/*.test.ts'
       - '!**/*.md'
-      - '!.github/**'
+      - '!.github/pull_request_template.md'
       - '!.eslintrc*'
       - '!.prettierrc*'
       - '!jest.config*'
