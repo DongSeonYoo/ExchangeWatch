@@ -27,7 +27,7 @@
     "docker:down": "docker-compose down -v", 
     "docker-prod:up": "docker-compose up --build --scale app=3",
     "docker-prod:seed": "docker-compose run --rm -v /home/ec2-user/historical-mock:/usr/src/app/historical-mock app npm run seed:prod",
-    "docker-prod:deploy": "aws s3 cp s3://exchange-watch-seeds/historical-mock/ /home/ec2-user/historical-mock/ --recursive && docker-compose up -d postgres redis && sleep 10 && npm run docker-prod:seed && docker-compose up -d app nginx",
+    "docker-prod:deploy": "aws s3 cp s3://exchange-watch-seeds/historical-mock/ /home/ec2-user/historical-mock/ --recursive && docker-compose up -d postgres redis && sleep 10 && docker-compose run --rm app npx prisma migrate deploy && npm run docker-prod:seed && rm -rf ../historical-mock && docker-compose up -d --scale app=3 app nginx",
     "docker-dev:up": "docker-compose -f docker-compose.dev.yml up -d && sleep 2 && npx prisma migrate dev && npm run seed:dev",
     "docker-dev:down": "docker-compose -f docker-compose.dev.yml down -v",
     "docker-test:up": "docker-compose -f docker-compose-test.yml up -d",

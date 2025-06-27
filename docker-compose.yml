@@ -27,7 +27,7 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    command: sh -c "npx prisma migrate deploy && node dist/src/main.js"
+    command: sh -c "npx prisma migrate deploy && npm run start:prod"
     networks:
       - exchange-watch-net
 
