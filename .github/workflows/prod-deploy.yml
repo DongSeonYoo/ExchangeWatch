@@ -21,7 +21,7 @@ jobs:
     
     steps:
     - name: Rolling Update Deploy
-      uses: appleboy/ssh-action@v0.1.5
+      uses: appleboy/ssh-action@v1.1.0
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
