@@ -232,64 +232,14 @@ export class ExchangeRateService {
   }
 
   /**
-   *  Historical data strategy
-   *  1. Selecting historical data from DB
-   *    - select data from exchange_rate_daily table
-   *    - search data using index by (baseCurrency, currencyCode, ohlcDate)
-   *    - if the data exists, response directly
+   * 환율 히스토리 데이터 조회
    *
-   *  2. Calculating missing data
-   *    - compare the selected date from DB with the requested date
-   *    - if there is missing data, call external API
-   *    - save the data collcted at this context to the DB
-   *    - response data just put in to the client
+   * - seed 데이터로 미리 넣어둔 10년치 데이터에서 조회
+   * - DB에 일단 데이터가 무조건 있다고가정
    */
-  async getHistoricalRates(input: CurrentExchangeHistoryReqDto) {
-    const historicalData =
-      await this.exchangeRateDailyRepository.findDailyRates(input);
-
-    const existingDates = historicalData.map((date) => date.ohlcDate);
-    const missingDates = this.dateUtilService
-      .getDatesBetween(input.startedAt, input.endedAt)
-      .filter(
-        (date) =>
-          !existingDates.some(
-            (existingDate) => existingDate.getTime() === date.getTime(),
-          ),
-      );
-
-    // if DB has complete data, return directly
-    if (!missingDates.length) return historicalData;
-    // call external API
-    const startDate = missingDates[0];
-    const endDate = missingDates[missingDates.length - 1];
-
-    const apiResponse = await this.fluctuationApi.getFluctuationData(
-      startDate,
-      endDate,
-      input.baseCurrency,
-      [input.currencyCode],
-    );
-
-    const dailyRecord: IExchangeRateDaily.ICreate[] = missingDates.map(
-      (date) => {
-        const fluctuations = apiResponse.rates[input.currencyCode];
-
-        return {
-          baseCurrency: input.baseCurrency,
-          currencyCode: input.currencyCode,
-          ohlcDate: date,
-          openRate: fluctuations.startRate,
-          highRate: fluctuations.highRate,
-          lowRate: fluctuations.lowRate,
-          closeRate: fluctuations.endRate,
-          avgRate: (fluctuations.startRate + fluctuations.endRate) / 2,
-          rateCount: 1,
-        };
-      },
-    );
-    await this.exchangeRateDailyRepository.saveDailyRates(dailyRecord);
-
+  async getHistoricalRates(
+    input: CurrentExchangeHistoryReqDto,
+  ): Promise<ExchangeRatesDailyEntity[]> {
     return await this.exchangeRateDailyRepository.findDailyRates(input);
   }
 
