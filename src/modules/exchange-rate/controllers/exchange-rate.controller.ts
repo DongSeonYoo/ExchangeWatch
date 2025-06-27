@@ -17,7 +17,6 @@ import {
   ExchangeRateInsightResDto,
 } from '../dto/exchange-rates-insight.dto';
 import { AgenticaService } from '../../../common/agents/agentica.service';
-import { Observable } from 'rxjs';
 
 @ApiTags('Exchange-rates')
 @Controller('exchange-rates')
@@ -42,10 +41,10 @@ export class ExchangeRateController {
   async getCurrentExchangeRates(
     @Query() dto: CurrentExchangeRateReqDto,
   ): Promise<CurrentExchangeRateResDto> {
-    const { baseCurrency, rates } =
+    const currencies =
       await this.exchangeRateService.getCurrencyExchangeRates(dto);
 
-    return CurrentExchangeRateResDto.of(baseCurrency, rates);
+    return CurrentExchangeRateResDto.of(dto.baseCurrency, currencies);
   }
 
   /**
@@ -59,7 +58,7 @@ export class ExchangeRateController {
   @ApiSuccess(CurrentExchangeHistoryResDto)
   async getCurrentExchangeHistories(
     @Query() query: CurrentExchangeHistoryReqDto,
-  ) {
+  ): Promise<CurrentExchangeHistoryResDto> {
     const { baseCurrency, currencyCode } = query;
 
     const result = await this.exchangeRateService.getHistoricalRates(query);

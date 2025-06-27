@@ -83,8 +83,6 @@ export class CoinApiService
           rates: data.map((entry) => ({
             startRate: entry.rate_open,
             endRate: entry.rate_close,
-            highRate: entry.rate_high,
-            lowRate: entry.rate_low,
             change: entry.rate_close - entry.rate_open,
             changePct:
               ((entry.rate_close - entry.rate_open) / entry.rate_open) * 100,

@@ -19,6 +19,7 @@ export class ExchangeRateRedisService {
       changePct: true,
       rate: true,
       timestamp: true,
+      openRate: true,
     },
   ) {
     const key = `${this.latestRateKey}:${baseCurrency}/${currencyCode}`;

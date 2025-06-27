@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import {
   CurrentExchangeRateReqDto,
-  CurrentExchangeRateResDto,
   RateDetail,
 } from '../dto/exchange-rates.dto';
 import { ExchangeRateDailyRepository } from '../repositories/exchange-rate-daily.repository';
@@ -13,6 +12,7 @@ import { CurrentExchangeHistoryReqDto } from '../dto/exchange-rates-history.dto'
 import { supportCurrencyList } from '../constants/support-currency.constant';
 import {
   IFluctuationExchangeRateApi,
+  IHistoricalExchangeRateApi,
   ILatestExchangeRateApi,
 } from '../../../infrastructure/externals/exchange-rates/interfaces/exchange-rate-rest-api.interface';
 import { DateUtilService } from '../../../common/utils/date-util/date-util.service';
@@ -22,6 +22,7 @@ import { getCurrencyNameInKorean } from '../constants/symbol-kr.mapper';
 import { ExchangeRateRedisService } from './exchange-rate-redis.service';
 import { CustomLoggerService } from '../../../common/logger/custom-logger.service';
 import { CURRENCY_THRESHOLDS } from '../constants/currency-thresholds.constant';
+import { ExchangeRatesDailyEntity } from '../entities/exchange-rate-daily.entity';
 
 @Injectable()
 export class ExchangeRateService {
@@ -33,6 +34,8 @@ export class ExchangeRateService {
     private readonly latestExchangeRateAPI: ILatestExchangeRateApi,
     @Inject('FLUCTUATION_RATE_API')
     private readonly fluctuationApi: IFluctuationExchangeRateApi,
+    @Inject('HISTORICAL_RATE_API')
+    private readonly historicalRateApi: IHistoricalExchangeRateApi,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
     private readonly dateUtilService: DateUtilService,
     private readonly exchangeRateRawRepository: ExchangeRateRawRepository,
@@ -56,15 +59,12 @@ export class ExchangeRateService {
    */
   async getCurrencyExchangeRates(
     input: CurrentExchangeRateReqDto,
-  ): Promise<CurrentExchangeRateResDto> {
+  ): Promise<Record<string, RateDetail>> {
     const targetCodes = input.currencyCodes?.length
       ? input.currencyCodes
       : this.supportCurrencyList.filter((code) => code !== input.baseCurrency);
 
-    const preparedResponse: Record<
-      string,
-      Pick<RateDetail, 'rate' | 'dayChange' | 'dayChangePercent' | 'timestamp'>
-    > = {};
+    const preparedResponse: Record<string, RateDetail> = {};
 
     const isMarketOpen = this.dateUtilService.isMarketOpen();
     const isAliveLatestRateCache =
@@ -79,14 +79,22 @@ export class ExchangeRateService {
     if (isCacheHit) {
       await Promise.all(
         targetCodes.map(async (code) => {
-          const [change, changePct, rate, timestamp] =
+          const [change, changePct, rate, timestamp, openRate] =
             await this.exchangeRateRedisService.getLatestRate('KRW', code);
 
+          const rawRate = Number(rate);
+          const rawOpenRate = Number(openRate);
+          const { convertedRate, convertedChange } = this.convertRatesAndChange(
+            rawRate,
+            rawOpenRate,
+          );
+
           preparedResponse[code] = {
-            rate: Number(rate),
-            dayChange: isMarketOpen ? Number(change) : 0,
+            rate: Math.round(convertedRate * 10000) / 10000,
+            dayChange: isMarketOpen ? convertedChange : 0,
             dayChangePercent: isMarketOpen ? Number(changePct) : 0,
             timestamp: new Date(Number(timestamp)),
+            name: getCurrencyNameInKorean(code),
           };
         }),
       );
@@ -94,10 +102,7 @@ export class ExchangeRateService {
       this.logger.verbose(
         `cache hit! [redis only]${isMarketOpen ? '' : ' (주말은 변동량 없음'}`,
       );
-      return {
-        baseCurrency: input.baseCurrency,
-        rates: this.combineLatestRates(input.baseCurrency, preparedResponse),
-      };
+      return preparedResponse;
     }
 
     // ==========================================
@@ -120,18 +125,22 @@ export class ExchangeRateService {
         ]);
 
         targetCodes.forEach((code) => {
+          const rawRate = latestRateResponse.rates[code];
+          const { convertedRate, convertedChange } = this.convertRatesAndChange(
+            rawRate,
+            fluctuationResponse.rates[code].startRate,
+          );
+
           preparedResponse[code] = {
-            rate: latestRateResponse.rates[code],
-            dayChange: fluctuationResponse.rates[code].change,
+            rate: Math.round(convertedRate * 10000) / 10000,
+            dayChange: convertedChange,
             dayChangePercent: fluctuationResponse.rates[code].changePct,
             timestamp: latestRateResponse.date,
+            name: getCurrencyNameInKorean(code),
           };
         });
 
-        return {
-          baseCurrency: input.baseCurrency,
-          rates: this.combineLatestRates(input.baseCurrency, preparedResponse),
-        };
+        return preparedResponse;
       }
 
       // [2-2] 시장 닫힘 → 주말 fallback: Snapshot 조회
@@ -176,19 +185,20 @@ export class ExchangeRateService {
         snapshotRecords
           .filter((record) => targetCodes.includes(record.currencyCode))
           .forEach((record) => {
+            // Snapshot 데이터는 이미 1 외화 = X KRW 형태이므로 소수점만 정리
+            const roundedRate = Math.round(Number(record.rate) * 10000) / 10000;
+
             preparedResponse[record.currencyCode] = {
-              rate: Number(record.closeRate),
+              rate: roundedRate,
               dayChange: 0,
               dayChangePercent: 0,
-              timestamp: record.ohlcDate,
+              timestamp: record.rateDate,
+              name: getCurrencyNameInKorean(record.currencyCode),
             };
           });
 
         this.logger.verbose('weekend fallback! [snapshot]');
-        return {
-          baseCurrency: input.baseCurrency,
-          rates: this.combineLatestRates(input.baseCurrency, preparedResponse),
-        };
+        return preparedResponse; // snapshot은 이미 올바른 형태이므로 변환 생략
       }
     }
 
@@ -202,44 +212,23 @@ export class ExchangeRateService {
   }
 
   /**
-   * Generate daily data by combining recent currency-rate and fluctuation rate
+   * 환율 데이터 변환
+   *
+   * ex) 1 KRW = X 외화 → 1 외화 = X KRW
    */
-  private combineLatestRates(
-    baseCurrency: string,
-    rates: Record<
-      string,
-      Pick<RateDetail, 'rate' | 'dayChange' | 'dayChangePercent' | 'timestamp'>
-    >,
-  ): Record<string, RateDetail> {
-    return Object.keys(rates).reduce<Record<string, RateDetail>>(
-      (acc, currency) => {
-        const data = rates[currency];
+  private convertRatesAndChange(
+    currentRawRate: number,
+    previousRawRate: number,
+  ): { convertedRate: number; convertedChange: number } {
+    const convertedRate = 1 / currentRawRate;
+    const convertedChangeRate = 1 / previousRawRate;
 
-        if (currency === baseCurrency) {
-          acc[currency] = {
-            name: getCurrencyNameInKorean(currency),
-            rate: 1,
-            inverseRate: 1,
-            dayChange: 0,
-            dayChangePercent: 0,
-            timestamp: data.timestamp,
-          };
+    const convertedChange = convertedRate - convertedChangeRate;
 
-          return acc;
-        }
-
-        acc[currency] = {
-          name: getCurrencyNameInKorean(currency),
-          rate: data.rate,
-          dayChange: data.dayChange,
-          dayChangePercent: data.dayChangePercent,
-          inverseRate: parseFloat((1 / data.rate).toFixed(6)),
-          timestamp: data.timestamp,
-        };
-        return acc;
-      },
-      {},
-    );
+    return {
+      convertedRate,
+      convertedChange,
+    };
   }
 
   /**

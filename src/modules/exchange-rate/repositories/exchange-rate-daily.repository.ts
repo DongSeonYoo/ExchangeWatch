@@ -26,13 +26,13 @@ export class ExchangeRateDailyRepository {
       where: {
         baseCurrency: input.baseCurrency,
         currencyCode: input.currencyCode,
-        ohlcDate: {
+        rateDate: {
           gte: input.startedAt,
           lte: input.endedAt,
         },
       },
       orderBy: {
-        ohlcDate: 'asc',
+        rateDate: 'asc',
       },
     });
 

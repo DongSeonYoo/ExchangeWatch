@@ -21,6 +21,10 @@ COPY . .
 # build application
 RUN npm run build
 
+# Compile seed files for production
+# @todo 요거 실제 배포환경에서 historical seed데이터 어떻게 처리할건지?
+RUN npx tsc prisma/seed/prod-historical.seed.ts --outDir dist/prisma/seed --target es2020 --module commonjs --skipLibCheck
+
 # devdependencies 제거
 RUN npm prune --production
 
@@ -41,4 +45,4 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 3000
 
-CMD ["node", "dist/src/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
