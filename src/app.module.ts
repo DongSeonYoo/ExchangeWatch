@@ -33,6 +33,7 @@ import { CustomLoggerModule } from './common/logger/logger.module';
 import { AgentModule } from './common/agents/agents.module';
 import { ClusterModule } from './infrastructure/cluster/cluster.module';
 import { ScheduleManagerModule } from './modules/scheduling/schedule-manager.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { ScheduleManagerModule } from './modules/scheduling/schedule-manager.mod
     SseModule,
     FcmModule,
   ],
+  controllers: [AppController],
   providers: [
     LoggerMiddleware,
     {
