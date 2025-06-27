@@ -18,15 +18,17 @@ export class ScheduleManagerService {
 
   /**
    * 하루동안의 수집된 환율 데이터를 집계합니다
+   * 매일 00:05에 실행 (외부 API가 당일 데이터 준비 완료 후)
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron('5 0 * * *')
   async runDailyAggregation() {
     await this.lockManagerService.runWithLock('daily-aggregation', async () => {
       try {
         const today = new Date();
         const yesterday = this.dateUtilService.getYesterday(today);
 
-        await this.exchangeRateService.calculateDailyRates(yesterday, today);
+        // 어제 날짜의 종가 데이터를 오늘 00:05에 수집
+        await this.exchangeRateService.calculateDailyRates(yesterday, yesterday);
 
         this.loggerService.info('Successfully collected daily rates');
       } catch (error) {
@@ -38,7 +40,7 @@ export class ScheduleManagerService {
   /**
    * AI 일일 환율 브리핑
    */
-  @Cron('0 6 * * *')
+  @Cron('0 9 * * 1-5')
   async runDailyAIBriefing() {}
 
   // 환율 관련 뉴스 수집

@@ -244,10 +244,11 @@ export class ExchangeRateService {
   }
 
   /**
-   * OHLC data aggregate on a specific date
+   * 일간 환율 데이터 집계
    *
-   * - find previous day's data from exchange_rates
-   * - generate OHLC data and insert into exchange_rates_daily
+   * - 외부 API에서 종가 기준으로 환율 수집
+   * - 전일 대비 변동률 계산해서 저장
+   * - Historical Mock 데이터와 연계: Mock은 어제까지, 이후는 실시간 수집
    */
   async calculateDailyRates(startDate: Date, endDate: Date) {
     const fluctuationApiResponse = await this.fluctuationApi.getFluctuationData(
@@ -257,31 +258,18 @@ export class ExchangeRateService {
       this.supportCurrencyList,
     );
 
-    const ohlcRecord = Object.entries(fluctuationApiResponse.rates).map(
-      ([currencyCode, data]): IExchangeRateDaily.ICreate => ({
-        baseCurrency: 'KRW',
-        currencyCode,
-        ohlcDate: endDate,
-        openRate: data.startRate,
-        highRate: data.highRate,
-        lowRate: data.lowRate,
-        closeRate: data.endRate,
-        avgRate: (data.startRate + data.endRate) / 2,
-        rateCount: 1, // 요거는 없애도 될것같다.
-      }),
+    const dailyRecords = Object.entries(fluctuationApiResponse.rates).map(
+      ([currencyCode, data]): IExchangeRateDaily.ICreate => {
+        return {
+          baseCurrency: 'KRW',
+          currencyCode,
+          rateDate: startDate,
+          rate: data.endRate,
+        };
+      },
     );
 
-    await this.exchangeRateDailyRepository.saveDailyRates(ohlcRecord);
-  }
-
-  generateCurrencyPairs(
-    currencyList: string[] = this.supportCurrencyList,
-  ): { baseCurrency: string; currencyCode: string }[] {
-    return currencyList.flatMap((baseCurrency) =>
-      currencyList
-        .filter((targetCurrency) => baseCurrency !== targetCurrency)
-        .map((currencyCode) => ({ baseCurrency, currencyCode })),
-    );
+    await this.exchangeRateDailyRepository.saveDailyRates(dailyRecords);
   }
 
   /**
