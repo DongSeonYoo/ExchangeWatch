@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DateUtilService } from 'src/utils/date-util/date-util.service';
+import { DateUtilService } from 'src/common/utils/date-util/date-util.service';
 
 describe('DateUtilService', () => {
   let service: DateUtilService;

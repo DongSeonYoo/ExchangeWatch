@@ -1,5 +1,12 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
+}
+
+generator markdown {
+  provider = "prisma-markdown"
+  output   = "./ERD.md"
+  title    = "exchange-watch"
 }
 
 datasource db {
@@ -8,33 +15,67 @@ datasource db {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model AlertHistories {
-  idx         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userIdx     Int         @map("user_idx")
-  alertIdx    String      @map("alert_idx") @db.Uuid
-  rate        Decimal     @db.Decimal(20, 8)
-  triggeredAt DateTime    @default(now()) @map("triggered_at") @db.Timestamptz(6)
-  PriceAlerts PriceAlerts @relation(fields: [alertIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_price_alerts_to_alert_histories")
-  users       Users       @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_alert_histories")
+model Users {
+  idx                    Int                      @id @default(autoincrement())
+  email                  String                   @db.VarChar(255)
+  name                   String                   @db.VarChar
+  password               String?                  @db.Char(60)
+  socialProvider         String                   @map("social_provider") @db.VarChar(20)
+  socialId               String                   @map("social_id") @db.VarChar(100)
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt              DateTime?                @map("deleted_at") @db.Timestamptz(6)
+  Notifications          Notifications[]
+  NotificationsHistories NotificationsHistories[]
+  UserDevices            UserDevices[]
+  Watchlist              Watchlist[]
 
-  @@index([alertIdx], map: "idx_alert_histories_alert")
-  @@map("alert_histories")
+  @@unique([email, deletedAt], map: "users_email_unique")
+  @@unique([socialProvider, socialId, deletedAt], map: "users_social_unique")
+  @@map("users")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model ExchangeRates {
+model ExchangeRatesDaily {
   idx          Int      @id @default(autoincrement())
   baseCurrency String   @map("base_currency") @db.Char(3)
   currencyCode String   @map("currency_code") @db.Char(3)
   rate         Decimal  @db.Decimal(20, 8)
+  rateDate     DateTime @map("rate_date") @db.Date
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@unique([currencyCode, baseCurrency, createdAt], map: "exchange_rates_unique")
-  @@index([currencyCode, baseCurrency, createdAt(sort: Desc)], map: "idx_exchange_rates_latest")
-  @@map("exchange_rates")
+  @@unique([currencyCode, baseCurrency, rateDate], map: "exchange_rates_daily_unique")
+  @@index([currencyCode, baseCurrency, rateDate], map: "idx_exchange_rates_lookup")
+  @@map("exchange_rates_daily")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model Notifications {
+  idx                    String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userIdx                Int                      @map("user_idx")
+  notificationType       String                   @map("notification_type") @db.VarChar(50)
+  isActive               Boolean                  @default(true) @map("is_active")
+  notificationData       Json                     @map("notification_data")
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt              DateTime?                @map("deleted_at") @db.Timestamptz(6)
+  Users                  Users                    @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction)
+  NotificationsHistories NotificationsHistories[]
+
+  @@map("notifications")
+}
+
+model UserDevices {
+  idx         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userIdx     Int      @map("user_idx")
+  deviceToken String   @map("device_token")
+  deviceType  String   @map("device_type") @db.VarChar(10)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  Users       Users    @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userIdx, deviceToken])
+  @@map("user_devices")
+}
+
 model News {
   idx          Int       @id @default(autoincrement())
   title        String    @db.VarChar
@@ -53,48 +94,22 @@ model News {
   @@map("news")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model PriceAlerts {
-  idx            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userIdx        Int              @map("user_idx")
-  baseCurrency   String           @map("base_currency") @db.Char(3)
-  currencyCode   String           @map("currency_code") @db.Char(3)
-  targetPrice    Decimal          @map("target_price") @db.Decimal(20, 8)
-  condition      String           @db.VarChar
-  isTriggered    Boolean          @default(false) @map("is_triggered")
-  isRepeatable   Boolean          @default(false) @map("is_repeatable")
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime         @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
-  AlertHistories AlertHistories[]
-  users          Users            @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction, map: "fk_users_to_price_alerts")
+model NotificationsHistories {
+  notificationIdx String        @map("notification_idx") @db.Uuid
+  userIdx         Int           @map("user_idx")
+  triggeredAt     DateTime      @default(now()) @map("triggered_at") @db.Timestamptz(6)
+  sentToUser      Boolean       @default(false) @map("sent_to_user")
+  sentToFcm       Boolean       @default(false) @map("sent_to_fcm")
+  fcmResponse     String?       @map("fcm_response")
+  details         Json
+  Notifications   Notifications @relation(fields: [notificationIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction)
+  Users           Users         @relation(fields: [userIdx], references: [idx], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([userIdx, currencyCode, baseCurrency], map: "idx_price_alerts_user")
-  @@map("price_alerts")
+  @@id([notificationIdx, userIdx, triggeredAt])
+  @@index([notificationIdx], map: "idx_notifications_histories_notifications")
+  @@map("notifications_histories")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model Users {
-  idx            Int              @id @default(autoincrement())
-  email          String           @db.VarChar(255)
-  name           String           @db.VarChar
-  password       String?          @db.Char(60)
-  region         String           @db.VarChar
-  socialProvider String?          @map("social_provider") @db.VarChar(20)
-  socialId       String?          @map("social_id") @db.VarChar(100)
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime         @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
-  AlertHistories AlertHistories[]
-  PriceAlerts    PriceAlerts[]
-  Watchlist      Watchlist[]
-
-  @@unique([email, deletedAt], map: "users_email_unique")
-  @@unique([socialProvider, socialId, deletedAt], map: "users_social_unique")
-  @@map("users")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model Watchlist {
   idx          Int      @id @default(autoincrement())
   userIdx      Int      @map("user_idx")
@@ -108,4 +123,27 @@ model Watchlist {
   @@unique([userIdx, currencyCode, baseCurrency], map: "watchlist_unique_currency")
   @@index([userIdx, displayOrder], map: "idx_watchlist_user")
   @@map("watchlist")
+}
+
+model ExchangeRatesRaw {
+  idx          Int      @id @default(autoincrement())
+  baseCurrency String   @map("base_currency") @db.Char(3)
+  currencyCode String   @map("currency_code") @db.Char(3)
+  rate         Decimal  @db.Decimal(20, 8)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([currencyCode, baseCurrency, createdAt(sort: Desc)], map: "idx_exchange_rates_latest")
+  @@map("exchange_rates_raw")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model SystemLogs {
+  id        Int       @id @default(autoincrement())
+  level     String
+  message   String
+  context   String?
+  trace     String?
+  timestamp DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("system_logs")
 }

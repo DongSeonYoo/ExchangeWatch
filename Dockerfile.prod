@@ -1,0 +1,49 @@
+# ###################
+# # Builder Stage
+# ###################
+FROM node:22-alpine AS builder
+
+# Run openSSL For Prisma engine
+RUN apk add --no-cache openssl
+
+WORKDIR /usr/src/app
+
+# Copy package & prisma files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install dependencies
+RUN npm install
+
+# Copy source codes
+COPY . .
+
+# build application
+RUN npm run build
+
+# Note: AWS CLI not needed in container - using EC2 IAM Role on host
+
+# Compile seed files for production
+RUN npx tsc prisma/seed/prod-historical.seed.ts --outDir dist/prisma/seed --target es2020 --module commonjs --skipLibCheck
+
+# devdependencies 제거
+RUN npm prune --production
+
+
+# ###################
+# # Production Stage
+# ###################
+FROM node:22-slim
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+
+WORKDIR /usr/src/app
+
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/package*.json ./
+COPY --from=builder /usr/src/app/prisma ./prisma
+
+EXPOSE 3000
+
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]

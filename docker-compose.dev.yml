@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres_dev:
+    image: postgres:16
+    container_name: exchange-watch-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: exchange_watch
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - exchange-watch-dev
+
+  redis_dev:
+    image: redis:7-alpine
+    container_name: exchange-watch-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - exchange-watch-dev
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  exchange-watch-dev:
+    driver: bridge
