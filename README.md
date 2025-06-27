@@ -1,9 +1,9 @@
-# Exchange Watch Monorepo
+# Exchange Watch Backend
 
-실시간 환율 추적 및 AI 기반 분석 웹 애플리케이션의 모노레포입니다.
+실시간 환율 추적 및 AI 기반 분석 웹 애플리케이션의 백엔드 레포.
 
 **Exchange Watch**는 전 세계 환율 정보를 실시간으로 수집하고,
-사용자의 관심 통화쌍을 실시간으로 모니터링하며, 일간 이력 집계 및 알림까지 제공하는 풀스택 애플리케이션입니다.
+사용자의 관심 통화쌍을 실시간으로 모니터링하며, 일간 이력 집계 및 알림까지 제공하는 풀스택 애플리케이션입니다 (이 저장소는 백엔드만).
 
 ## 💡 주요 기능 (Features)
 - 전 세계 주요 통화의 실시간 환율 수집 및 실시간 스트리밍 제공 (WebSocket + SSE)
@@ -12,7 +12,7 @@
 - 일간 환율 데이터를 OHLC 형태로 자동 집계하여 이력 저장
 - 목표 가격 도달 시 알림 전송 기능 **(FCM 연동 진행중)**
 - 환율 이력 데이터 조회 및 차트 시각화 지원
-- 단위/통합 테스트를 갖춘 안정적인 서비스 기반
+- 단위/통합 테스트를 갖춘 안정적인 서비스 목표
 ---
 
 ## 프로젝트 구조
@@ -43,18 +43,6 @@ exchange-watch/
 | Infra     | Docker, Docker Compose | 로컬, 테스트, 배포 환경 일관성 확보                                                  |
 | Test      | Jest, Supertest        | 단위/통합 테스트 및 외부 의존성 테스트                                               |
 
-### 프론트엔드 (Next.js)
-| 범주         | 기술                    | 사용처                                  |
-| ------------ | ----------------------- | --------------------------------------- |
-| Framework    | Next.js 15 (App Router) | React 기반 풀스택 프레임워크            |
-| Language     | TypeScript              | 타입 안전성 및 개발 생산성 향상         |
-| Styling      | Tailwind CSS            | 유틸리티 우선 CSS 프레임워크, 다크 테마 |
-| State Mgmt   | Zustand                 | 클라이언트 상태 관리 (인증 등)          |
-| Server State | TanStack Query          | 서버 상태 관리, 캐싱, 동기화            |
-| Charts       | Lightweight Charts      | 고성능 캔들스틱 차트                    |
-| Drag & Drop  | React Beautiful DnD     | 관심목록 순서 변경                      |
-| HTTP Client  | Axios                   | API 통신 및 자동 토큰 갱신              |
-
 ## 🧱 시스템 아키텍처
 
 ---
@@ -84,8 +72,7 @@ exchange-watch/
 
 1. 매일 00:05 (UTC)에 Cron 스케줄러가 집계 프로세스 실행
 2. 기준 통화 기준으로 Fluctuation API를 호출해 전일 변동 데이터 수집
-3. 수집한 데이터 → OHLC(Open, High, Low, Close) 형식으로 가공
-4. `exchange_rates_daily` 테이블에 저장
+3. `exchange_rates_daily` 테이블에 저장
 
 ### 설계 의도
 - 차트용 데이터는 실시간 수집이 아닌, **일관된** 집계 기준으로 관리
@@ -112,17 +99,6 @@ exchange-watch/
 - 기준 통화별 채널 분리로 관심 데이터만 효율적으로 전송
 ---
 
-## 환율 히스토리 조회
-<img width="802" alt="환율히스토리다이어그램" src="https://github.com/user-attachments/assets/91f5e8dc-be59-44f0-b505-32a96f64617f" />
-
-1.	클라이언트가 GET /exchange-rates/history API를 호출 (기준 통화, 대상 통화, 날짜 범위)
-2.	서버는 exchange_rates_daily 테이블에서 해당 날짜 범위의 OHLC 데이터를 조회
-3.	조회 결과에 날짜 누락이 있을 경우 → 누락된 날짜만 외부 fluctuation API 호출
-4.	누락된 날짜 데이터를 가공하여 DB에 저장한 뒤, 다시 전체 데이터를 재조회하여 응답
-
-### 설계 의도
-- 누락된 날짜만 외부 API 호출 → 불필요한 외부 요청 최소화
-- 이력 데이터의 정합성을 보장하면서도 실시간성과 독립된 흐름으로 분리
 - 이미 저장된 OHLC 데이터는 그대로 재사용 → 응답 속도 확보
 ---
 
@@ -192,39 +168,3 @@ USD → EUR 변동률 ≈ 1.20% - 0.85% = 0.35%
 → 결과적으로
 - 빠르고 안정적인 테스트 환경을 구축
 - 구조 리팩토링/변경에도 자신 있게 대응할 수 있는 기반을 마련
-
-## 디렉토리 구조
-```shell
-src/
-├── common/                        # 전역 유틸, 데코레이터, 필터, 인터셉터, 공통 DTO 등
-│   ├── decorators/               # Swagger, Validation, custom-decroator 분리
-│   ├── dto/                      # 공통 DTO, 인터페이스, 페이지네이션
-│   ├── filter/                   # 전역 예외 필터
-│   ├── interceptor/              # 응답 인터셉터
-│   └── utils/                    # 날짜 계산, 테이블 생성 유틸 등
-├── infrastructure/               # 인프라 계층: 환경변수, 외부 API, 이벤트, Redis 둥
-│   ├── config/                   # 환경변수 (env variables)
-│   ├── database/                # Prisma DB 모듈
-│   ├── events/                  # 서비스 전역에서 사용되는 이벤트들
-│   ├── externals/               # 외부 환율 API (CoinAPI, Fixer 등)
-│   └── redis/                   # Redis 모듈 및 Pub/Sub 구성
-├── modules/
-│   ├── exchange-rate/           # 환율 수집, 저장, 집계, 이력 조회 도메인
-│   │   ├── services/            # 실시간 처리, Redis 저장, 집계 등
-│   │   ├── controllers/         # REST/SSE 엔드포인트
-│   │   ├── repositories/        # DB 저장소 (Prisma)
-│   │   ├── schedulers/          # 일간 OHLC 집계 Cron
-│   │   └── listeners/           # 이벤트 기반 환율 처리
-│   ├── notifications/           # 알림 등록/조회/삭제, 트리거 서비스
-│   ├── notification-histories/  # 알림 발송 이력 저장
-│   ├── fcm/                     # FCM 푸시 알림 전송 모듈
-│   ├── sse/                     # SSE 전용 컨트롤러 + 서비스
-│   ├── watchlist/              # 관심 통화쌍 관리
-│   ├── users/                  # 사용자 정보 및 디바이스 관리
-│   └── auth/                   # 인증/인가 (JWT, Google OAuth 등)
-├── test/                        # 전역 테스트 환경 구성
-│   ├── unit/                   # Jest 단위 테스트
-│   ├── integration/            # Docker 기반 통합 테스트
-│   └── utils/                  # 테스트 전용 모듈 생성 유틸
-```
-
