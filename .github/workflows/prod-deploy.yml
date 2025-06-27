@@ -1,0 +1,40 @@
+name: Exchange Watch Backend Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - '**'
+      - '!test/**'
+      - '!**/*.spec.ts'
+      - '!**/*.test.ts'
+      - '!**/*.md'
+      - '!.github/**'
+      - '!.eslintrc*'
+      - '!.prettierrc*'
+      - '!jest.config*'
+      - '!coverage/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🚀 Rolling Update Deploy
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        timeout: 600s
+        script: |
+          echo "🚀 Starting rolling deployment..."
+          cd ~/ExchangeWatch/apps/backend
+          git pull origin main
+          docker-compose build --no-cache app
+          docker-compose run --rm app npx prisma migrate deploy
+          docker-compose up -d --scale app=4 --no-recreate postgres redis nginx
+          sleep 45
+          docker-compose up -d --scale app=3 --no-recreate postgres redis nginx
+          echo "✅ Rolling deployment completed!"
+          docker-compose ps
