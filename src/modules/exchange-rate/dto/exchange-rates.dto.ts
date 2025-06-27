@@ -57,13 +57,6 @@ export class RateDetail {
   dayChangePercent: number;
 
   /**
-   * 변환 환율
-   *
-   * @example 0.00061
-   */
-  inverseRate: number;
-
-  /**
    * 타임스탬프
    */
   timestamp: Date;
