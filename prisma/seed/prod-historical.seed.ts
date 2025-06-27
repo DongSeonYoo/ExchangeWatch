@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 async function seedHistoricalRates() {
   console.log('@@historical exchange rates seeding when DB init@@');
 
-  const mockDataDir = path.join(__dirname, '../../historical-mock');
+  const mockDataDir = path.join(process.cwd(), 'historical-mock');
   const jsonFiles = fs
     .readdirSync(mockDataDir)
     .filter((file) => file.endsWith('.json'));
