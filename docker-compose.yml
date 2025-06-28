@@ -12,9 +12,7 @@ services:
     networks:
       - exchange-watch-net
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
+    image: ${APP_IMAGE:-exchangewatch-app}
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_HOST=redis
