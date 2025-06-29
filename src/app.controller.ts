@@ -8,7 +8,7 @@ export class AppController {
   /**
    * 어플리케이션 모니터링을 위한 헬스체크
    *
-   * @remarks Health check endpoint for application monitoring
+   * @remarks Health check endpoint for application monitoring and ECR deployment
    */
   @Get('/health')
   @ApiSuccess({
