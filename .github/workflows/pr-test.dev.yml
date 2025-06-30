@@ -6,6 +6,9 @@ on:
 jobs:
     test:
       runs-on: ubuntu-latest
+      defaults:
+        run:
+          working-directory: ./apps/backend
 
       services:
         postgres:
@@ -38,6 +41,7 @@ jobs:
           with:
             node-version: '18'
             cache: 'npm'
+            cache-dependency-path: ./apps/backend/package-lock.json
 
         - name: Install & Build
           run: |
