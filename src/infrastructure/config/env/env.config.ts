@@ -4,6 +4,8 @@ export const appConfig = registerAs('', () => ({
   nodeEnv: process.env.NODE_ENV,
   port: parseInt(process.env.PORT || '3000', 10),
 
+  frontendURL: process.env.FRONTEND_URL,
+
   database: {
     url: process.env.DATABASE_URL,
     user: process.env.POSTGRES_USER,
