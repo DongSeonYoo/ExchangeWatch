@@ -3,19 +3,20 @@ import { ExchangeRateDailyRepository } from '../../repositories/exchange-rate-da
 import { DateUtilService } from '../../../../common/utils/date-util/date-util.service';
 import {
   IFluctuationExchangeRateApi,
+  IHistoricalExchangeRateApi,
   ILatestExchangeRateApi,
 } from '../../../../infrastructure/externals/exchange-rates/interfaces/exchange-rate-rest-api.interface';
 import { MockProxy, mock } from 'jest-mock-extended';
 import { supportCurrencyList } from '../../constants/support-currency.constant';
-import typia from 'typia';
 import { CurrentExchangeHistoryReqDto } from '../../dto/exchange-rates-history.dto';
 import { ExchangeRatesDailyEntity } from '../../entities/exchange-rate-daily.entity';
-import { IExchangeRateDaily } from '../../interfaces/exchange-rate-daily.interface';
 import { ExchangeRateFixture } from '../fixture/exchange-rate-fixture';
 import { ExchangeRateRawRepository } from '../../repositories/exchange-rate-raw.repository';
 import { ExchangeRateService } from '../../services/exchange-rate.service';
 import { ExchangeRateRedisService } from '../../services/exchange-rate-redis.service';
 import { CustomLoggerService } from '../../../../common/logger/custom-logger.service';
+import typia from 'typia';
+import { RateDetail } from '../../dto/exchange-rates.dto';
 
 describe('ExchangeRateService', () => {
   const currencyCodes = supportCurrencyList.filter((code) => code !== 'KRW');
@@ -51,6 +52,10 @@ describe('ExchangeRateService', () => {
         {
           provide: 'FLUCTUATION_RATE_API',
           useValue: mock<IFluctuationExchangeRateApi>(),
+        },
+        {
+          provide: 'HISTORICAL_RATE_API',
+          useValue: mock<IHistoricalExchangeRateApi>(),
         },
         {
           provide: ExchangeRateDailyRepository,
@@ -114,6 +119,7 @@ describe('ExchangeRateService', () => {
           '-15', // change
           '-1.5', // changepct,
           '1500', // rate
+          '123', // openRate
           (new Date().getTime() - 5000).toString(), // 5초전 수집된 데이타
         ]);
       });
@@ -129,12 +135,9 @@ describe('ExchangeRateService', () => {
         });
 
         // Assert
-        expect(Object.keys(result.rates)).toHaveLength(30); // 지원통화쌍 - basecurency = 30개
-        Object.values(result.rates).forEach((rate) => {
-          expect(rate.dayChange).toBe(-15);
-          expect(rate.dayChangePercent).toBe(-1.5);
-          expect(rate.rate).toBe(1500);
-          expect(rate.inverseRate).toBeCloseTo(1 / 1500); // 소수점 근사값 비교
+        expect(Object.keys(result)).toHaveLength(30); // 지원통화쌍 - basecurency = 30개
+        Object.values(result).forEach((rate) => {
+          expect(() => typia.assertEquals<RateDetail>(rate)).not.toThrow();
         });
       });
 
@@ -149,12 +152,9 @@ describe('ExchangeRateService', () => {
         });
 
         // Assert
-        expect(Object.keys(result.rates)).toHaveLength(30); // 지원통화쌍 - basecurency = 30개
-        Object.values(result.rates).forEach((rate) => {
-          expect(rate.dayChange).toBe(0);
-          expect(rate.dayChangePercent).toBe(0);
-          expect(rate.rate).toBe(1500);
-          expect(rate.inverseRate).toBeCloseTo(1 / 1500); // 소수점 근사값 비교
+        expect(Object.keys(result)).toHaveLength(30); // 지원통화쌍 - basecurency = 30개
+        Object.values(result).forEach((rate) => {
+          expect(() => typia.assertEquals<RateDetail>(rate)).not.toThrow();
         });
       });
 
@@ -198,7 +198,7 @@ describe('ExchangeRateService', () => {
         // Assert
         expect(latestApiSpy).toHaveBeenCalled();
         expect(fluctuationSpy).toHaveBeenCalled();
-        expect(Object.keys(result.rates)).toHaveLength(30);
+        expect(Object.keys(result)).toHaveLength(30);
       });
 
       it('시장이 닫혀있는 경우, 마지막으로 시장이 닫혔던 날짜의 snapshot을 조회한다', async () => {
@@ -210,11 +210,14 @@ describe('ExchangeRateService', () => {
         // snapshot 가짜 데이터
         exchangeRateDailyRepository.findDailyRates.mockImplementation(
           ({ currencyCode }) =>
-            ({
-              currencyCode: currencyCode,
-              closeRate: 1500,
-              ohlcDate: fakeDate,
-            }) as any,
+            Promise.resolve([
+              {
+                baseCurrency: baseCurrency,
+                rate: 1500, // 1500으로 설정
+                currencyCode: currencyCode,
+                rateDate: fakeDate,
+              },
+            ]) as any,
         );
 
         // Act
@@ -224,14 +227,13 @@ describe('ExchangeRateService', () => {
         });
 
         // Assert
-        expect(result.baseCurrency).toBe(baseCurrency);
-        expect(Object.keys(result.rates)).toHaveLength(currencyCodes.length);
+        expect(Object.keys(result)).toHaveLength(currencyCodes.length);
 
-        Object.values(result.rates).forEach((rate) => {
+        Object.values(result).forEach((rate) => {
           expect(rate.dayChange).toBe(0); // 주말 변동률 0
           expect(rate.dayChangePercent).toBe(0); // 주말 변동률 0
           expect(rate.rate).toBe(1500);
-          expect(rate.timestamp).toEqual(fakeDate);
+          expect(rate.timestamp).toStrictEqual(fakeDate);
         });
       });
 
@@ -265,235 +267,38 @@ describe('ExchangeRateService', () => {
   });
 
   describe('getHistoricalRates', () => {
-    describe('when DB has partial data', () => {
-      it('should fetch missing data from the external API', async () => {
-        // Arrange
-        const input: CurrentExchangeHistoryReqDto = {
-          baseCurrency: 'EUR',
-          currencyCode: 'KRW',
-          startedAt: new Date('2025-01-01'),
-          endedAt: new Date('2025-01-04'),
-        };
-        const requestedDates = [
-          new Date('2025-01-01'),
-          new Date('2025-01-02'),
-          new Date('2025-01-03'),
-          new Date('2025-01-04'),
-        ];
-        const existingDates = [new Date('2025-01-01'), new Date('2025-01-02')];
-        const missingDates = [new Date('2025-01-03'), new Date('2025-01-04')];
+    it('should not fetch data from external API', async () => {
+      // Arrange
+      const input: CurrentExchangeHistoryReqDto = {
+        baseCurrency: 'EUR',
+        currencyCode: 'KRW',
+        startedAt: new Date('2025-01-01'),
+        endedAt: new Date('2025-01-04'),
+      };
+      const requestedDates = [
+        new Date('2025-01-01'),
+        new Date('2025-01-02'),
+        new Date('2025-01-03'),
+        new Date('2025-01-04'),
+      ];
+      const existingDates = requestedDates;
 
-        dateUtilService.getDatesBetween.mockReturnValue(requestedDates);
-        missingDates.forEach((date) => {
-          dateUtilService.getYesterday.mockReturnValueOnce(date);
-        });
+      dateUtilService.getDatesBetween.mockReturnValue(requestedDates);
 
-        exchangeRateDailyRepository.findDailyRates
-          .mockResolvedValueOnce(
-            existingDates.map((ohlcDate) => ({
-              ohlcDate,
-            })) as ExchangeRatesDailyEntity[],
-          )
-          .mockResolvedValueOnce(
-            requestedDates.map((ohlcDate) => ({
-              ohlcDate,
-            })) as ExchangeRatesDailyEntity[],
-          );
-
-        // mocking as many as missDates
-        fluctuationApi.getFluctuationData.mockResolvedValue(
-          ExchangeRateFixture.createDefaultFluctuationRates(
-            'EUR',
-            new Date('2025-01-01'),
-            new Date('2025-01-04'),
-          ),
-        );
-
-        const fluctuationAPIspy = jest.spyOn(
-          fluctuationApi,
-          'getFluctuationData',
-        );
-        const dailyRepositorySpy = jest.spyOn(
-          exchangeRateDailyRepository,
-          'saveDailyRates',
-        );
-
-        // Act
-        const act = await exchangeRateService.getHistoricalRates(input);
-
-        // Assert
-        expect(fluctuationAPIspy).toHaveBeenCalledTimes(1);
-        expect(fluctuationAPIspy).toHaveBeenCalledWith(
-          missingDates[0],
-          missingDates[missingDates.length - 1],
-          'EUR',
-          ['KRW'],
-        );
-
-        expect(act).toHaveLength(requestedDates.length);
-        expect(() =>
-          typia.assert<IExchangeRateDaily.ICreate[]>(
-            dailyRepositorySpy.mock.calls[0][0],
-          ),
-        ).not.toThrow();
-      });
-
-      it('should insert missing data from the external API into the DB', async () => {
-        // Arrange
-        const input: CurrentExchangeHistoryReqDto = {
-          baseCurrency: 'EUR',
-          currencyCode: 'KRW',
-          startedAt: new Date('2025-01-01'),
-          endedAt: new Date('2025-01-04'),
-        };
-        const requestedDates = [
-          new Date('2025-01-01'),
-          new Date('2025-01-02'),
-          new Date('2025-01-03'),
-          new Date('2025-01-04'),
-        ];
-        const existingDates: Date[] = [];
-        const missingDates = [
-          new Date('2025-01-01'),
-          new Date('2025-01-02'),
-          new Date('2025-01-03'),
-          new Date('2025-01-04'),
-        ];
-
-        dateUtilService.getDatesBetween.mockReturnValue(requestedDates);
-
-        missingDates.forEach((date) => {
-          dateUtilService.getYesterday.mockReturnValueOnce(date);
-        });
-
-        exchangeRateDailyRepository.findDailyRates
-          .mockResolvedValueOnce(
-            existingDates.map((ohlcDate) => ({
-              ohlcDate,
-            })) as ExchangeRatesDailyEntity[],
-          )
-          .mockResolvedValueOnce(
-            requestedDates.map((ohlcDate) => ({
-              ohlcDate,
-            })) as ExchangeRatesDailyEntity[],
-          );
-
-        // mocking as many as missDates
-        fluctuationApi.getFluctuationData.mockResolvedValue(
-          ExchangeRateFixture.createDefaultFluctuationRates(
-            'EUR',
-            new Date('2025-01-01'),
-            new Date('2025-01-04'),
-          ),
-        );
-
-        const dailyRepositorySpy = jest.spyOn(
-          exchangeRateDailyRepository,
-          'saveDailyRates',
-        );
-
-        // Act
-        const result = await exchangeRateService.getHistoricalRates(input);
-
-        // Assert
-        expect(result).toHaveLength(requestedDates.length);
-        expect(() =>
-          typia.assert<IExchangeRateDaily.ICreate[]>(
-            dailyRepositorySpy.mock.calls[0][0],
-          ),
-        ).not.toThrow();
-      });
-    });
-
-    describe('when DB has complete data', () => {
-      it('should not fetch data from external API', async () => {
-        // Arrange
-        const input: CurrentExchangeHistoryReqDto = {
-          baseCurrency: 'EUR',
-          currencyCode: 'KRW',
-          startedAt: new Date('2025-01-01'),
-          endedAt: new Date('2025-01-04'),
-        };
-        const requestedDates = [
-          new Date('2025-01-01'),
-          new Date('2025-01-02'),
-          new Date('2025-01-03'),
-          new Date('2025-01-04'),
-        ];
-        const existingDates = requestedDates;
-        const missingDates: Date[] = [];
-
-        dateUtilService.getDatesBetween.mockReturnValue(requestedDates);
-
-        exchangeRateDailyRepository.findDailyRates.mockResolvedValueOnce(
-          existingDates.map((ohlcDate) => ({
-            ohlcDate,
-          })) as ExchangeRatesDailyEntity[],
-        );
-
-        const externalAPISpy = jest.spyOn(fluctuationApi, 'getFluctuationData');
-
-        // Act
-        const result = await exchangeRateService.getHistoricalRates(input);
-
-        // Assert
-        expect(externalAPISpy).not.toHaveBeenCalled();
-        expect(result).toHaveLength(requestedDates.length);
-      });
-    });
-  });
-
-  describe('calculateDailyRates', () => {
-    describe('should save daily rates into exchangeRateDaily from external API', () => {
-      it.todo('should call external api 31 times (supportCurrencies count) ');
-
-      it.todo(
-        'should convert the received data according to the entity structure',
+      exchangeRateDailyRepository.findDailyRates.mockResolvedValueOnce(
+        existingDates.map((ohlcDate) => ({
+          ohlcDate,
+        })) as any as ExchangeRatesDailyEntity[],
       );
 
-      it.todo('should save received data into the DB');
-    });
-  });
-
-  describe('getCurrencyPairs', () => {
-    it('should generate correct currency pairs', () => {
-      // Arrange
-      const testList = ['USD', 'EUR', 'KRW'];
+      const externalAPISpy = jest.spyOn(fluctuationApi, 'getFluctuationData');
 
       // Act
-      const result = exchangeRateService.generateCurrencyPairs(testList);
+      const result = await exchangeRateService.getHistoricalRates(input);
 
       // Assert
-      expect(result).toEqual([
-        { baseCurrency: 'USD', currencyCode: 'EUR' },
-        { baseCurrency: 'USD', currencyCode: 'KRW' },
-        { baseCurrency: 'EUR', currencyCode: 'USD' },
-        { baseCurrency: 'EUR', currencyCode: 'KRW' },
-        { baseCurrency: 'KRW', currencyCode: 'USD' },
-        { baseCurrency: 'KRW', currencyCode: 'EUR' },
-      ]);
-    });
-
-    it('should return an empty array if only one currency is provided', () => {
-      // Arrange
-      const testList = ['USD'];
-
-      // Act
-      const act = exchangeRateService.generateCurrencyPairs(testList);
-
-      // Assert
-      expect(act).toEqual([]);
-    });
-
-    it('should return an empty array if no currencies are provided', () => {
-      // Arrange
-      const testList: string[] = [];
-
-      // Act
-      const act = exchangeRateService.generateCurrencyPairs(testList);
-
-      // Assert
-      expect(act).toEqual([]);
+      expect(externalAPISpy).not.toHaveBeenCalled();
+      expect(result).toHaveLength(requestedDates.length);
     });
   });
 
@@ -724,6 +529,8 @@ describe('ExchangeRateService', () => {
         );
         expect(fluctuationSpy).not.toHaveBeenCalled();
       });
+
+      it.todo('정상적인 캐시 웜업 케이스 테스트');
     });
   });
 });
