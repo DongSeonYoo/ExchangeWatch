@@ -10,10 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get<ConfigService<AppConfig, true>>(ConfigService);
   const PORT = configService.get('port', { infer: true });
-  const frontendUrl =
-    configService.get('nodeEnv') === 'development'
-      ? 'localhost:4000'
-      : configService.get('frontendURL');
+  const frontendUrl = configService.get('frontendURL');
 
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
