@@ -23,7 +23,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "docker:up": "docker-compose up -d",
+    "docker:up": "docker-compose up -d --scale blue=${CURRENT_SCALE:-3}",
     "docker:down": "docker-compose down -v", 
     "docker-dev:up": "docker-compose -f docker-compose.dev.yml up -d && sleep 2 && npx prisma migrate dev && npm run seed:dev",
     "docker-dev:down": "docker-compose -f docker-compose.dev.yml down -v",
