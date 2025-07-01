@@ -8,11 +8,29 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
-      - app
+      - blue
     networks:
       - exchange-watch-net
-  app:
-    image: ${APP_IMAGE:-exchangewatch-app}
+  blue:
+    image: ${BLUE_IMAGE:-exchangewatch-app}
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    command: sh -c "npx prisma migrate deploy && npm run start:prod"
+    networks:
+      - exchange-watch-net
+
+  green:
+    image: ${GREEN_IMAGE:-exchangewatch-app}
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - REDIS_HOST=redis
