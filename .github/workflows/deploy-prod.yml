@@ -70,18 +70,81 @@ jobs:
           echo "Pulling new image..."
           docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           
-          echo "Running database migrations..."
-          docker run --rm --network exchangewatch_exchange-watch-net --env-file .env $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG sh -c "npx prisma migrate deploy"
+          echo "Starting rolling update"
           
-          echo "Rolling update: scaling to 4 instances..."
-          APP_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale app=4 app
-          sleep 45
+          # define healthcheck function
+          wait_for_health() {
+            local max_attempts=30
+            local attempt=1
+            echo "Waiting for health check..."
+            while [ $attempt -le $max_attempts ]; do
+              if curl -f -s http://localhost/api/health > /dev/null; then
+                echo "Health check passed (attempt $attempt)"
+                return 0
+              fi
+              echo "Health check attempt $attempt/$max_attempts failed, retrying in 10s"
+              sleep 10
+              attempt=$((attempt + 1))
+            done
+            echo "Health check failed after $max_attempts attempts"
+            return 1
+          }
           
-          echo "Rolling update: scaling back to 3 instances..."
-          APP_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale app=3 app
+          # 기본 스케일값 3개
+          CURRENT_SCALE=${CURRENT_SCALE:-3}
+          echo "Current scale: $CURRENT_SCALE instances"
+          
+          # 현재 돌아가고있는 컨테이너들의 ID 수집
+          OLD_CONTAINERS=($(docker-compose ps -q app))
+          echo "Found ${#OLD_CONTAINERS[@]} containers to update!"
+          
+          # 하나씩 새버전으로 업데이트
+          for i in "${!OLD_CONTAINERS[@]}"; do
+            container_id="${OLD_CONTAINERS[$i]}"
+            container_name=$(docker inspect --format '{{.Name}}' $container_id | sed 's/\///')
+            
+            echo ""
+            echo "Step $((i+1))/$CURRENT_SCALE: Updating $container_name ($container_id)"
+            
+            # 1. 새 컨테이너 추가
+            echo "Scaling up to $((CURRENT_SCALE + 1)) instances..."
+            APP_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale app=$((CURRENT_SCALE + 1))
+            
+            # 새 컨테이너 준비 대기
+            echo "Waiting for new container to be ready..."
+            sleep 20
+            if ! wait_for_health; then
+              echo "New container health check failed. Aborting deployment."
+              exit 1
+            fi
+            
+            # 2. 구 컨테이너 제거
+            echo "Removing old container: $container_name"
+            docker stop $container_id
+            docker rm $container_id
+            
+            # 3. 원래 스케일로 복구
+            echo "Scaling back to $CURRENT_SCALE instances..."
+            APP_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale app=$CURRENT_SCALE
+            
+            # 안정화 확인
+            if ! wait_for_health; then
+              echo "Post-update health check failed. Deployment may be unstable."
+              exit 1
+            fi
+            
+            echo "Container $((i+1))/$CURRENT_SCALE updated successfully"
+            
+            # 다음 업데이트 전 잠시 대기
+            if [ $i -lt $((${#OLD_CONTAINERS[@]} - 1)) ]; then
+              echo "Waiting 10 seconds before next update..."
+              sleep 10
+            fi
+          done
+          
+          echo "Rolling update completed successfully!"
           
           echo "Cleaning up old images..."
           docker image prune -f
           
           echo "Deployment completed!"
-          docker-compose ps
