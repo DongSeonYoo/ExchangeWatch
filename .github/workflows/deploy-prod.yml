@@ -61,7 +61,6 @@ jobs:
         timeout: 600s
         envs: ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG
         script: |
-          echo "Starting ECR-based rolling deployment..."
           cd ~/exchangeWatch
           
           echo "Login to ECR..."
@@ -70,81 +69,52 @@ jobs:
           echo "Pulling new image..."
           docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           
-          echo "Starting rolling update"
+          echo "Starting Blue-Green deployment"
           
-          # define healthcheck function
-          wait_for_health() {
-            local max_attempts=30
-            local attempt=1
-            echo "Waiting for health check..."
-            while [ $attempt -le $max_attempts ]; do
-              if curl -f -s http://localhost/api/health > /dev/null; then
-                echo "Health check passed (attempt $attempt)"
-                return 0
-              fi
-              echo "Health check attempt $attempt/$max_attempts failed, retrying in 10s"
-              sleep 10
-              attempt=$((attempt + 1))
-            done
-            echo "Health check failed after $max_attempts attempts"
-            return 1
-          }
+          # 현재 활성 컬러 확인 default=blue
+          CURRENT_COLOR=$(docker-compose ps --services --filter "status=running" | grep -E "^(blue|green)$" | head -1 || echo "blue")
+          NEW_COLOR=$([ "$CURRENT_COLOR" = "blue" ] && echo "green" || echo "blue")
+          echo "Switch to deployment color: $CURRENT_COLOR → Deploying: $NEW_COLOR"
           
-          # 기본 스케일값 3개
-          CURRENT_SCALE=${CURRENT_SCALE:-3}
-          echo "Current scale: $CURRENT_SCALE instances"
+          # Start new color
+          echo "Starting $NEW_COLOR"
+          if [ "$NEW_COLOR" = "green" ]; then
+            GREEN_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --no-deps green
+          else
+            BLUE_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --no-deps blue
+          fi
           
-          # 현재 돌아가고있는 컨테이너들의 ID 수집
-          OLD_CONTAINERS=($(docker-compose ps -q app))
-          echo "Found ${#OLD_CONTAINERS[@]} containers to update!"
+          # Health check new color
+          echo "Health checking $NEW_COLOR..."
+          sleep 20
           
-          # 하나씩 새버전으로 업데이트
-          for i in "${!OLD_CONTAINERS[@]}"; do
-            container_id="${OLD_CONTAINERS[$i]}"
-            container_name=$(docker inspect --format '{{.Name}}' $container_id | sed 's/\///')
-            
-            echo ""
-            echo "Step $((i+1))/$CURRENT_SCALE: Updating $container_name ($container_id)"
-            
-            # 1. 새 컨테이너 추가
-            echo "Scaling up to $((CURRENT_SCALE + 1)) instances..."
-            APP_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale app=$((CURRENT_SCALE + 1))
-            
-            # 새 컨테이너 준비 대기
-            echo "Waiting for new container to be ready..."
-            sleep 20
-            if ! wait_for_health; then
-              echo "New container health check failed. Aborting deployment."
-              exit 1
-            fi
-            
-            # 2. 구 컨테이너 제거
-            echo "Removing old container: $container_name"
-            docker stop $container_id
-            docker rm $container_id
-            
-            # 3. 원래 스케일로 복구
-            echo "Scaling back to $CURRENT_SCALE instances..."
-            APP_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale app=$CURRENT_SCALE
-            
-            # 안정화 확인
-            if ! wait_for_health; then
-              echo "Post-update health check failed. Deployment may be unstable."
-              exit 1
-            fi
-            
-            echo "Container $((i+1))/$CURRENT_SCALE updated successfully"
-            
-            # 다음 업데이트 전 잠시 대기
-            if [ $i -lt $((${#OLD_CONTAINERS[@]} - 1)) ]; then
-              echo "Waiting 10 seconds before next update..."
-              sleep 10
-            fi
-          done
+          # 한 번만 체크 (실패시 배포 중단)
+          if ! docker exec exchangewatch-nginx-1 curl -f -s http://$NEW_COLOR:3000/api/health > /dev/null 2>&1; then
+            echo "$NEW_COLOR health check failed. Aborting deployment."
+            docker-compose stop $NEW_COLOR
+            exit 1
+          fi
+          echo "$NEW_COLOR is healthy, proceeding with traffic switch..."
           
-          echo "Rolling update completed successfully!"
+          # Switch traffic (restart nginx)
+          echo "Switching traffic to $NEW_COLOR..."
+          sed -i "s/server $CURRENT_COLOR:3000/server $NEW_COLOR:3000/g" nginx/nginx.conf
+          docker-compose restart nginx
+          
+          # clear old version + append new version image
+          echo "Cleaning up $CURRENT_COLOR and scaling $NEW_COLOR..."
+          docker-compose stop $CURRENT_COLOR
+          
+          if [ "$NEW_COLOR" = "green" ]; then
+            GREEN_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale green=${CURRENT_SCALE:-3} --no-recreate
+          else
+            BLUE_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale blue=${CURRENT_SCALE:-3} --no-recreate
+          fi
+          
+          echo "Blue-Green deployment completed successfully!"
           
           echo "Cleaning up old images..."
           docker image prune -f
           
           echo "Deployment completed!"
+          
