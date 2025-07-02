@@ -77,20 +77,25 @@ model UserDevices {
 }
 
 model News {
-  idx          Int       @id @default(autoincrement())
-  title        String    @db.VarChar
-  content      String
-  summary      String
-  currencyCode String    @map("currency_code") @db.Char(3)
-  sourceUrl    String    @map("source_url")
-  publishedAt  DateTime  @map("published_at") @db.Timestamptz(6)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
-  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+  idx                 Int       @id @default(autoincrement())
+  title               String    @db.VarChar
+  content             String
+  summary             String
+  currencyCode        String    @map("currency_code") @db.Char(3)
+  sourceUrl           String    @map("source_url")
+  publishedAt         DateTime  @map("published_at") @db.Timestamptz(6)
+  keywords            String[]
+  emotionScore        Float?    @map("emotion_score")
+  mentionedCurrencies String[]  @map("mentioned_currencies")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   @@unique([sourceUrl, deletedAt], map: "news_source_url_unique")
   @@index([currencyCode], map: "idx_news_currency")
   @@index([publishedAt(sort: Desc)], map: "idx_news_published")
+  @@index([keywords], map: "idx_news_keywords")
+  @@index([mentionedCurrencies], map: "idx_news_mentioned_currencies")
   @@map("news")
 }
 
