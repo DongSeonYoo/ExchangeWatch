@@ -28,9 +28,6 @@ export class ClusterModule implements OnApplicationBootstrap {
     if (this.roleService.isLeader) {
       // 외부 API로부터 캐시 웜업
       await this.exchangeRateService.initializeAllCurrencyData();
-
-      // 소켓 커넥션 시작
-      this.websocketGateway.startConnection();
     }
   }
 }

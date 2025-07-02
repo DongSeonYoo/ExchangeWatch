@@ -3,6 +3,8 @@ import { RedisService } from '../redis/redis.service';
 import { RoleService } from './role/role.service';
 import { CustomLoggerService } from '../../common/logger/custom-logger.service';
 import { v4 as uuidv4 } from 'uuid';
+import { ExternalWebSocketGateWay } from '../externals/external-websocket.gateway';
+import { DateUtilService } from '../../common/utils/date-util/date-util.service';
 
 @Injectable()
 export class LeaderElectionService implements OnApplicationShutdown {
@@ -17,6 +19,8 @@ export class LeaderElectionService implements OnApplicationShutdown {
     private readonly redisService: RedisService,
     private readonly roleService: RoleService,
     private readonly loggerService: CustomLoggerService,
+    private readonly websocketGateway: ExternalWebSocketGateWay,
+    private readonly dateUtilService: DateUtilService,
   ) {
     this.loggerService.context = `LeaderElection:${this.instanceId.slice(0, 8)}`;
   }
@@ -33,6 +37,11 @@ export class LeaderElectionService implements OnApplicationShutdown {
    * 리더 선출
    */
   async elect(): Promise<void> {
+    if (!this.dateUtilService.isMarketOpen()) {
+      this.loggerService.verbose('today market is closed. not connect ws');
+      return;
+    }
+
     this.loggerService.verbose('Attempting to acquire leader lock...');
     const isLockAcquired = await this.redisService.setLock(
       this.lockKey,
@@ -40,6 +49,7 @@ export class LeaderElectionService implements OnApplicationShutdown {
       this.lockTtl,
     );
 
+    // 리더 락이 비어있을때
     if (isLockAcquired) {
       this.roleService.setAsLeader();
       this.clearWatcher();
@@ -47,6 +57,15 @@ export class LeaderElectionService implements OnApplicationShutdown {
       this.loggerService.verbose(
         '>>> Lock acquired. This instance is now the LEADER',
       );
+
+      // 소켓 커넥션 시작
+      this.websocketGateway.startConnection();
+
+      this.loggerService.verbose(
+        `>>> New leader is elected[${this.lockKey}], re-connect websocket connection`,
+      );
+
+      // 없으면 워커역할 수행
     } else {
       this.roleService.setAsWorker();
       this.clearHeartbeat();
