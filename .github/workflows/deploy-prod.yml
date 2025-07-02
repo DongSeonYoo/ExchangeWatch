@@ -71,40 +71,52 @@ jobs:
           
           echo "Starting Blue-Green deployment"
           
-          # 현재 활성 컬러 확인 default=blue
-          CURRENT_COLOR=$(docker-compose ps --services --filter "status=running" | grep -E "^(blue|green)$" | head -1 || echo "blue")
-          NEW_COLOR=$([ "$CURRENT_COLOR" = "blue" ] && echo "green" || echo "blue")
-          echo "Switch to deployment color: $CURRENT_COLOR → Deploying: $NEW_COLOR"
+          # 현재 색상 확인
+          BLUE_RUNNING=$(docker ps --filter "name=exchangewatch-blue" --format "{{.Names}}" | wc -l)
           
-          # Start new color
-          echo "Starting $NEW_COLOR"
+          if [ $BLUE_RUNNING -gt 0 ]; then
+            CURRENT_COLOR="blue"
+            NEW_COLOR="green"
+          else
+            CURRENT_COLOR="green"
+            NEW_COLOR="blue"
+          fi
+          
+          echo "Current active: $CURRENT_COLOR → Deploying: $NEW_COLOR"
+          
+          NEW_CONTAINER_PREFIX="exchangewatch-${NEW_COLOR}"
+          OLD_CONTAINER_PREFIX="exchangewatch-${CURRENT_COLOR}"
+          
+          # 새 버전 컨테이너 시작 (1개 카나리)
+          echo "Starting $NEW_COLOR canary container..."
           if [ "$NEW_COLOR" = "green" ]; then
             GREEN_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --no-deps green
           else
             BLUE_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --no-deps blue
           fi
           
-          # Health check new color
+          # 헬스체크
           echo "Health checking $NEW_COLOR..."
           sleep 20
           
-          # 한 번만 체크 (실패시 배포 중단)
           if ! docker exec exchangewatch-nginx-1 curl -f -s http://$NEW_COLOR:3000/api/health > /dev/null 2>&1; then
             echo "$NEW_COLOR health check failed. Aborting deployment."
             docker-compose stop $NEW_COLOR
             exit 1
           fi
-          echo "$NEW_COLOR is healthy, proceeding with traffic switch..."
+          echo "$NEW_COLOR is healthy!"
           
-          # Switch traffic (restart nginx)
-          echo "Switching traffic to $NEW_COLOR..."
-          sed -i "s/server $CURRENT_COLOR:3000/server $NEW_COLOR:3000/g" nginx/nginx.conf
+          # nginx 포트 포워딩 변경 및
+          echo "Switching nginx traffic to $NEW_COLOR..."
+          sed -i "s/server ${CURRENT_COLOR}:3000/server ${NEW_COLOR}:3000/g" nginx/nginx.conf
           docker-compose restart nginx
           
-          # clear old version + append new version image
-          echo "Cleaning up $CURRENT_COLOR and scaling $NEW_COLOR..."
+          # 구버전 컨테이너 종료
+          echo "Stopping old $CURRENT_COLOR containers..."
           docker-compose stop $CURRENT_COLOR
           
+          # 신버전을 3개로 확장
+          echo "Scaling $NEW_COLOR to ${CURRENT_SCALE:-3} instances..."
           if [ "$NEW_COLOR" = "green" ]; then
             GREEN_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --scale green=${CURRENT_SCALE:-3} --no-recreate
           else
@@ -112,9 +124,10 @@ jobs:
           fi
           
           echo "Blue-Green deployment completed successfully!"
+          echo "Active containers: $NEW_COLOR (${CURRENT_SCALE:-3} instances)"
+          echo "Image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           
           echo "Cleaning up old images..."
           docker image prune -f
           
-          echo "Deployment completed!"
-          
+          echo "Deployment completed"
