@@ -16,6 +16,8 @@ import { Response } from 'express';
 import { UsersService } from '../../users/users.service';
 import { ApiSuccess } from '../../../common/decorators/swaggers/success.decorator';
 import { RefreshAuth } from '../../../common/decorators/swaggers/login-auth.decorator';
+import { ConfigService } from '@nestjs/config';
+import { AppConfig } from '../../../infrastructure/config/config.type';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -23,6 +25,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UsersService,
+    private readonly configService: ConfigService<AppConfig, true>,
   ) {}
 
   /**
@@ -57,7 +60,10 @@ export class AuthController {
       path: '/',
     });
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
+    const frontendUrl = this.configService
+      .get<string>('frontendURL', { infer: true })
+      .split(',')
+      .map((url) => url.trim());
     const redirectUrl = `${frontendUrl}/auth/callback?success=true`;
 
     return res.redirect(redirectUrl);
