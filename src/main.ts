@@ -10,12 +10,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get<ConfigService<AppConfig, true>>(ConfigService);
   const PORT = configService.get('port', { infer: true });
-  const frontendUrl = configService.get('frontendURL');
+  const frontendUrl = configService
+    .get<string>('frontendURL', { infer: true })
+    .split(',')
+    .map((url) => url.trim());
 
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
   app.enableCors({
-    origin: [frontendUrl],
+    origin: frontendUrl,
     credentials: true,
     methods: ['*'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
