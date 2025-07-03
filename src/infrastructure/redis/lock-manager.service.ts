@@ -3,7 +3,7 @@ import { RedisService } from './redis.service';
 import { v4 as uuidv4 } from 'uuid';
 import { CustomLoggerService } from '../../common/logger/custom-logger.service';
 
-type LockNames = 'AIreport' | 'daily-aggregation';
+type LockNames = 'AIreport' | 'daily-aggregation' | 'news-aggregation';
 
 @Injectable()
 export class LockManagerService {
