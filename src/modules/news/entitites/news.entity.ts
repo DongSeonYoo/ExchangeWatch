@@ -1,3 +1,5 @@
+import Prisma from '@prisma/client';
+
 export class NewsEntity {
   /**
    * 뉴스 인덱스
@@ -53,9 +55,13 @@ export class NewsEntity {
    */
   updatedAt: Date;
 
-  /**
-   * 삭제일시
-   * @example null
-   */
-  deletedAt: Date | null;
+  constructor(args: NewsEntity) {
+    Object.assign(this, args);
+  }
+
+  static from(args: Prisma.News): NewsEntity {
+    return new NewsEntity({
+      ...args,
+    });
+  }
 }
