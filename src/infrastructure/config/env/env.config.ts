@@ -76,4 +76,12 @@ export const appConfig = registerAs('', () => ({
   openai: {
     OPENAI_API_KEY: process.env.OPEN_API_KEY,
   },
+
+  news: {
+    naver: {
+      BASE_URL: process.env.NAVER_NEWS_BASE_URL,
+      NAVER_NEWS_API_CLIENT_KEY: process.env.NAVER_NEWS_API_CLIENT_KEY,
+      NAVER_NEWS_CLIENT_SECRET: process.env.NAVER_NEWS_CLIENT_SECRET,
+    },
+  },
 }));

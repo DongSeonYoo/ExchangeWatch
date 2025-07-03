@@ -66,4 +66,9 @@ export const envValidationSchema = Joi.object({
 
   // OPENAI
   OPEN_API_KEY: Joi.string().required(),
+
+  // NAVER NEWS
+  NAVER_NEWS_API_CLIENT_KEY: Joi.string().required(),
+  NAVER_NEWS_CLIENT_SECRET: Joi.string().required(),
+  NAVER_NEWS_BASE_URL: Joi.string().required(),
 });
