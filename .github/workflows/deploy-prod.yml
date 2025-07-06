@@ -95,16 +95,21 @@ jobs:
             BLUE_IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG docker-compose up -d --no-deps blue
           fi
           
-          # 헬스체크
+          # 헬스체크 (반복 재시도 방식)
           echo "Health checking $NEW_COLOR..."
-          sleep 20
-          
-          if ! docker exec exchangewatch-nginx-1 curl -f -s http://$NEW_COLOR:3000/api/health > /dev/null 2>&1; then
-            echo "$NEW_COLOR health check failed. Aborting deployment."
-            docker-compose stop $NEW_COLOR
-            exit 1
-          fi
-          echo "$NEW_COLOR is healthy!"
+          for i in $(seq 1 30); do
+            if docker exec exchangewatch-nginx-1 curl -f -s "http://$NEW_COLOR:3000/api/health" > /dev/null 2>&1; then
+              echo "$NEW_COLOR is healthy!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "$NEW_COLOR health check failed after 300 seconds. Aborting deployment."
+              docker-compose stop $NEW_COLOR
+              exit 1
+            fi
+            echo "Attempt $i: $NEW_COLOR is not ready yet. Retrying in 10 seconds..."
+            sleep 10
+          done
           
           # nginx 포트 포워딩 변경 및
           echo "Switching nginx traffic to $NEW_COLOR..."
