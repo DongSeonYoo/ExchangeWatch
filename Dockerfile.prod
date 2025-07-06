@@ -21,8 +21,6 @@ COPY . .
 # build application
 RUN npm run build
 
-# Note: AWS CLI not needed in container - using EC2 IAM Role on host
-
 # Compile seed files for production
 RUN npx tsc prisma/seed/prod-historical.seed.ts --outDir dist/prisma/seed --target es2020 --module commonjs --skipLibCheck
 
@@ -35,10 +33,16 @@ RUN npm prune --production
 # ###################
 FROM node:22-slim
 
-# 필요한 패키지 설치: openssl (Prisma), aws-cli (for approaching S3)
+# 필요한 패키지 설치: openssl (Prisma), curl & unzip (aws-cli 설치용)
 RUN apt-get update && \
-    apt-get install -y openssl aws-cli && \
+    apt-get install -y openssl curl unzip && \
     rm -rf /var/lib/apt/lists/*
+
+# install AWS CLI (공식 권장 방식)
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip ./aws
 
 WORKDIR /usr/src/app
 
