@@ -34,8 +34,11 @@ RUN npm prune --production
 # # Production Stage
 # ###################
 FROM node:22-slim
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
+# 필요한 패키지 설치: openssl (Prisma), aws-cli (for approaching S3)
+RUN apt-get update && \
+    apt-get install -y openssl aws-cli && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
 
