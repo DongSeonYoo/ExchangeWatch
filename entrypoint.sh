@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 
 echo "Downloading historical seed data from S3..."
