@@ -7,8 +7,6 @@ services:
       - '80:80'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - blue
     networks:
       - exchange-watch-net
   blue:
@@ -25,7 +23,6 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    command: sh -c "npx prisma migrate deploy && npm run start:prod"
     networks:
       - exchange-watch-net
 
@@ -43,7 +40,6 @@ services:
         condition: service_healthy
     env_file:
       - .env
-    command: sh -c "npx prisma migrate deploy && npm run start:prod"
     networks:
       - exchange-watch-net
 
