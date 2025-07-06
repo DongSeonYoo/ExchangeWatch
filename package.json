@@ -37,7 +37,6 @@
     "seed:dev": "ts-node prisma/seed/prod-historical.seed.ts",
     "seed:test": "ts-node prisma/seed/integration-test.seed.ts",
     "seed:prod": "node dist/prisma/seed/prod-historical.seed.js",
-    "seed:prod:s3": "aws s3 cp s3://exchange-watch-seeds/historical-mock/ ./historical-mock/ --recursive && npm run seed:prod",
     "prepare": "ts-patch install && typia patch && prisma generate"
   },
   "dependencies": {
