@@ -80,12 +80,15 @@ async function main() {
 
   // 기존 환율 데이터 확인
   const existingCount = await prisma.exchangeRatesDaily.count();
-  console.log(`Current exchange rate records in DB: ${existingCount}`);
+  if (existingCount > 0) {
+    console.log(
+      `Current exchange rate records in DB: ${existingCount}, no seeding`,
+    );
+    return;
+  }
 
   await seedHistoricalRates();
-
   const finalCount = await prisma.exchangeRatesDaily.count();
-
   console.log(
     `✅ Historical data seeding completed successfully! [${finalCount} records]`,
   );
