@@ -17,6 +17,10 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
   private readonly majorCurrencyCode: string[] = supportCurrencyList;
   private readonly socketReceiveInterval: number = 60000;
 
+  private lastHeartBeat: number | null = null;
+  private connectionRetries: number = 0;
+  private isPermantelyDead: boolean = false;
+
   constructor(
     private readonly configService: ConfigService<AppConfig, true>,
     private readonly eventEmitter: EventEmitter2,
@@ -55,21 +59,28 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
     });
 
     this.ws.on('message', async (data) => {
-      const priceData: CoinApiWebSocket.ExchangeRateMessage = JSON.parse(
-        data.toString(),
-      );
+      const receivedData:
+        | CoinApiWebSocket.ExchangeRateMessage
+        | CoinApiWebSocket.HeartbeatMessage = JSON.parse(data.toString());
+
+      if (receivedData.type === 'heartbeat') {
+        this.lastHeartBeat = Number(receivedData.time) || Date.now();
+        this.logger.debug('received heartbeat from coinapi');
+
+        return;
+      }
 
       if (
-        priceData.type === 'exrate' &&
-        priceData.asset_id_base === this.defaultBaseCurrency
+        receivedData.type === 'exrate' &&
+        receivedData.asset_id_base === this.defaultBaseCurrency
       ) {
         this.eventEmitter.emit(
           LatestRateEvent.eventName,
           new LatestRateEvent(
-            new Date(priceData.time).getTime(),
-            priceData.asset_id_base,
-            priceData.asset_id_quote,
-            priceData.rate,
+            new Date(receivedData.time).getTime(),
+            receivedData.asset_id_base,
+            receivedData.asset_id_quote,
+            receivedData.rate,
           ),
         );
       }
@@ -77,12 +88,42 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
 
     this.ws.on('close', () => {
       this.logger.debug('WebSocket release');
+
+      // 3번 이상 재시도 시 그냥 연결 꺼버림
+      if (this.connectionRetries >= 3) {
+        this.isPermantelyDead = true;
+        return;
+      }
+
+      this.connectionRetries++;
       setTimeout(() => this.connect(), 5000); // 연결 끊겼을시 재연결 로직
     });
 
     this.ws.on('error', (error) => {
       this.logger.error('WebSocket error', error.stack);
     });
+  }
+
+  /**
+   * coinapi healthcheck method
+   */
+  isHealthy(): boolean {
+    // 재연결하다가 영구적으로 죽었을 시
+    if (this.isPermantelyDead) {
+      return false;
+    }
+
+    // 소켓 연결상태 메롱이면
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+
+    // 마지막 하트비트가 60초 이내에 수신되었는지 확인 (CoinAPI는 30초마다 보냄)
+    if (this.lastHeartBeat && Date.now() - this.lastHeartBeat > 60000) {
+      this.logger.warn('No heartbeat received in the last 60 seconds.');
+      return false;
+    }
+    return true;
   }
 
   disconnect(): void {

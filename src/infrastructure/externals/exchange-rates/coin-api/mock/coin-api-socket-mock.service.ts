@@ -11,6 +11,7 @@ export class CoinApiSocketMockService implements IExchangeRateWebSocketService {
   private readonly baseCurrency = 'KRW';
   private readonly initialRates: Record<string, number> = {};
   private readonly fluctuationRange = 0.005; // +-0.5% 정도 변동
+  private readonly socketReceiveInterval: number = 60000;
 
   constructor(private readonly eventEmitter: EventEmitter2) {
     // 초기 레이트 셋팅 (대충 임의로 0.001 ~ 0.01 사이로 세팅)
@@ -27,7 +28,7 @@ export class CoinApiSocketMockService implements IExchangeRateWebSocketService {
    */
   connect(): void {
     // 5초마다 환율 변동 시뮬레이션
-    this.subscription = interval(5000).subscribe(() => {
+    this.subscription = interval(this.socketReceiveInterval).subscribe(() => {
       const now = Date.now();
       for (const [currencyCode, baseRate] of Object.entries(
         this.initialRates,
@@ -47,8 +48,14 @@ export class CoinApiSocketMockService implements IExchangeRateWebSocketService {
       }
     });
   }
+
   disconnect(): void {
     this.subscription?.unsubscribe();
     this.subscription = null;
+  }
+
+  // always true for dev..
+  isHealthy(): boolean | null {
+    return true;
   }
 }
