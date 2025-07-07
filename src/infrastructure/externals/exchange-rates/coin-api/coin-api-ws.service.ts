@@ -15,6 +15,7 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
   private readonly conApiUrl: string;
   private readonly defaultBaseCurrency: string = 'KRW';
   private readonly majorCurrencyCode: string[] = supportCurrencyList;
+  private readonly socketReceiveInterval: number = 60000;
 
   constructor(
     private readonly configService: ConfigService<AppConfig, true>,
@@ -48,7 +49,7 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
           type: 'hello',
           heartbeat: false,
           subscribe_filter_asset_id: currencyPairs,
-          subscribe_update_limit_ms_exrate: 5000,
+          subscribe_update_limit_ms_exrate: this.socketReceiveInterval,
         }),
       );
     });
