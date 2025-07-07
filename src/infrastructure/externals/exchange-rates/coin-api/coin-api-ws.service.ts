@@ -51,7 +51,7 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
       this.ws.send(
         JSON.stringify({
           type: 'hello',
-          heartbeat: false,
+          heartbeat: true,
           subscribe_filter_asset_id: currencyPairs,
           subscribe_update_limit_ms_exrate: this.socketReceiveInterval,
         }),
@@ -65,7 +65,6 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
 
       if (receivedData.type === 'heartbeat') {
         this.lastHeartBeat = Number(receivedData.time) || Date.now();
-        this.logger.debug('received heartbeat from coinapi');
 
         return;
       }
