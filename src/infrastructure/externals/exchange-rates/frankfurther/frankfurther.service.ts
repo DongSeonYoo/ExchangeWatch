@@ -6,13 +6,13 @@ import { AppConfig } from '../../../config/config.type';
 import { lastValueFrom } from 'rxjs';
 import {
   ILatestExchangeRateApi,
-  ITimeSeriesData,
+  ITimeSeriesRateApi,
 } from '../interfaces/exchange-rate-rest-api.interface';
 import { IFrankFurther } from './interfaces/frankfurther-response.interface';
 
 @Injectable()
 export class FrankFurtherService
-  implements ILatestExchangeRateApi, ITimeSeriesData
+  implements ILatestExchangeRateApi, ITimeSeriesRateApi
 {
   private readonly baseUrl: string;
   constructor(
