@@ -117,8 +117,8 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
   async getTimeSeriesData(
     startDate: Date,
     endDate: Date,
-    baseCurrency = 'EUR',
-    currencyCodes: string[] = [],
+    baseCurrency = 'KRW',
+    currencyCodes: string[],
   ): Promise<IExchangeRateExternalAPI.ITimeSeriesResponse> {
     const currencies = currencyCodes.join(',');
     const [convertStartDate, convertEndDate] = this.formatDateToString(
@@ -135,7 +135,6 @@ export class CurrencyLayerService implements IFluctuationExchangeRateApi {
     if (!data.success) {
       throw new Error(`CurrencyLayer Error: ${JSON.stringify(data)}`);
     }
-    data;
 
     const timeSeriesRates = this.parseTimeSeriesQuotes(
       data.source,
