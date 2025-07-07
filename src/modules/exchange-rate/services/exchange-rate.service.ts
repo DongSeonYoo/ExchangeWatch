@@ -12,8 +12,8 @@ import { CurrentExchangeHistoryReqDto } from '../dto/exchange-rates-history.dto'
 import { supportCurrencyList } from '../constants/support-currency.constant';
 import {
   IFluctuationExchangeRateApi,
-  IHistoricalExchangeRateApi,
   ILatestExchangeRateApi,
+  ITimeSeriesRateApi,
 } from '../../../infrastructure/externals/exchange-rates/interfaces/exchange-rate-rest-api.interface';
 import { DateUtilService } from '../../../common/utils/date-util/date-util.service';
 import { ExchangeRateRawRepository } from '../repositories/exchange-rate-raw.repository';
@@ -35,7 +35,7 @@ export class ExchangeRateService {
     @Inject('FLUCTUATION_RATE_API')
     private readonly fluctuationApi: IFluctuationExchangeRateApi,
     @Inject('HISTORICAL_RATE_API')
-    private readonly historicalRateApi: IHistoricalExchangeRateApi,
+    private readonly historicalRateApi: ITimeSeriesRateApi,
     private readonly exchangeRateDailyRepository: ExchangeRateDailyRepository,
     private readonly dateUtilService: DateUtilService,
     private readonly exchangeRateRawRepository: ExchangeRateRawRepository,
@@ -236,10 +236,52 @@ export class ExchangeRateService {
    *
    * - seed 데이터로 미리 넣어둔 10년치 데이터에서 조회
    * - DB에 일단 데이터가 무조건 있다고가정
+   *
+   * 일일 스케쥴러 및 s3목데이터 람다 설계하기 전까지는 api콜로 누락된 일일환율데이터 보강
    */
   async getHistoricalRates(
     input: CurrentExchangeHistoryReqDto,
   ): Promise<ExchangeRatesDailyEntity[]> {
+    const historicalData =
+      await this.exchangeRateDailyRepository.findDailyRates(input);
+
+    const existingDates = historicalData.map((date) => date.rateDate);
+    const missingDates = this.dateUtilService
+      .getDatesBetween(input.startedAt, input.endedAt)
+      .filter(
+        (date) =>
+          !existingDates.some(
+            (existingDate) => existingDate.getTime() === date.getTime(),
+          ),
+      );
+    // if DB has complete data, return directly
+    if (!missingDates.length) return historicalData;
+
+    // look-aside?
+    const missingStartDate = missingDates[0];
+    const missingEndDate = missingDates[missingDates.length - 1];
+    const missingTimeseriesData =
+      await this.historicalRateApi.getTimeSeriesData(
+        missingStartDate,
+        missingEndDate,
+        input.baseCurrency,
+        [input.currencyCode],
+      );
+
+    // save missing timeseries data
+    await this.exchangeRateDailyRepository.saveDailyRates(
+      missingDates.map((missingDate) => ({
+        baseCurrency: input.baseCurrency,
+        currencyCode: input.currencyCode,
+        rate:
+          1 /
+          missingTimeseriesData.rates[
+            this.dateUtilService.getYYYYMMDD(missingDate)
+          ][input.currencyCode],
+        rateDate: missingDate,
+      })),
+    );
+
     return await this.exchangeRateDailyRepository.findDailyRates(input);
   }
 

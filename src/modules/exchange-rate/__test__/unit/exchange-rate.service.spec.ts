@@ -286,8 +286,8 @@ describe('ExchangeRateService', () => {
       dateUtilService.getDatesBetween.mockReturnValue(requestedDates);
 
       exchangeRateDailyRepository.findDailyRates.mockResolvedValueOnce(
-        existingDates.map((ohlcDate) => ({
-          ohlcDate,
+        existingDates.map((rateDate) => ({
+          rateDate,
         })) as any as ExchangeRatesDailyEntity[],
       );
 

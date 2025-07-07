@@ -5,6 +5,7 @@ export const appConfig = registerAs('', () => ({
   port: parseInt(process.env.PORT || '3000', 10),
 
   frontendURL: process.env.FRONTEND_URL,
+  apiURL: process.env.API_URL,
 
   database: {
     url: process.env.DATABASE_URL,
