@@ -10,16 +10,36 @@
 
 export const CURRENCY_THRESHOLDS: Record<
   string,
-  {
-    pct: number;
-    minAbs: number;
-  }
+  { pct: number; minAbs: number }
 > = {
-  // JPY: { pct: 0.1, minAbs: 0.0005 },
-  // TRY: { pct: 0.5, minAbs: 0.1 },
-  // ... 다른 특별한 통화들
-  // DEFAULT: { pct: 0.1, minAbs: 0.05 }, // 일반적인 통화 기준
+  // G7 & Major Currencies
+  USD: { pct: 0.1, minAbs: 0.000007 },
+  EUR: { pct: 0.1, minAbs: 0.000006 },
+  GBP: { pct: 0.1, minAbs: 0.000005 },
+  CAD: { pct: 0.1, minAbs: 0.000009 },
+  AUD: { pct: 0.1, minAbs: 0.00001 },
+  CHF: { pct: 0.1, minAbs: 0.000006 },
+  NZD: { pct: 0.1, minAbs: 0.000012 },
+  SGD: { pct: 0.1, minAbs: 0.000009 },
+  HKD: { pct: 0.1, minAbs: 0.00005 },
 
-  // 기본값
-  DEFAULT: { pct: 0.1, minAbs: 0.05 },
+  // Special Scale Currencies
+  JPY: { pct: 0.15, minAbs: 0.001 },
+  HUF: { pct: 0.15, minAbs: 0.002 },
+  ISK: { pct: 0.15, minAbs: 0.001 },
+
+  // High Value Currencies
+  IDR: { pct: 0.2, minAbs: 0.1 },
+  INR: { pct: 0.2, minAbs: 0.005 },
+  PHP: { pct: 0.2, minAbs: 0.04 },
+  THB: { pct: 0.2, minAbs: 0.02 },
+
+  // Volatile & Emerging Currencies
+  BRL: { pct: 0.5, minAbs: 0.0001 },
+  TRY: { pct: 0.8, minAbs: 0.0002 },
+  ZAR: { pct: 0.5, minAbs: 0.0001 },
+  MXN: { pct: 0.4, minAbs: 0.0001 },
+
+  // All other currencies will use this default
+  DEFAULT: { pct: 0.2, minAbs: 0.0001 },
 } as const;
