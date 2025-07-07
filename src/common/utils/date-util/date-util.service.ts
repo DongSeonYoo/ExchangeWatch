@@ -103,4 +103,8 @@ export class DateUtilService {
 
     return dayjs(dayjs(lastMarketDay).format('YYYY-MM-DD')).toDate();
   }
+
+  getYYYYMMDD(date: Date): string {
+    return dayjs(date).format('YYYY-MM-DD');
+  }
 }
