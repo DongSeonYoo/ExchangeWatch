@@ -26,7 +26,7 @@ import { CurrencyLayerService } from './exchange-rates/currencylayer/currencylay
     },
     {
       provide: 'WEBSOCKET_IMPL',
-      useClass: CoinApiSocketMockService,
+      useClass: CoinApiWebSocketService,
     },
     {
       provide: 'HISTORICAL_RATE_API',
