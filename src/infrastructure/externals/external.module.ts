@@ -8,6 +8,7 @@ import { CoinApiWebSocketService } from './exchange-rates/coin-api/coin-api-ws.s
 import { CoinApiService } from './exchange-rates/coin-api/coin-api.service';
 import { FrankFurtherService } from './exchange-rates/frankfurther/frankfurther.service';
 import { CurrencyLayerService } from './exchange-rates/currencylayer/currencylayer.service';
+import { WebSocketManagerService } from './exchange-rates/websocket-manager.service';
 
 @Module({
   imports: [CoinApiModule.forRootAsync(), EventEmitterModule.forRoot()],
@@ -25,12 +26,20 @@ import { CurrencyLayerService } from './exchange-rates/currencylayer/currencylay
       useClass: FrankFurtherService,
     },
     {
-      provide: 'WEBSOCKET_IMPL',
+      provide: 'HISTORICAL_RATE_API',
+      useClass: CurrencyLayerService,
+    },
+    {
+      provide: 'PRIMARY_WEBSOCKET',
       useClass: CoinApiWebSocketService,
     },
     {
-      provide: 'HISTORICAL_RATE_API',
-      useClass: CurrencyLayerService,
+      provide: 'FALLBACK_WEBSOCKET',
+      useClass: CoinApiSocketMockService,
+    },
+    {
+      provide: 'WEBSOCKET_IMPL',
+      useClass: WebSocketManagerService,
     },
     ExternalWebSocketGateWay,
   ],
@@ -38,8 +47,8 @@ import { CurrencyLayerService } from './exchange-rates/currencylayer/currencylay
     'LATEST_EXCHANGE_RATE_API',
     'FLUCTUATION_RATE_API',
     'TIMESERIES_RATE_API',
-    'WEBSOCKET_IMPL',
     'HISTORICAL_RATE_API',
+    'WEBSOCKET_IMPL',
     ExternalWebSocketGateWay,
   ],
 })
