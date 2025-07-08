@@ -37,7 +37,7 @@ export class AuthController {
   @UseGuards(GoogleOAuthGuard)
   async googleAuthCallback(
     @LoggedInUser() user: UserEntity,
-    @Res({ passthrough: false }) res: Response,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
     const { accessToken, refreshToken } =
       await this.authService.issueAccessAndRefreshToken(user);
