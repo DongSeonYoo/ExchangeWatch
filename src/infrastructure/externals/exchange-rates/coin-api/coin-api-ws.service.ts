@@ -65,6 +65,7 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
 
       if (receivedData.type === 'heartbeat') {
         this.lastHeartBeat = Number(receivedData.time) || Date.now();
+        this.connectionRetries = 0;
 
         return;
       }
