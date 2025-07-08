@@ -484,23 +484,51 @@ describe('ExchangeRateService', () => {
       });
     });
 
-    it('레디스에 초기 데이터가 없을 경우, (init이 아닌, 소켓 수신 받았을 경우에) 500에러를 반환한다', async () => {
-      // Arrange
-      exchangeRateRedisService.getLatestRate.mockResolvedValue([]); // Redis에 데이터 없을 경우
+    describe('레디스 장애 시, 혹은 썩은 데이터 들어가있을 시(요건 일단 수동으로 제어),', () => {
+      // it('레디스에 초기 데이터가 없을 경우, (init이 아닌, 소켓 수신 받았을 경우에) 500에러를 반환한다', async () => {
+      //   // Arrange
+      //   exchangeRateRedisService.getLatestRate.mockResolvedValue([]); // Redis에 데이터 없을 경우
 
-      // Act
-      await exchangeRateService.handleLatestRateUpdate(
-        baseCurrency,
-        currencyCode,
-        latestRate,
-        latestTimestamp,
-      );
+      //   // Act
+      //   await exchangeRateService.handleLatestRateUpdate(
+      //     baseCurrency,
+      //     currencyCode,
+      //     latestRate,
+      //     latestTimestamp,
+      //   );
 
-      // Assert
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        `No Redis data for ${currencyCode}`,
-      );
-      expect(fluctuationApi.getFluctuationData).not.toHaveBeenCalled();
+      //   // Assert
+      //   expect(loggerService.warn).toHaveBeenCalledWith(
+      //     `No Redis data for ${currencyCode}`,
+      //   );
+      //   expect(fluctuationApi.getFluctuationData).not.toHaveBeenCalled();
+      // });
+
+      it('초기 데이터(웜업)이 안되어있을 경우 다시 fluctuation api 호출해서 최신데이터로 웜업해준다.', async () => {
+        // Arragne
+        const lastMarketDay = new Date('2025-07-08');
+        dateUtilService.getLastMarketDay.mockReturnValue(lastMarketDay); // 아무 날짜나
+        exchangeRateRedisService.getLatestRate.mockResolvedValue([]);
+        fluctuationApi.getFluctuationData.mockResolvedValue(
+          ExchangeRateFixture.createDefaultFluctuationRates(baseCurrency),
+        );
+
+        // Act
+        await exchangeRateService.handleLatestRateUpdate(
+          baseCurrency,
+          currencyCode,
+          latestRate,
+          latestTimestamp,
+        );
+
+        // Assert
+        expect(fluctuationSpy).toHaveBeenCalledWith(
+          lastMarketDay,
+          expect.any(Date),
+          baseCurrency,
+          supportCurrencyList,
+        );
+      });
     });
 
     it.todo('최초 저장 시 fluctuation API 실패하면 예외를 던진다');

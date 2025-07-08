@@ -452,6 +452,8 @@ export class ExchangeRateService {
 
     // 1. Redis에 저장된 데이터가 없는 경우 (레디스 장애 시) 500에러,
     if (!storedLatestRateStr || !storedTimestampStr || !storedOpenRateStr) {
+      await this.fetchAllMissingCurrencies(this.supportCurrencyList);
+
       this.logger.warn(`No Redis data for ${currencyCode}`);
       return;
     }
