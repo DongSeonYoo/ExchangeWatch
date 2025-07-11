@@ -48,9 +48,6 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
 
     this.ws.on('open', () => {
       this.logger.debug('@@coinapi websocket connected@@');
-      this.lastHeartBeat = Date.now(); // 연결 시 하트비트 초기화
-      this.connectionRetriesCount = 0; // 재연결 시도 횟수 초기화
-
       const currencyPairs = this.majorCurrencyCode
         .filter((currency) => currency !== this.defaultBaseCurrency) // KRW/KRW 방지
         .map((currency) => `${this.defaultBaseCurrency}/${currency}`);
@@ -72,6 +69,7 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
 
       if (receivedData.type === 'heartbeat') {
         this.connectionRetriesCount = 0;
+        this.lastHeartBeat = Date.now(); // 연결 시 하트비트 초기화
         this.lastHeartBeat = Number(receivedData.time) || Date.now();
         return;
       }
