@@ -1,73 +1,87 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { IExchangeRateWebSocketService } from './interfaces/exchange-rate-websocket.interface';
 import { CustomLoggerService } from '../../../common/logger/custom-logger.service';
 
 @Injectable()
-export class WebSocketManagerService implements IExchangeRateWebSocketService {
-  private primary: IExchangeRateWebSocketService;
-  private secondary: IExchangeRateWebSocketService;
+export class WebSocketManagerService
+  implements IExchangeRateWebSocketService, OnModuleDestroy
+{
   private activeService: IExchangeRateWebSocketService | null;
-  private healthCheckInterval: NodeJS.Timeout;
+  private healthCheckInterval: NodeJS.Timeout | null;
 
   constructor(
     @Inject('PRIMARY_WEBSOCKET')
-    primaryService: IExchangeRateWebSocketService,
+    private readonly primaryService: IExchangeRateWebSocketService,
     @Inject('FALLBACK_WEBSOCKET')
-    fallbackService: IExchangeRateWebSocketService,
+    private readonly secondaryService: IExchangeRateWebSocketService,
     private readonly loggerService: CustomLoggerService,
   ) {
-    this.primary = primaryService;
-    this.secondary = fallbackService;
+    this.loggerService.context = WebSocketManagerService.name;
+    this.activeService = this.primaryService;
+  }
 
-    // setting active socket service
-    this.activeService = this.primary;
+  onModuleDestroy() {
+    this.disconnect();
   }
 
   connect(): void {
     this.loggerService.log('Connecting via Primary WebSocket Service...');
     this.activeService?.connect();
-    this.startHealthCheck(); // 연결 시작과 동시에 상태 감시 시작
+    this.startHealthCheck();
   }
 
   disconnect(): void {
-    if (this.healthCheckInterval) clearInterval(this.healthCheckInterval);
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
     this.activeService?.disconnect();
+    this.activeService = null;
+    this.loggerService.log('WebSocket Manager has been fully disconnected.');
   }
 
-  isHealthy(): boolean | null {
-    return this.activeService?.isHealthy() ?? null; // <- 이건 애반데
+  isHealthy(): boolean {
+    return this.activeService?.isHealthy() ?? false;
   }
 
   private startHealthCheck(): void {
-    // 30초마다 활성 서비스의 상태를 체크
+    // 기존 메모리에 남아있는 헬스체크가 있다면, 초기화
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+
     this.healthCheckInterval = setInterval(() => {
-      if (!this.activeService?.isHealthy()) {
+      if (!this.isHealthy()) {
         this.loggerService.warn(
           `Active WebSocket service is unhealthy. Attempting failover...`,
         );
         this.failover();
       }
-    }, 30 * 1000);
+    }, 10 * 1000);
   }
 
   private failover(): void {
-    // 현재 활성 서비스가 1순위였지만 failover시, 2순위로 전환, 컨텍스트도 변경
-    if (this.activeService === this.primary) {
+    if (this.activeService === this.primaryService) {
       this.loggerService.log(
         'Failing over from Primary to Secondary WebSocket.',
       );
-      this.primary.disconnect();
-      this.activeService = this.secondary;
+
+      // Primary 서비스는 이미 unhealthy 상태이므로, 바로 secondary로 교체
+      this.activeService.disconnect();
+      this.activeService = this.secondaryService;
       this.activeService.connect();
-    } else {
-      // 2순위마저 실패한 경우, 아예 소켓연결 종료
-      this.primary.disconnect();
-      this.secondary.disconnect();
 
-      this.activeService?.disconnect();
-      this.activeService = null;
+      this.loggerService.log('Failover to Secondary WebSocket initiated.');
+      return;
+    }
 
-      this.loggerService.warn('Secondary WebSocket failed!');
+    // 만약 백업 서비스도 에러가 났다면 소켓연결 자체를 종료
+    if (this.activeService === this.secondaryService) {
+      this.loggerService.error(
+        'Secondary WebSocket also failed. Shutting down all connections.',
+      );
+      this.disconnect();
+      return;
     }
   }
 }

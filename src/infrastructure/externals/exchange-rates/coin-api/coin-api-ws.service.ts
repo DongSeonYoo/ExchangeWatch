@@ -16,10 +16,11 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
   private readonly defaultBaseCurrency: string = 'KRW';
   private readonly majorCurrencyCode: string[] = supportCurrencyList;
   private readonly socketReceiveInterval: number = 60000;
+  private readonly maxConnectionRetriesCount = 3;
 
   private lastHeartBeat: number | null = null;
-  private connectionRetries: number = 0;
-  private isPermantelyDead: boolean = false;
+  private connectionRetriesCount: number = 0;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly configService: ConfigService<AppConfig, true>,
@@ -27,12 +28,16 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
     private readonly logger: CustomLoggerService,
   ) {
     this.logger.context = CoinApiWebSocketService.name;
+
     this.conApiUrl = this.configService.get('coinApi.baseUrl', {
       infer: true,
     });
   }
 
   connect(): void {
+    // 기존 연결과 타이머 정리
+    this.cleanup();
+
     this.ws = new WebSocket(this.conApiUrl, {
       headers: {
         authorization: this.configService.get('coinApi.apiKey', {
@@ -43,6 +48,8 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
 
     this.ws.on('open', () => {
       this.logger.debug('@@coinapi websocket connected@@');
+      this.lastHeartBeat = Date.now(); // 연결 시 하트비트 초기화
+      this.connectionRetriesCount = 0; // 재연결 시도 횟수 초기화
 
       const currencyPairs = this.majorCurrencyCode
         .filter((currency) => currency !== this.defaultBaseCurrency) // KRW/KRW 방지
@@ -64,9 +71,8 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
         | CoinApiWebSocket.HeartbeatMessage = JSON.parse(data.toString());
 
       if (receivedData.type === 'heartbeat') {
+        this.connectionRetriesCount = 0;
         this.lastHeartBeat = Number(receivedData.time) || Date.now();
-        this.connectionRetries = 0;
-
         return;
       }
 
@@ -86,48 +92,89 @@ export class CoinApiWebSocketService implements IExchangeRateWebSocketService {
       }
     });
 
-    this.ws.on('close', () => {
-      this.logger.debug('WebSocket release');
-
-      // 3번 이상 재시도 시 그냥 연결 꺼버림
-      if (this.connectionRetries >= 3) {
-        this.isPermantelyDead = true;
+    this.ws.on('close', (code, reason) => {
+      // 의도적인 웹소켓 커넥션 종료라면 재연결 없이 그대로 종료
+      if (code === 1000) {
+        this.logger.debug(
+          `WebSocket connection closed normally (code: ${code})`,
+        );
+        this.cleanup();
         return;
       }
 
-      this.connectionRetries++;
-      setTimeout(() => this.connect(), 5000); // 연결 끊겼을시 재연결 로직
+      // 소켓연결이 예상치 못하게 종료되었으면 (네트워크 오류, 서버 문제 등)
+      this.logger.warn(
+        `WebSocket connection closed with code: ${code}${reason ? `, reason: ${reason}` : ''}`,
+      );
+
+      // 재연결 로직 시작
+      if (this.connectionRetriesCount >= this.maxConnectionRetriesCount) {
+        this.logger.error(
+          `Maximum reconnection attempts (${this.maxConnectionRetriesCount}) reached, connection close.`,
+        );
+        this.cleanup();
+        return;
+      }
+
+      this.connectionRetriesCount++;
+      this.logger.debug(
+        `Attempting to reconnect WebSocket (attempt ${this.connectionRetriesCount}/${this.maxConnectionRetriesCount})`,
+      );
+
+      this.reconnectTimeout = setTimeout(() => {
+        this.connect();
+      }, this.maxConnectionRetriesCount);
+      return;
     });
 
     this.ws.on('error', (error) => {
       this.logger.error('WebSocket error', error.stack);
+      this.cleanup();
     });
   }
 
-  /**
-   * coinapi healthcheck method
-   */
   isHealthy(): boolean {
-    // 재연결하다가 영구적으로 죽었을 시
-    if (this.isPermantelyDead) {
-      return false;
-    }
-
     // 소켓 연결상태 메롱이면
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return false;
     }
 
-    // 마지막 하트비트가 60초 이내에 수신되었는지 확인 (CoinAPI는 30초마다 보냄)
-    if (this.lastHeartBeat && Date.now() - this.lastHeartBeat > 60000) {
-      this.logger.warn('No heartbeat received in the last 60 seconds.');
+    // 마지막 하트비트가 수신된 적이 없거나, 마지막 하트비트가 60초 이상 지났으면 false
+    if (!this.lastHeartBeat || Date.now() - this.lastHeartBeat > 60000) {
+      if (this.lastHeartBeat) {
+        // 하트비트가 있었는데 오래된 경우만 경고 로깅
+        this.logger.warn('No heartbeat received in the last 60 seconds.');
+      }
       return false;
     }
+
     return true;
   }
 
   disconnect(): void {
-    this.ws?.close();
-    this.logger.info('Websocket connection closed');
+    this.cleanup();
+    this.logger.info('Disconnect method called for Websocket.');
+  }
+
+  private cleanup(): void {
+    // 혹시모를  재연결 타이머 정리
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    // 기존 WebSocket 연결 정리
+    if (this.ws) {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.close(1000);
+      }
+
+      // 이벤트 리스너 제거하여 메모리 누수 방지
+      this.ws.removeAllListeners();
+    }
+
+    // 상태 초기화
+    this.lastHeartBeat = null;
+    this.logger.debug('Exists socket connections cleanup successfully');
   }
 }

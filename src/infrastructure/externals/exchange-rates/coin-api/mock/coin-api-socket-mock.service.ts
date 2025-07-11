@@ -55,7 +55,7 @@ export class CoinApiSocketMockService implements IExchangeRateWebSocketService {
   }
 
   // always true for dev..
-  isHealthy(): boolean | null {
+  isHealthy(): boolean {
     return true;
   }
 }
