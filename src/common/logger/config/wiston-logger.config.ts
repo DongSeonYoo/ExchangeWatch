@@ -1,5 +1,29 @@
 import * as winston from 'winston';
 import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
+import { ElasticsearchTransport } from 'winston-elasticsearch';
+
+// Elasticsearch Transport
+const esTransport = new ElasticsearchTransport({
+  level: 'info',
+  clientOpts: {
+    node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
+    requestTimeout: 5000,
+    pingTimeout: 3000,
+  },
+  index: 'exchange-watch-logs',
+  indexTemplate: {
+    name: 'exchange-watch-logs-template',
+    patterns: ['exchange-watch-logs-*'],
+    settings: {
+      number_of_shards: 1,
+      number_of_replicas: 0,
+      'index.lifecycle.name': 'exchange-watch-policy',
+      'index.lifecycle.rollover_alias': 'exchange-watch-logs',
+    },
+  },
+  // ES 장애시 에러 처리
+  handleExceptions: false,
+});
 
 export const winstonConfig: winston.LoggerOptions = {
   level: 'debug',
@@ -15,24 +39,10 @@ export const winstonConfig: winston.LoggerOptions = {
       ),
     }),
 
-    new winston.transports.File({
-      filename: 'logs/debug.log',
-      level: 'debug',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json(),
-      ),
-    }),
+    // ES transport for log/monitoring
+    esTransport,
 
-    new winston.transports.File({
-      filename: 'logs/warn.log',
-      level: 'warn',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json(),
-      ),
-    }),
-
+    // 장애대비 파일 백업
     new winston.transports.File({
       filename: 'logs/error.log',
       level: 'error',
