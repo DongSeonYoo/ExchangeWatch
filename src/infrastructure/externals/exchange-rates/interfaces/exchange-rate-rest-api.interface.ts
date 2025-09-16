@@ -14,7 +14,7 @@ export interface IExchangeRateRestAPIService {
     currencyCodes?: string[],
   ): Promise<IExchangeRateExternalAPI.IHistoricalResponse>;
 
-  // fluctuation data by preiod
+  // fluctuation data by perid
   getFluctuationData(
     startDate: Date,
     endDate: Date,
