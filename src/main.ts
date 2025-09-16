@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { setSwagger } from './infrastructure/config/swagger.config';
 import { useContainer } from 'class-validator';
 import { AppConfig } from './infrastructure/config/config.type';
+import { CustomLoggerService } from './common/logger/custom-logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,6 +14,7 @@ async function bootstrap() {
   const frontendUrl = configService.get<string>('frontendURL');
   const apiUrl = configService.get<string>('apiURL');
 
+  app.useLogger(app.get(CustomLoggerService));
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
   app.enableCors({
