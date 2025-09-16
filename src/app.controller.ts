@@ -1,10 +1,14 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ApiSuccess } from './common/decorators/swaggers/success.decorator';
+import { CustomLoggerService } from './common/logger/custom-logger.service';
 
 @ApiTags('HealthCheck')
 @Controller()
 export class AppController {
+  constructor(private readonly logger: CustomLoggerService) {
+    this.logger.context = AppController.name;
+  }
   /**
    * 어플리케이션 모니터링을 위한 헬스체크
    *
@@ -20,5 +24,13 @@ export class AppController {
       status: 'ok',
       uptime: process.uptime(),
     };
+  }
+
+  @Get('test-log')
+  testLog() {
+    this.logger.info('test log!');
+    this.logger.error('test error log!');
+
+    return 'log sent!';
   }
 }
